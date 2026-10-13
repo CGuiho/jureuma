@@ -17,6 +17,7 @@ children:
   - jureuma-runner
   - jureuma-schema
   - jureuma-update
+  - jureuma-welcome
   - jureuma-xerr
 files: {}
 documents: {}
@@ -48,4 +49,5 @@ Container for jureuma's internal Go packages (not importable outside the module)
 - `jureuma-runner`
 - `jureuma-schema`
 - `jureuma-update`
+- `jureuma-welcome`
 - `jureuma-xerr`

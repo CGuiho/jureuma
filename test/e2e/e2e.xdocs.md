@@ -1,6 +1,6 @@
 ---
 subject: jureuma-test-e2e
-description: "End-to-end tests that build jureuma and drive it as a subprocess in throw-away homes and git projects (runx: jureuma-test-e2e)."
+description: "End-to-end tests that build jureuma and drive it as a subprocess in throw-away homes and git projects (runx: test-e2e)."
 parent: jureuma-test
 children: []
 files:
@@ -25,7 +25,7 @@ status: stable
 
 # jureuma-test-e2e
 
-End-to-end tests that build jureuma and drive it as a subprocess in throw-away homes and git projects (runx: jureuma-test-e2e).
+End-to-end tests that build jureuma and drive it as a subprocess in throw-away homes and git projects (runx: test-e2e).
 
 ## Files
 

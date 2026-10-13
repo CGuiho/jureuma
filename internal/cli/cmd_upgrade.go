@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -10,8 +11,10 @@ import (
 	"github.com/CGuiho/jureuma/internal/paths"
 	"github.com/CGuiho/jureuma/internal/runner"
 	"github.com/CGuiho/jureuma/internal/update"
+	"github.com/CGuiho/jureuma/internal/welcome"
 	"github.com/CGuiho/jureuma/internal/xerr"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 func printRecovery(cmd *cobra.Command, version, channel string) {
@@ -170,14 +173,17 @@ func (a *app) cmdUpgradeList() *cobra.Command {
 // ---- bare invocation and background worker ----
 
 func (a *app) runBare(cmd *cobra.Command, args []string) error {
-	if err := cmd.Help(); err != nil {
-		return err
-	}
-	// The startup notice and the background check belong to the bare name
-	// only: no arguments and no flags at all.
+	// The welcome, the startup notice and the background check belong to the
+	// bare name only: no arguments and no flags at all.
 	if len(args) > 0 || cmd.Flags().NFlag() > 0 {
-		return nil
+		return cmd.Help()
 	}
+	out := cmd.OutOrStdout()
+	color := false
+	if f, ok := out.(*os.File); ok {
+		color = welcome.UseColor(term.IsTerminal(int(f.Fd())))
+	}
+	fmt.Fprint(out, welcome.Render("", "", a.version, color))
 	if os.Getenv(update.WorkerEnv) != "" || os.Getenv(update.DisableEnv) != "" {
 		return nil
 	}
