@@ -185,7 +185,7 @@ func TestUninstallKeepsForeignJuju(t *testing.T) {
 		t.Skip("POSIX alias")
 	}
 	p := newProject(t)
-	p.expect(0, "enable-juju")
+	p.expect(0, "juju-enable")
 	alias := filepath.Join(p.home, ".guiho", "bin", "juju")
 	os.WriteFile(alias, []byte("#!/bin/sh\necho canonical juju\n"), 0o755)
 	// A state file pointing elsewhere is never followed.

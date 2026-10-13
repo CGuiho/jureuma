@@ -417,8 +417,8 @@ jureuma
 │   └── retire <keyId>      delete a retired key once no ciphertext uses it
 ├── schema
 │   └── infer               starter schema from plaintext structure and types
-├── enable-juju             install the `juju` alias launcher in ~/.guiho/bin
-├── disable-juju            remove the `juju` alias
+├── juju-enable             install the `juju` alias launcher in ~/.guiho/bin
+├── juju-disable            remove the `juju` alias
 ├── agent …                 convention: skill, instruction, prompt
 ├── upgrade …               convention: upgrade, check, list
 └── uninstall               convention, with the key protections below
@@ -443,7 +443,7 @@ These slot into step 14 of the convention's `init` sequence, for each configured
 
 ## The `juju` Alias
 
-`jureuma` is the canonical name. `jureuma enable-juju` installs `~/.guiho/bin/juju` (`juju.exe` on Windows), a copy of the stable launcher that dispatches to the same active payload, so `juju <args>` behaves exactly like `jureuma <args>`. It refuses to overwrite an existing `juju` that it does not own (for example Canonical's `juju`, if it is in `~/.guiho/bin`) and warns when another `juju` appears earlier on `PATH`. `jureuma disable-juju` removes only the alias it installed. The alias is recorded in `~/.guiho/jureuma/state/alias.json` and removed by uninstall.
+`jureuma` is the canonical name. `jureuma juju-enable` installs `~/.guiho/bin/juju` (`juju.exe` on Windows), a copy of the stable launcher that dispatches to the same active payload, so `juju <args>` behaves exactly like `jureuma <args>`. It refuses to overwrite an existing `juju` that it does not own (for example Canonical's `juju`, if it is in `~/.guiho/bin`) and warns when another `juju` appears earlier on `PATH`. `jureuma juju-disable` removes only the alias it installed. The alias is recorded in `~/.guiho/jureuma/state/alias.json` and removed by uninstall.
 
 ## Configuration
 
@@ -496,7 +496,7 @@ The uninstall plan lists every `keyId` it would remove and how many `*.encrypted
 - **Uninstall and keys:** the convention's default uninstall removes all CLI data, and `--yes` skips the prompt. For `keys/` only, `jureuma` requires the human-only gate even with `--yes`; a non-interactive uninstall preserves `keys/` and says so. Deleting the only copy of a private key makes every committed secret permanently unreadable, so this deliberately narrows the convention's `--yes` contract (confirmed by the user, Q8).
 - **Upgrade and running `run` sessions:** the convention's upgrade kills old payload processes before activation. Killing a `run` parent would stop redaction of the child's remaining output and skip temp-file cleanup. `jureuma upgrade` therefore refuses while `run` instances are registered and alive, and lists them; `--force` sends them a graceful termination signal so they can clean up, only right before activation (after the release is downloaded, verified and installed), never for an up-to-date or failed upgrade.
 - **Upgrade transaction scope:** `jureuma upgrade` performs the synchronous transaction in the payload (lock, staging under `~/.guiho/.temp/jureuma-upgrade-*`, SHA-256 verification against `checksums.txt` and `artifacts.json`, `--version` and `__self-test` of the candidate, immutable `versions/<v>/`, skill projections, `installed-artifacts.json`, atomic `current.json` with `previous`, verification through the launcher, `AGENTS.md` block refresh from a project root, rollback of every step). Deviations: it terminates only registered `run` instances (see above), not every process running the old payload; it keeps no transaction journal, so an interrupted upgrade is repaired by re-running `jureuma upgrade` or the reinstall command rather than automatically on the next invocation; and it requires an installer-managed installation (`current.json` and the stable launcher).
-- **Windows launcher:** no native launcher exists yet. On Windows `~/.guiho/bin/jureuma.exe` is a verified copy of the active payload (artifacts.json records `"windows": "payload-copy"`), so the previous-version fallback of the POSIX launcher does not apply there, and the `juju.exe` alias must be refreshed with `jureuma enable-juju` after an upgrade. `jureuma uninstall` on Windows moves its own running image into `~/.guiho/.temp/guiho-p-jureuma-uninstall-*` and schedules its deletion after exit.
+- **Windows launcher:** no native launcher exists yet. On Windows `~/.guiho/bin/jureuma.exe` is a verified copy of the active payload (artifacts.json records `"windows": "payload-copy"`), so the previous-version fallback of the POSIX launcher does not apply there, and the `juju.exe` alias must be refreshed with `jureuma juju-enable` after an upgrade. `jureuma uninstall` on Windows moves its own running image into `~/.guiho/.temp/guiho-p-jureuma-uninstall-*` and schedules its deletion after exit.
 - **Process termination on upgrade:** see "Upgrade and running `run` sessions"; no other process is inspected or terminated.
 - **Uninstall fallback and deny rules:** when the payload cannot run, `uninstall.sh` and `uninstall.ps1` use a native plan that lists the project's agent-tool deny rules under PRESERVE (they need the payload to be removed exactly); `jureuma uninstall` removes them.
 - **Prompt IDs:** `guiho-p-jureuma` is the default prompt (project setup). Extra prompts use the `guiho-p-jureuma-` prefix: `guiho-p-jureuma-install` (referenced by the README) and `guiho-p-jureuma-uninstall`. Extra skills use the `guiho-s-jureuma-` prefix. Confirmed by the user.
@@ -522,7 +522,7 @@ The uninstall plan lists every `keyId` it would remove and how many `*.encrypted
 | Q3 | Allow selected values to be stored as plaintext (like dotenvx `_PLAIN`)? | Not in v1; later via `x-jureuma-plain` if needed. |
 | Q4 | Store developer private keys in the OS keychain? | v1 files; keychain later. |
 | Q5 | Should `set` also update an existing unencrypted file? | Yes (described above). |
-| Q6 | `juju` alias may clash with Canonical's `juju` CLI. | Resolved: the alias is opt-in (`enable-juju`) and refuses to overwrite a `juju` it does not own. |
+| Q6 | `juju` alias may clash with Canonical's `juju` CLI. | Resolved: the alias is opt-in (`juju-enable`) and refuses to overwrite a `juju` it does not own. |
 | Q7 | Convention names. | Resolved: home `~/.guiho/jureuma/`, skill `guiho-s-jureuma`, prompt `guiho-p-jureuma`, repo `github.com/CGuiho/jureuma` (not created yet). |
 | Q8 | Narrowed `--yes` contract for uninstalling `keys/`. | Resolved: accepted. |
 

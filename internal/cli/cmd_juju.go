@@ -118,7 +118,7 @@ func copyExecutable(src, dst string) error {
 
 func (a *app) cmdEnableJuju() *cobra.Command {
 	return &cobra.Command{
-		Use:   "enable-juju",
+		Use:   "juju-enable",
 		Short: "install the juju alias in ~/.guiho/bin",
 		Long: `Installs ~/.guiho/bin/juju (juju.exe on Windows), a copy of the jureuma launcher (or of this
 executable when no launcher is installed), so "juju <args>" behaves exactly like
@@ -231,8 +231,8 @@ func samePathLoose(a, b string) bool {
 func (a *app) cmdDisableJuju() *cobra.Command {
 	var force bool
 	c := &cobra.Command{
-		Use:   "disable-juju",
-		Short: "remove the juju alias installed by enable-juju",
+		Use:   "juju-disable",
+		Short: "remove the juju alias installed by juju-enable",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, err := paths.Home()
