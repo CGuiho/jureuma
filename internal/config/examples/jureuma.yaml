@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.1.0/jureuma.schema.json
+pairs:
+  - name: config
+    schema: ./config.schema.json
+  - name: production
+    schema: ./config.schema.json
+    encrypted: ./production.encrypted.json
+    unencrypted: ./production.unencrypted.json
+run:
+  format: json
+  envName: JUREUMA_CONFIG
+  prefix: ""
+  override: false
+agent:
+  evolution:
+    upgrade: always-ask
+    issues:
+      bugs: always-ask
+      improvements: always-ask
+      reviews: always-ask

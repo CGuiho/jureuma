@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/CGuiho/mirror/main/mirror/schema/mirror.schema.json
+#
+# GUIHO Mirror is the sole authority for jureuma versions, release commits and tags.
+#
+# jureuma is a Go module, so the canonical version lives in Git tags (v<semver>),
+# which is also what `jureuma upgrade`, devops/install.sh and devops/install.ps1
+# read from the GitHub release catalog. The first release is 0.1.0:
+#
+#   mirror version plan 0.1.0
+#
+# Version-bearing files that Mirror's adapters cannot write (Go has no
+# package.json) are kept in sync by `runx run jureuma-version-sync -- <version>`
+# and checked by `runx run jureuma-version-check -- <version>`:
+#
+#   internal/config/examples/jureuma.yaml         pinned project schema URL
+#   internal/config/examples/jureuma.global.yaml  pinned global schema URL
+#
+# The binary version is injected at build time with
+# -ldflags "-X main.version=<semver>" (devops/version.sh resolves it from the
+# exact v<semver> tag at HEAD or JUREUMA_VERSION).
+schema: 1
+project:
+  name: "jureuma"
+version:
+  scheme: semver
+  source: "git"
+  output: ["git"]
+  prerelease_id: ""
+git:
+  tag_template: "v{version}"
+  commit: true
+  push: true
+  allow_dirty: false
+agents:
+  write_changelog: true
+  changelog_path: CHANGELOG.md
+hooks:
+  "before:plan":
+    instructions:
+      - "Run `runx run jureuma-go-fmt-check`, `runx run jureuma-go-vet-cross` and `runx run jureuma-go-test`; stop if any fails."
+      - "Run `runx run jureuma-docs-check` and `mirror config check`; stop if either fails."
+  "before:apply":
+    instructions:
+      - "Run `runx run jureuma-version-sync -- <next-version>` so the pinned schema URLs in internal/config/examples match the planned version, then `runx run jureuma-go-test`."
+      - "Update CHANGELOG.md for <next-version> and commit the release preparation before `mirror version apply`."
+      - "Apply only with explicit user authorization for the version, commit, tag and push effects."
+  "after:apply":
+    instructions:
+      - "Build the release with `runx run jureuma-release-prepare` from the new tag and verify it with `runx run jureuma-release-verify`. Publishing (`jureuma-release-publish`) needs separate explicit authorization."

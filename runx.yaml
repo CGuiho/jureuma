@@ -1,0 +1,181 @@
+version: '2.0.0'
+
+namespace: 'jureuma'
+
+scripts:
+  directory: 'devops'
+
+commands:
+  - group: go
+    summary: 'Go formatting, vetting, testing and module maintenance.'
+    commands:
+      - uid: jureuma-go-fmt
+        id: fmt
+        summary: 'Format all Go sources in place.'
+        description: 'Rewrite every Go file under cmd/ and internal/ with gofmt.'
+        command: 'gofmt -l -w cmd internal'
+
+      - uid: jureuma-go-fmt-check
+        id: fmt-check
+        summary: 'Fail when a Go file is not gofmt-formatted.'
+        description: 'List Go files under cmd/ and internal/ that gofmt would change and exit 1 when there are any; changes nothing.'
+        command: 'sh devops/fmt-check.sh'
+
+      - uid: jureuma-go-vet
+        id: vet
+        summary: 'Run go vet for the host platform.'
+        description: 'Run go vet over every package for the host GOOS/GOARCH.'
+        command: 'go vet ./...'
+
+      - uid: jureuma-go-vet-cross
+        id: vet-cross
+        summary: 'Run go vet for linux, darwin and windows.'
+        description: 'Run go vet over every package with GOOS set to linux, darwin and windows, so platform-specific files (memfd, signals, detach, ACLs) are checked everywhere.'
+        command: 'GOOS=linux go vet ./... && GOOS=darwin go vet ./... && GOOS=windows go vet ./...'
+
+      - uid: jureuma-go-test
+        id: test
+        summary: 'Run every Go test with the race detector.'
+        description: 'Run go test -race -count=1 over every package. Tests use temporary JUREUMA_USER_HOME directories and never touch the real home.'
+        command: 'go test -race -count=1 ./...'
+
+      - uid: jureuma-go-tidy
+        id: tidy
+        summary: 'Tidy go.mod and go.sum.'
+        description: 'Run go mod tidy to add missing and remove unused module requirements.'
+        command: 'go mod tidy'
+
+  - group: build
+    summary: 'Build jureuma binaries with the version injected.'
+    commands:
+      - uid: jureuma-build
+        id: host
+        summary: 'Build bin/jureuma for the host.'
+        description: 'Build the host binary into bin/ with -ldflags "-X main.version=<version>", where the version comes from devops/version.sh (exact v<semver> tag at HEAD, JUREUMA_VERSION, else 0.0.0-dev).'
+        command: 'sh devops/build.sh'
+
+      - uid: jureuma-build-cross
+        id: cross
+        summary: 'Cross-build all six release targets into dist/.'
+        description: 'Build jureuma-<os>-<arch>[.exe] for linux, darwin and windows on amd64 and arm64 into dist/ (or --out <dir>), CGO disabled, trimpath, with -ldflags "-s -w -X main.version=<version>". Pass --release to require an exact release version.'
+        command: 'sh devops/cross-build.sh'
+
+      - uid: jureuma-run
+        id: run
+        summary: 'Run jureuma from source.'
+        description: 'Run the CLI from source with go run; arguments after the selector are passed to jureuma.'
+        command: 'go run ./cmd/jureuma'
+
+  - group: test
+    summary: 'End-to-end, smoke and installer tests.'
+    commands:
+      - uid: jureuma-test-e2e
+        id: e2e
+        summary: 'Run the end-to-end tests against a built binary.'
+        description: 'Run the test/e2e suite, which builds jureuma once with an injected version and drives it as a subprocess in throw-away homes and git projects (init, encrypt/decrypt, set/unset, run formats and redaction, human-only gate, bypass rules, juju alias, key rotation, sentinel leak checks).'
+        command: 'go test -count=1 ./test/e2e/...'
+
+      - uid: jureuma-test-smoke
+        id: smoke
+        summary: 'Build bin/jureuma and smoke-test it in a throw-away home.'
+        description: 'Build the host binary, then run devops/smoke.sh: init, schema infer, encrypt, list, status, set, run (json, flatten, exit code), human-only get, schema violation, check, key show, usage error and uninstall --dry-run in a temporary JUREUMA_USER_HOME and git project, failing if a planted value leaks.'
+        command: 'sh devops/build.sh && sh devops/smoke.sh'
+
+      - uid: jureuma-test-installers
+        id: installers
+        summary: 'Test install/uninstall scripts against a local release catalog.'
+        description: 'Prepare local releases (host and windows/amd64 targets), serve them with python3 on 127.0.0.1 and exercise devops/install.sh, devops/uninstall.sh and, when pwsh is available, devops/install.ps1 and devops/uninstall.ps1 with a temporary HOME: selection by version and channel, refusal of draft, incomplete and corrupted releases, rollback, reinstall, preservation and the native uninstall fallback.'
+        command: 'sh devops/e2e-installers.sh'
+
+      - uid: jureuma-test-shell-lint
+        id: shell-lint
+        summary: 'Syntax-check and lint the devops scripts.'
+        description: 'Run sh -n (and dash -n, bash -n) on every devops/*.sh script, shellcheck when installed, and the PowerShell parser on devops/*.ps1 when pwsh is installed.'
+        command: 'sh devops/shell-lint.sh'
+
+  - group: release
+    summary: 'Release artifact preparation, verification and publication.'
+    commands:
+      - uid: jureuma-release-prepare
+        id: prepare
+        summary: 'Prepare the complete release artifact set in dist/.'
+        description: 'Recreate dist/ with the six native payloads, guiho-s-jureuma.zip, the three prompts, jureuma-instruction.md, both configuration schemas and examples, artifacts.json (ownership manifest) and checksums.txt, then verify it. Requires the exact v<semver> tag at HEAD (or JUREUMA_VERSION) and matching pinned schema URLs.'
+        command: 'sh devops/release-prepare.sh'
+
+      - uid: jureuma-release-verify
+        id: verify
+        summary: 'Verify a prepared release directory.'
+        description: 'Check that dist/ has every mandatory asset, that checksums.txt is well formed and matches every file, that artifacts.json declares every asset with the same digest, and that the host payload prints the expected version. Changes nothing.'
+        command: 'sh devops/release-verify.sh'
+
+      - uid: jureuma-release-publish
+        id: publish
+        summary: 'Publish dist/ as the GitHub release v<version>.'
+        description: 'Verify dist/ and create the GitHub release for the existing pushed v<version> tag with gh, uploading every artifact (prerelease versions become GitHub prereleases). Publication requires explicit authorization; Mirror creates the tag.'
+        command: 'sh devops/release-publish.sh'
+
+  - group: schema
+    summary: 'Configuration JSON Schema checks and publication.'
+    commands:
+      - uid: jureuma-schema-check
+        id: check
+        summary: 'Validate the configuration schemas and examples.'
+        description: 'Run the config and schema package tests, which compile the embedded jureuma.schema.json and jureuma.global.schema.json and validate the example files against them.'
+        command: 'go test -count=1 ./internal/config/ ./internal/schema/'
+
+      - uid: jureuma-schema-publish
+        id: publish
+        summary: 'Upload the configuration schemas to the GitHub release.'
+        description: 'Upload internal/config/schemas/jureuma.schema.json and jureuma.global.schema.json to the existing release v<version> (gh release upload --clobber), the URLs pinned by yaml-language-server comments. Publication requires explicit authorization.'
+        command: 'sh devops/schema-publish.sh'
+
+  - group: version
+    summary: 'Version resolution and Mirror integration.'
+    commands:
+      - uid: jureuma-version-show
+        id: show
+        summary: 'Print the build version.'
+        description: 'Print the version devops/version.sh resolves: JUREUMA_VERSION, else the exact v<semver> tag at HEAD, else 0.0.0-dev.'
+        command: 'sh devops/version.sh'
+
+      - uid: jureuma-version-sync
+        id: sync
+        summary: 'Pin the example schema URLs to a version.'
+        description: 'Rewrite the yaml-language-server schema URLs in internal/config/examples/*.yaml to the given version (pass it after --), the version-bearing files Mirror cannot write.'
+        command: 'sh devops/version-sync.sh'
+
+      - uid: jureuma-version-check
+        id: check
+        summary: 'Check that the example schema URLs pin a version.'
+        description: 'Exit 1 when internal/config/examples/*.yaml do not pin the given version (pass it after --). Changes nothing.'
+        command: 'sh devops/version-sync.sh --check'
+
+      - uid: jureuma-mirror-check
+        id: mirror-check
+        summary: 'Validate mirror.yaml.'
+        description: 'Run mirror config check against the repository mirror.yaml.'
+        command: 'mirror config check'
+
+      - uid: jureuma-version-plan
+        id: plan
+        summary: 'Plan a Mirror version change without applying it.'
+        description: 'Run mirror version plan with the target passed after -- (for example -- 0.1.0 or -- patch). Planning never creates commits, tags or pushes; apply needs explicit authorization and is deliberately not cataloged here.'
+        command: 'mirror version plan'
+
+  - group: docs
+    summary: 'XDocs documentation validation.'
+    commands:
+      - uid: jureuma-docs-check
+        id: check
+        summary: 'Validate XDocs metadata, tree and health.'
+        description: 'Run xdocs meta . --documents --strict, xdocs tree and xdocs doctor . for the whole repository.'
+        command: 'xdocs meta . --documents --strict >/dev/null && xdocs tree && xdocs doctor .'
+
+  - group: ci
+    summary: 'Aggregate validation.'
+    commands:
+      - uid: jureuma-ci-check
+        id: check
+        summary: 'Run the complete local validation suite.'
+        description: 'Run gofmt check, cross-platform go vet, go test -race, the smoke test, the shell lint, mirror config check, runx check and the XDocs checks. Changes nothing outside bin/ and temporary directories.'
+        command: 'runx run jureuma-go-fmt-check && runx run jureuma-go-vet-cross && runx run jureuma-go-test && runx run jureuma-test-smoke && runx run jureuma-test-shell-lint && mirror config check && runx check --format json >/dev/null && runx run jureuma-docs-check'
