@@ -151,8 +151,8 @@ For the full behaviour, see [docs/2026-10-13-jureuma-design.md](docs/2026-10-13-
 Every project command is cataloged in [`runx.yaml`](runx.yaml). List them with `runx list`, and preview one with `runx run --dry-run <uid>` before running it. Versions, tags and the changelog are managed by Mirror ([`mirror.yaml`](mirror.yaml)). Directory documentation is one `*.xdocs.md` descriptor per directory (browse with `xdocs tree`).
 
 ```sh
-runx run jureuma-ci-check        # gofmt, vet (linux/darwin/windows), go test -race, smoke, shell lint, mirror, runx, xdocs
-runx run jureuma-test-e2e        # end-to-end tests against a built binary
-runx run jureuma-test-installers # install/uninstall scripts against a local release catalog
-runx run jureuma-release-prepare # dist/: six binaries, agent artifacts, schemas, artifacts.json, checksums.txt
+runx run ci-check        # gofmt, vet (linux/darwin/windows), go test -race, smoke, shell lint, mirror, runx, xdocs
+runx run test-e2e        # end-to-end tests against a built binary
+runx run test-installers # install/uninstall scripts against a local release catalog
+runx run release-prepare # dist/: six binaries, agent artifacts, schemas, artifacts.json, checksums.txt
 ```
