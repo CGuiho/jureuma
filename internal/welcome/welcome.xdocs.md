@@ -1,6 +1,6 @@
 ---
 subject: jureuma-welcome
-description: "Left-aligned welcome page printed by a bare jureuma invocation: JUREUMA ANSI Shadow logo, tagline, author, platform/version block and help hint, in gold and the GUIHO palette when stdout is a terminal."
+description: "Left-aligned welcome page printed by a bare jureuma invocation: JUREUMA ANSI Shadow logo, tagline, author, platform/version/author block and help hint, in gold and the GUIHO palette when stdout is a terminal."
 parent: jureuma-internal
 children: []
 files:
@@ -19,7 +19,7 @@ status: stable
 
 # jureuma-welcome
 
-Left-aligned welcome page printed by a bare `jureuma` invocation, modelled on the RunX welcome but not centered: JUREUMA logo, tagline, author, platform/version block and help hint. Colour uses gold for the logo and version, with the GUIHO slate and off-white only when stdout is a terminal and `NO_COLOR` is unset.
+Left-aligned welcome page printed by a bare `jureuma` invocation, modelled on the RunX welcome but not centered: JUREUMA logo, tagline, author, platform/version/author block and help hint. Colour uses gold for the logo and version, with the GUIHO slate and off-white only when stdout is a terminal and `NO_COLOR` is unset.
 
 ## Files
 
