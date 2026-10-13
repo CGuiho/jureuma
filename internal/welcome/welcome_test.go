@@ -28,8 +28,8 @@ func TestRenderPlain(t *testing.T) {
 	}
 	for _, want := range []string{
 		Logo()[0] + "\n",
-		"\n" + Tagline + "\n" + Author + "\n\n\n",
-		"\n\n\nplatform  Linux x64\nversion   v0.1.0\n\n",
+		"\n" + Tagline + "\n" + Author + "\n\nplatform",
+		"\n\nplatform  Linux x64\nversion   v0.1.0\n\n",
 		"Run jureuma --help to see available commands.\n",
 	} {
 		if !strings.Contains(out, want) {

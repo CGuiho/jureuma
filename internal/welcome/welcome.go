@@ -139,7 +139,7 @@ func Render(goos, goarch, version string, color bool) string {
 	b.WriteString(paint(Tagline, ansiSlate+ansiDim))
 	b.WriteByte('\n')
 	b.WriteString(paint(Author, ansiSlate))
-	b.WriteString("\n\n\n")
+	b.WriteString("\n\n")
 
 	b.WriteString(paint("platform", ansiSlate))
 	b.WriteString("  ")
