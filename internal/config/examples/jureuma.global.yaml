@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.1.0/jureuma.global.schema.json
+protections:
+  allowBypass: true
+  agentEnvMarkers: []
+agent:
+  evolution:
+    upgrade: always-ask
+    issues:
+      bugs: always-ask
+      improvements: always-ask
+      reviews: always-ask

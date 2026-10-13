@@ -1,0 +1,272 @@
+package cli
+
+import (
+	"bufio"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/CGuiho/jureuma/internal/config"
+	"github.com/CGuiho/jureuma/internal/crypt"
+	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/jureuma/internal/gate"
+	"github.com/CGuiho/jureuma/internal/keystore"
+	"github.com/CGuiho/jureuma/internal/pair"
+	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/jureuma/internal/schema"
+	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/spf13/cobra"
+)
+
+// pairFlags are the common flags of pair-aware commands.
+type pairFlags struct {
+	name, enc, unenc, schema string
+}
+
+func addPairFlags(c *cobra.Command, pf *pairFlags) {
+	f := c.Flags()
+	f.StringVar(&pf.name, "name", "", "pair stem, e.g. production or apps/api/config (default: first pair in jureuma.yaml, else config)")
+	f.StringVar(&pf.enc, "encrypted-file", "", "encrypted file path (must contain .encrypted.)")
+	f.StringVar(&pf.unenc, "unencrypted-file", "", "unencrypted file path (must contain .unencrypted.)")
+	f.StringVar(&pf.schema, "schema-file", "", "schema file path (overrides jureuma.yaml and $jureuma.schema)")
+}
+
+func (pf *pairFlags) explicit() bool {
+	return pf.name != "" || pf.enc != "" || pf.unenc != ""
+}
+
+// env is the loaded project/global context.
+type env struct {
+	root    string
+	home    string
+	proj    *config.Project
+	glob    *config.Global
+	globErr error
+	store   *keystore.Store
+}
+
+func loadEnv() (*env, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, xerr.Failure("cannot determine the current directory")
+	}
+	root, err := paths.ProjectRoot(wd)
+	if err != nil {
+		return nil, xerr.Failure("cannot resolve the project root")
+	}
+	home, err := paths.Home()
+	if err != nil {
+		return nil, xerr.Failure("cannot resolve the user home directory")
+	}
+	proj, _, err := config.LoadProject(root)
+	if err != nil {
+		return nil, xerr.Wrap(xerr.CodeFailure, xerr.KindFailure, err)
+	}
+	e := &env{root: root, home: home, proj: proj, store: keystore.New(home)}
+	e.glob, _, e.globErr = config.LoadGlobal(home)
+	if e.glob == nil {
+		e.glob = &config.Global{}
+	}
+	return e, nil
+}
+
+func (e *env) effective() config.EffectiveConfig {
+	return config.Effective(e.proj, e.glob)
+}
+
+func (e *env) resolve(pf *pairFlags) (*pair.Pair, error) {
+	return pair.Resolve(pair.Options{Root: e.root, Name: pf.name, EncryptedFile: pf.enc, UnencryptedFile: pf.unenc, SchemaFile: pf.schema, Config: e.proj})
+}
+
+// pairs returns the pairs a project-wide command (check) acts on.
+func (e *env) pairs(pf *pairFlags) ([]*pair.Pair, error) {
+	if pf.explicit() || e.proj == nil || len(e.proj.Pairs) == 0 {
+		p, err := e.resolve(pf)
+		if err != nil {
+			return nil, err
+		}
+		return []*pair.Pair{p}, nil
+	}
+	var out []*pair.Pair
+	for _, pc := range e.proj.Pairs {
+		p, err := pair.Resolve(pair.Options{Root: e.root, Name: pc.Name, SchemaFile: pf.schema, Config: e.proj})
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+// findKey returns the private key for keyID, or nil when no source has it.
+func (e *env) findKey(keyID string) (*crypt.PrivateKey, keystore.Source, error) {
+	sk, src, err := e.store.Find(keyID)
+	if err != nil {
+		if errors.Is(err, keystore.ErrNoKey) {
+			return nil, "", nil
+		}
+		return nil, "", xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+	}
+	return &sk, src, nil
+}
+
+// requireKey returns the private key matching the encrypted file and checks
+// that it derives $jureuma.publicKey.
+func (e *env) requireKey(enc *pair.Encrypted) (crypt.PrivateKey, error) {
+	sk, _, err := e.findKey(enc.Meta.KeyID)
+	if err != nil {
+		return crypt.PrivateKey{}, err
+	}
+	if sk == nil {
+		return crypt.PrivateKey{}, xerr.Key("private key %s not available (set %s or restore %s)", enc.Meta.KeyID, keystore.EnvName(enc.Meta.KeyID), filepath.Join("~", ".guiho", "jureuma", "keys", enc.Meta.KeyID+".json"))
+	}
+	if sk.Public().String() != enc.Meta.PublicKey {
+		return crypt.PrivateKey{}, xerr.Key("the private key does not match $jureuma.publicKey")
+	}
+	return *sk, nil
+}
+
+func (e *env) lock(p *pair.Pair) (func(), error) {
+	unlock, err := paths.Lock(e.home, p.EncryptedPath)
+	if err != nil {
+		if errors.Is(err, paths.ErrLocked) {
+			return nil, xerr.Failure("%s is locked by another jureuma process", p.Rel(p.EncryptedPath))
+		}
+		return nil, xerr.Failure("cannot take the pair lock")
+	}
+	return unlock, nil
+}
+
+// loadSchema loads the pair's schema; (nil, nil) when the file is missing.
+func loadSchema(p *pair.Pair) (*schema.Schema, error) {
+	if _, err := os.Stat(p.SchemaPath); errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	s, err := schema.Load(p.SchemaPath)
+	if err != nil {
+		return nil, xerr.Wrap(xerr.CodeValidation, xerr.KindValidation, err)
+	}
+	return s, nil
+}
+
+func fileExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
+// readPlainIfExists returns nil when the unencrypted file is missing.
+func readPlainIfExists(p *pair.Pair) (*doc.Value, error) {
+	if !fileExists(p.UnencryptedPath) {
+		return nil, nil
+	}
+	return pair.ReadPlain(p.UnencryptedPath, p.UnencryptedIsJSONC)
+}
+
+func issuesErr(cmd *cobra.Command, file string, issues []schema.Issue) error {
+	for _, is := range issues {
+		errf(cmd, "  %s\n", is.String())
+	}
+	return xerr.Validation("%s: %d validation issue(s)", file, len(issues))
+}
+
+// ---- protections ----
+
+const protectedMsg = "[PROTECTED] %s is human-only. A human must run it in an interactive terminal."
+
+func (e *env) audit(cmd *cobra.Command, files []string, outcome string, bypass bool) error {
+	eff := e.effective()
+	return gate.Audit(e.home, gate.AuditEvent{
+		Time:    time.Now().UTC(),
+		Command: cmd.CommandPath(),
+		Paths:   files,
+		Outcome: outcome,
+		Markers: gate.DetectAgents(os.Getenv, eff.Protections.AgentEnvMarkers),
+		Bypass:  bypass,
+	})
+}
+
+// checkBypass validates --dangerously-bypass-protections: allowed by the
+// global configuration, protections block intact, warning printed, audited.
+func (e *env) checkBypass(cmd *cobra.Command, files []string) error {
+	if paths.HomeRelocated() {
+		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is refused while %s relocates the home away from the user's home directory", paths.HomeOverrideEnv)
+	}
+	if e.globErr != nil {
+		_ = e.audit(cmd, files, "bypass-refused", true)
+		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is refused: %s is invalid", config.GlobalFile)
+	}
+	if !e.glob.Protections.BypassAllowed() {
+		_ = e.audit(cmd, files, "bypass-refused", true)
+		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is disabled by protections.allowBypass")
+	}
+	intact, err := config.ProtectionsIntact(e.home, e.glob)
+	if err != nil || !intact {
+		_ = e.audit(cmd, files, "bypass-refused", true)
+		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is refused: the protections block in %s does not match its seal (a human must re-run jureuma init interactively)", config.GlobalFile)
+	}
+	if err := e.audit(cmd, files, "bypassed", true); err != nil {
+		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is refused: the audit log cannot be written")
+	}
+	errf(cmd, "warning: --dangerously-bypass-protections: %s runs without the human-only gate; this was recorded in the audit log\n", cmd.CommandPath())
+	return nil
+}
+
+// protect runs the human-only gate (or validates the bypass).
+func (e *env) protect(cmd *cobra.Command, action string, files []string, bypass bool) error {
+	if bypass {
+		return e.checkBypass(cmd, files)
+	}
+	g := gate.New(e.effective().Protections.AgentEnvMarkers)
+	if err := g.Check(action); err != nil {
+		_ = e.audit(cmd, files, "refused", false)
+		return xerr.Protected(protectedMsg, cmd.CommandPath())
+	}
+	_ = e.audit(cmd, files, "allowed", false)
+	return nil
+}
+
+func addBypassFlag(c *cobra.Command, p *bool, usage string) {
+	c.Flags().BoolVar(p, "dangerously-bypass-protections", false, usage)
+}
+
+// ---- interactive prompts ----
+
+func interactive() bool {
+	return gate.IsTerminal(os.Stdin) && gate.IsTerminal(os.Stderr)
+}
+
+var stdinReader *bufio.Reader
+
+func ask(cmd *cobra.Command, question string) (string, bool) {
+	errf(cmd, "%s", question)
+	if stdinReader == nil {
+		stdinReader = bufio.NewReader(os.Stdin)
+	}
+	line, err := stdinReader.ReadString('\n')
+	if err != nil && line == "" {
+		errf(cmd, "\n")
+		return "", false
+	}
+	return strings.TrimSpace(line), true
+}
+
+func askYesNo(cmd *cobra.Command, question string, def bool) bool {
+	suffix := " [y/N] "
+	if def {
+		suffix = " [Y/n] "
+	}
+	ans, ok := ask(cmd, question+suffix)
+	if !ok || ans == "" {
+		return def
+	}
+	switch strings.ToLower(ans) {
+	case "y", "yes":
+		return true
+	case "n", "no":
+		return false
+	}
+	return def
+}

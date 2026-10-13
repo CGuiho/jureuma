@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "jureuma project configuration (jureuma.yaml)",
+  "description": "Project configuration for the jureuma CLI. Protections are global-only and are rejected here.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "pairs": {
+      "description": "Configuration pairs declared for this project.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pair"
+      }
+    },
+    "run": {
+      "$ref": "#/$defs/run"
+    },
+    "agent": {
+      "$ref": "#/$defs/agent"
+    }
+  },
+  "$defs": {
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Pair stem relative to the project root, for example config or apps/api/config.",
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "anyOf": [
+              {
+                "pattern": "^[/\\\\]"
+              },
+              {
+                "pattern": "^[A-Za-z]:"
+              },
+              {
+                "pattern": "(^|[/\\\\])\\.\\.([/\\\\]|$)"
+              }
+            ]
+          }
+        },
+        "schema": {
+          "description": "Schema file relative to the project root.",
+          "type": "string",
+          "minLength": 1
+        },
+        "encrypted": {
+          "description": "Encrypted file path; must contain .encrypted.",
+          "type": "string",
+          "pattern": "\\.encrypted\\."
+        },
+        "unencrypted": {
+          "description": "Unencrypted file path; must contain .unencrypted.",
+          "type": "string",
+          "pattern": "\\.unencrypted\\."
+        }
+      }
+    },
+    "run": {
+      "description": "Defaults for jureuma run.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "description": "Environment mapping: json (default), flatten or file.",
+          "enum": [
+            "json",
+            "flatten",
+            "file"
+          ]
+        },
+        "envName": {
+          "description": "Variable that receives the document (json) or its path (file). Default JUREUMA_CONFIG.",
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "prefix": {
+          "description": "Prefix prepended to flattened variable names.",
+          "type": "string",
+          "pattern": "^([A-Za-z_][A-Za-z0-9_]*)?$"
+        },
+        "override": {
+          "description": "Injected values replace existing environment variables.",
+          "type": "boolean"
+        }
+      }
+    },
+    "policy": {
+      "description": "Agent evolution policy.",
+      "enum": [
+        "disabled",
+        "always-ask",
+        "always-proceed"
+      ]
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evolution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "upgrade": {
+              "$ref": "#/$defs/policy"
+            },
+            "issues": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "bugs": {
+                  "$ref": "#/$defs/policy"
+                },
+                "improvements": {
+                  "$ref": "#/$defs/policy"
+                },
+                "reviews": {
+                  "$ref": "#/$defs/policy"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
