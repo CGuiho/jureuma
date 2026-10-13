@@ -16,10 +16,10 @@ const (
 	ansiBold  = "\x1b[1m"
 	ansiDim   = "\x1b[2m"
 
-	// GUIHO palette: 8D99AE, EDF2F4, with gold FFD700 as the accent.
+	// GUIHO palette: 8D99AE, EDF2F4, with blue 3B82F6 as the accent.
 	ansiSlate    = "\x1b[38;2;141;153;174m"
 	ansiOffWhite = "\x1b[38;2;237;242;244m"
-	ansiGold     = "\x1b[38;2;255;215;0m"
+	ansiBlue     = "\x1b[38;2;59;130;246m"
 )
 
 const (
@@ -136,7 +136,7 @@ func Render(goos, goarch, version string, color bool) string {
 	// Blank lines frame the page so it never touches the prompt lines.
 	b.WriteByte('\n')
 	for _, row := range Logo() {
-		b.WriteString(paint(row, ansiGold+ansiBold))
+		b.WriteString(paint(row, ansiBlue+ansiBold))
 		b.WriteByte('\n')
 	}
 	b.WriteString(paint(Tagline, ansiSlate+ansiDim))
@@ -150,12 +150,12 @@ func Render(goos, goarch, version string, color bool) string {
 	b.WriteByte('\n')
 	b.WriteString(paint("Version", ansiSlate))
 	b.WriteString("   ")
-	b.WriteString(paint("v"+strings.TrimPrefix(version, "v"), ansiGold+ansiBold))
+	b.WriteString(paint("v"+strings.TrimPrefix(version, "v"), ansiBlue+ansiBold))
 	b.WriteByte('\n')
 	b.WriteString(paint("Author", ansiSlate))
 	b.WriteString("    ")
 	b.WriteString(paint("GUIHO (", ansiOffWhite))
-	b.WriteString(paint(Website, ansiGold))
+	b.WriteString(paint(Website, ansiBlue))
 	b.WriteString(paint(")", ansiOffWhite))
 	b.WriteString("\n\n")
 
