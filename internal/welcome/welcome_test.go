@@ -29,9 +29,7 @@ func TestRenderPlain(t *testing.T) {
 	for _, want := range []string{
 		Logo()[0] + "\n",
 		"\n" + Tagline + "\n" + Author + "\n\n\n",
-		"Creator    Cristóvão GUIHO\n",
-		"  platform      Linux x64\n",
-		"  version       v0.1.0\n\n",
+		"\n\n\nplatform  Linux x64\nversion   v0.1.0\n\n",
 		"Run jureuma --help to see available commands.\n",
 	} {
 		if !strings.Contains(out, want) {
@@ -40,6 +38,9 @@ func TestRenderPlain(t *testing.T) {
 	}
 	// Left-aligned: no line starts with centering spaces except the
 	// indented detail rows and the J glyph's own leading spaces.
+	if strings.Contains(out, "Creator") {
+		t.Error("the Creator line was removed")
+	}
 	for _, line := range strings.Split(out, "\n") {
 		if strings.HasPrefix(line, Tagline) || strings.HasPrefix(line, Author) {
 			continue

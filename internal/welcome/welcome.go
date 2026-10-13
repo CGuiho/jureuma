@@ -1,7 +1,7 @@
 // Package welcome renders the greeting printed by a bare `jureuma` invocation.
 //
 // The layout follows the GUIHO RunX welcome (logo, tagline, author line, then a
-// creator/platform/version block and a help hint), left-aligned instead of
+// platform/version block and a help hint), left-aligned instead of
 // centered.
 package welcome
 
@@ -25,7 +25,6 @@ const (
 const (
 	Tagline = "Agent-safe configuration"
 	Author  = "GUIHO · Cristóvão GUIHO"
-	Creator = "Cristóvão GUIHO"
 )
 
 // ANSI Shadow glyphs, six rows each.
@@ -142,18 +141,12 @@ func Render(goos, goarch, version string, color bool) string {
 	b.WriteString(paint(Author, ansiSlate))
 	b.WriteString("\n\n\n")
 
-	b.WriteString(paint("Creator  ", ansiSlate))
-	b.WriteString("  ")
-	b.WriteString(paint(Creator, ansiOffWhite+ansiBold))
-	b.WriteByte('\n')
-	b.WriteString("  ")
 	b.WriteString(paint("platform", ansiSlate))
-	b.WriteString("      ")
+	b.WriteString("  ")
 	b.WriteString(paint(label(platformLabels, goos)+" "+label(archLabels, goarch), ansiOffWhite))
 	b.WriteByte('\n')
-	b.WriteString("  ")
 	b.WriteString(paint("version", ansiSlate))
-	b.WriteString("       ")
+	b.WriteString("   ")
 	b.WriteString(paint("v"+strings.TrimPrefix(version, "v"), ansiGold+ansiBold))
 	b.WriteString("\n\n")
 
