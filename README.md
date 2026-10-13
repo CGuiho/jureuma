@@ -148,7 +148,7 @@ For the full behaviour, see [docs/2026-10-13-jureuma-design.md](docs/2026-10-13-
 
 ## Development
 
-Every project command is cataloged in [`runx.yaml`](runx.yaml). List them with `runx list`, and preview one with `runx run --dry-run <uid>` before running it. Versions, tags and the changelog are managed by Mirror ([`mirror.yaml`](mirror.yaml)). Directory documentation lives in [`XDOCS.md`](XDOCS.md) and one `*.xdocs.md` descriptor per directory.
+Every project command is cataloged in [`runx.yaml`](runx.yaml). List them with `runx list`, and preview one with `runx run --dry-run <uid>` before running it. Versions, tags and the changelog are managed by Mirror ([`mirror.yaml`](mirror.yaml)). Directory documentation is one `*.xdocs.md` descriptor per directory (browse with `xdocs tree`).
 
 ```sh
 runx run jureuma-ci-check        # gofmt, vet (linux/darwin/windows), go test -race, smoke, shell lint, mirror, runx, xdocs

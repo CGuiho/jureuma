@@ -12,7 +12,7 @@ Instructions for AI agents working in the `jureuma` repository.
 - The CLI home is `~/.guiho/jureuma/`. Tests must set `JUREUMA_USER_HOME` (Go) or `HOME` (installer scripts) to a temporary directory and never touch the real home.
 - Never put configuration values, plaintext or key material in any error message, log, test name or fixture output.
 
-Behaviour is specified in [`docs/2026-10-13-jureuma-design.md`](docs/2026-10-13-jureuma-design.md). Package APIs are in [`docs/2026-10-13-jureuma-implementation-contracts.md`](docs/2026-10-13-jureuma-implementation-contracts.md). User documentation is in [`README.md`](README.md). The directory map is [`XDOCS.md`](XDOCS.md).
+Behaviour is specified in [`docs/2026-10-13-jureuma-design.md`](docs/2026-10-13-jureuma-design.md). Package APIs are in [`docs/2026-10-13-jureuma-implementation-contracts.md`](docs/2026-10-13-jureuma-implementation-contracts.md). User documentation is in [`README.md`](README.md). The directory map is `xdocs tree`.
 
 ### Layout
 
@@ -72,7 +72,7 @@ The repository root must contain `mirror.yaml`, `runx.yaml`, and `xdocs.yaml`.
 
 - **Mirror** is the sole authority for versions, changelog, release commits, and tags. Never edit version fields or create tags by hand. Run `mirror config check` and `mirror version plan <target>`; run `mirror version apply <target> --yes` only with explicit user authorization.
 - **RunX** catalogs every supported project command in `runx.yaml` (build, test, vet, docs, schema generation, release prep, etc.). No workflow may exist only in a README, CI step, or shell history. Use `runx list` to discover operations and `runx run --dry-run <uid>` before mutating commands. After catalog changes run `runx check --format json` and `runx list --format json`.
-- **XDocs** documents every project-owned directory with exactly one `*.xdocs.md` descriptor, plus a root `XDOCS.md`. Update descriptors in the same work unit as the change. Validate with `xdocs meta <scope> --documents --strict`, `xdocs tree`, and `xdocs doctor <scope>`.
+- **XDocs** documents every project-owned directory with exactly one `*.xdocs.md` descriptor (no root `XDOCS.md` index; browse with `xdocs tree`). Update descriptors in the same work unit as the change. Validate with `xdocs meta <scope> --documents --strict`, `xdocs tree`, and `xdocs doctor <scope>`.
 
 ## Key CLI Rules (summary; the convention is authoritative)
 
@@ -103,3 +103,42 @@ stable UIDs, use `runx describe <uid>`, and run
 RunX options precede the selector; post-selector tokens belong to the child.
 <!-- END RUNX -->
 
+<!-- BEGIN XDOCS — DO NOT EDIT THIS SECTION -->
+## XDocs Structured Documentation
+
+This project uses **xdocs** for structured, machine-readable documentation.
+Load the `guiho-s-xdocs` agent skill when working with structured
+documentation, `XDOCS.md` indexes, named `*.xdocs.md` descriptors,
+companion documents, repository scanning, metadata discovery, or validation.
+Use exactly one named descriptor per directory, such as
+`technologies/technologies.xdocs.md`. The bare `.xdocs.md` and legacy
+`.docs.md` names are invalid; the root `XDOCS.md` index is a special setup
+file, not a second per-directory descriptor.
+
+The project configuration is `xdocs.yaml`. Respect `ai.mode`:
+`prompt` asks before already-authorized documentation writes, while
+`auto` performs them immediately. Neither mode grants permission.
+`documentation.directories` lists repository-relative directories whose
+non-excluded subtrees may receive descriptor writes; `.` grants the whole
+project and an empty list grants none. `documentation.frontmatter` contains
+explicit `{pattern, kind}` rules for ordinary Markdown metadata, and those
+rules work only inside an authorized directory. A legacy `ignore.rules` entry
+with `frontmatter: false` always denies frontmatter and wins over an opt-in.
+Keep ordinary Markdown listed in descriptor `documents` metadata without
+adding headers unless both explicit grants match. Respect
+`ignore.gitignore` and every `ignore.rules` entry.
+
+Read-only `xdocs scan`, `xdocs meta`, `xdocs context`,
+and `xdocs doctor` operations, plus `xdocs tree` without
+`--output`, discover independently of the write allowlist. `xdocs tree` walks every non-excluded directory to arbitrary depth,
+retains every named descriptor and the special root index, and reports malformed
+or orphaned metadata without hiding paths. `meta --existing-frontmatter` and
+`doctor --existing-frontmatter` audit existing ordinary Markdown headers
+without requiring missing headers or writing repairs. `generate`,
+`merge`, and `tree` print reports to stdout unless one exact
+`--output` path is requested; that report path does not authorize any other
+document writes and a generated report is never a descriptor.
+
+The explicit `xdocs init` root-index creation and agent-resource bootstrap
+are setup exceptions. They do not authorize arbitrary Markdown metadata edits.
+<!-- END XDOCS -->
