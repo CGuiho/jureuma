@@ -52,7 +52,7 @@ func TestRenderPlain(t *testing.T) {
 
 func TestRenderColor(t *testing.T) {
 	out := Render("darwin", "arm64", "1.2.3", true)
-	if !strings.Contains(out, ansiBrightRed) || !strings.Contains(out, "macOS arm64") || !strings.Contains(out, "v1.2.3") {
+	if !strings.Contains(out, ansiGold) || !strings.Contains(out, "macOS arm64") || !strings.Contains(out, "v1.2.3") {
 		t.Fatalf("unexpected colour output:\n%s", out)
 	}
 }

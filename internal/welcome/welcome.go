@@ -16,10 +16,10 @@ const (
 	ansiBold  = "\x1b[1m"
 	ansiDim   = "\x1b[2m"
 
-	// GUIHO palette: 8D99AE, EDF2F4, EF233C.
-	ansiSlate     = "\x1b[38;2;141;153;174m"
-	ansiOffWhite  = "\x1b[38;2;237;242;244m"
-	ansiBrightRed = "\x1b[38;2;239;35;60m"
+	// GUIHO palette: 8D99AE, EDF2F4, with gold FFD700 as the accent.
+	ansiSlate    = "\x1b[38;2;141;153;174m"
+	ansiOffWhite = "\x1b[38;2;237;242;244m"
+	ansiGold     = "\x1b[38;2;255;215;0m"
 )
 
 const (
@@ -134,7 +134,7 @@ func Render(goos, goarch, version string, color bool) string {
 
 	var b strings.Builder
 	for _, row := range Logo() {
-		b.WriteString(paint(row, ansiBrightRed+ansiBold))
+		b.WriteString(paint(row, ansiGold+ansiBold))
 		b.WriteByte('\n')
 	}
 	b.WriteString(paint(Tagline, ansiSlate+ansiDim))
@@ -154,7 +154,7 @@ func Render(goos, goarch, version string, color bool) string {
 	b.WriteString("  ")
 	b.WriteString(paint("version", ansiSlate))
 	b.WriteString("       ")
-	b.WriteString(paint("v"+strings.TrimPrefix(version, "v"), ansiBrightRed+ansiBold))
+	b.WriteString(paint("v"+strings.TrimPrefix(version, "v"), ansiGold+ansiBold))
 	b.WriteString("\n\n")
 
 	b.WriteString("Run ")
