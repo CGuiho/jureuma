@@ -27,10 +27,10 @@ func TestRenderPlain(t *testing.T) {
 		t.Fatal("plain output contains ANSI escapes")
 	}
 	for _, want := range []string{
-		Logo()[0] + "\n",
+		"\n" + Logo()[0] + "\n",
 		"\n" + Tagline + "\n" + Author + "\n\nplatform",
 		"\n\nplatform  Linux x64\nversion   v0.1.0\n\n",
-		"Run jureuma --help to see available commands.\n",
+		"Run jureuma --help to see available commands.\n\n",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\n%s", want, out)
@@ -38,6 +38,9 @@ func TestRenderPlain(t *testing.T) {
 	}
 	// Left-aligned: no line starts with centering spaces except the
 	// indented detail rows and the J glyph's own leading spaces.
+	if !strings.HasPrefix(out, "\n") || !strings.HasSuffix(out, "commands.\n\n") {
+		t.Error("the page must start and end with a blank line")
+	}
 	if strings.Contains(out, "Creator") {
 		t.Error("the Creator line was removed")
 	}
