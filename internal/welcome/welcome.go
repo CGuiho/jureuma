@@ -23,9 +23,9 @@ const (
 )
 
 const (
-	Tagline      = "Agent-safe configuration"
-	Author       = "GUIHO · Cristóvão GUIHO"
-	Organization = "GUIHO (www.guiho.co)"
+	Tagline = "Agent-safe configuration"
+	Author  = "GUIHO · Cristóvão GUIHO"
+	Website = "www.guiho.co"
 )
 
 // ANSI Shadow glyphs, six rows each.
@@ -154,7 +154,9 @@ func Render(goos, goarch, version string, color bool) string {
 	b.WriteByte('\n')
 	b.WriteString(paint("Author", ansiSlate))
 	b.WriteString("    ")
-	b.WriteString(paint(Organization, ansiOffWhite))
+	b.WriteString(paint("GUIHO (", ansiOffWhite))
+	b.WriteString(paint(Website, ansiGold))
+	b.WriteString(paint(")", ansiOffWhite))
 	b.WriteString("\n\n")
 
 	b.WriteString("Run ")
