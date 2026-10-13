@@ -50,7 +50,7 @@ knows how to use jureuma safely, creates the configuration files, and asks the u
 agent-evolution policy. If it needs answers and no interactive terminal is available, ask the
 user to run `jureuma init` themselves. Then verify again with `jureuma --version`.
 
-Optional: `jureuma enable-juju` installs the short alias `juju`. Ask the user before enabling it.
+Optional: `jureuma juju-enable` installs the short alias `juju`. Ask the user before enabling it.
 
 From now on, never read any `*.unencrypted.*` file or anything under `~/.guiho/jureuma/`, and
 never pass `--dangerously-bypass-protections` unless the user explicitly asks for it.

@@ -127,12 +127,12 @@ This protects against accidental disclosure to agents. It does not protect again
 ## The `juju` alias
 
 ```sh
-jureuma enable-juju    # installs ~/.guiho/bin/juju, which dispatches to the active jureuma
+jureuma juju-enable    # installs ~/.guiho/bin/juju, which dispatches to the active jureuma
 juju status
-jureuma disable-juju   # removes only the alias jureuma installed
+jureuma juju-disable   # removes only the alias jureuma installed
 ```
 
-`enable-juju` refuses to overwrite a `juju` it does not own, such as Canonical's Juju, and warns when another `juju` comes earlier on `PATH`.
+`juju-enable` refuses to overwrite a `juju` it does not own, such as Canonical's Juju, and warns when another `juju` comes earlier on `PATH`.
 
 ## Command reference
 

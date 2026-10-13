@@ -237,7 +237,7 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 	outf(cmd, "verified: %s --version reports %s\n", launcher, tx.version)
 	if runtime.GOOS == "windows" {
 		if _, _, owned := aliasOwned(home); owned {
-			outf(cmd, "note: re-run jureuma enable-juju to refresh the juju alias\n")
+			outf(cmd, "note: re-run jureuma juju-enable to refresh the juju alias\n")
 		}
 	}
 	outf(cmd, "next: run jureuma init, then jureuma --version\n")

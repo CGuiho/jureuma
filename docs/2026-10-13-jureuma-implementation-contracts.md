@@ -306,7 +306,7 @@ func SkillInstalledCurrent(s Skill, dest string) bool
 
 ## `internal/cli`
 
-Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, export, rotate, retire}`, `schema {infer}`, `enable-juju`, `disable-juju`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/jureuma/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
+Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, export, rotate, retire}`, `schema {infer}`, `juju-enable`, `juju-disable`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/jureuma/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
 
 ## Exit codes
 

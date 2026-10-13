@@ -7,7 +7,7 @@ description: Use whenever a project uses jureuma (or its juju alias) or needs co
 
 `jureuma` is an **agent-safe configuration CLI** (repository: https://github.com/CGuiho/jureuma). A human writes configuration and secrets in plain JSON; jureuma encrypts every value into a sibling file that is safe to commit and validates the configuration against a JSON Schema. Agents can **set** values and **inject** them into processes, but cannot **read** them through jureuma: decrypting and reading are human-only.
 
-`juju` is an optional alias (`jureuma enable-juju`). It behaves exactly like `jureuma`. Always write `jureuma` in commands, scripts, and documentation.
+`juju` is an optional alias (`jureuma juju-enable`). It behaves exactly like `jureuma`. Always write `jureuma` in commands, scripts, and documentation.
 
 ## The file model
 
@@ -146,7 +146,7 @@ Pair-aware commands accept `--name`, `--encrypted-file`, `--unencrypted-file`, `
 | `jureuma key rotate` | New key pair, re-encrypt every value, retire the old key. Needs the private key. Rotation does not revoke git history. |
 | `jureuma key retire <keyId>` | Delete a retired key once no ciphertext uses it. |
 | `jureuma schema infer [--force]` | Generate a starter schema from structure and JSON types (never values). |
-| `jureuma enable-juju` / `disable-juju` | Install or remove the `juju` alias in `~/.guiho/bin`. |
+| `jureuma juju-enable` / `juju-disable` | Install or remove the `juju` alias in `~/.guiho/bin`. |
 | `jureuma agent skill install\|uninstall\|upgrade\|list\|show` | Manage the bundled skills (this one is `guiho-s-jureuma`). |
 | `jureuma agent instruction apply\|remove\|upgrade\|show` | Manage jureuma's managed block in `AGENTS.md`. |
 | `jureuma agent prompt list\|show` | Inspect bundled prompts: `guiho-p-jureuma` (default), `guiho-p-jureuma-install`, `guiho-p-jureuma-uninstall`. |

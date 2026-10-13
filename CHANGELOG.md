@@ -4,4 +4,4 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 
 ## Unreleased
 
-- First release candidate, planned as 0.1.0: the agent-safe configuration CLI (`init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key`, `schema infer`, `enable-juju`, `disable-juju`, `agent`, `upgrade`, `uninstall`), the lifecycle scripts in `devops/`, and the release artifact pipeline.
+- First release candidate, planned as 0.1.0: the agent-safe configuration CLI (`init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key`, `schema infer`, `juju-enable`, `juju-disable`, `agent`, `upgrade`, `uninstall`), the lifecycle scripts in `devops/`, and the release artifact pipeline.

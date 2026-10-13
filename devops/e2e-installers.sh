@@ -206,7 +206,7 @@ printf '# Project\n\nKeep this line.\n' > "$P/AGENTS.md"
 grep -qF '<!-- >>> jureuma managed block >>> -->' "$P/AGENTS.md" || fail 'AGENTS.md block not applied'
 ok 'install.sh applies the AGENTS.md block from a project root'
 (cd "$P" && env HOME="$H" PATH="$H/.guiho/bin:$clean_path" jureuma init --agent-evolution always-ask --agent-deny-rules no >/dev/null)
-(cd "$P" && env HOME="$H" PATH="$H/.guiho/bin:$clean_path" jureuma enable-juju >/dev/null)
+(cd "$P" && env HOME="$H" PATH="$H/.guiho/bin:$clean_path" jureuma juju-enable >/dev/null)
 [ "$(env HOME="$H" "$H/.guiho/bin/juju" --version)" = 0.1.0 ] || fail 'juju alias does not dispatch'
 ok 'jureuma init and the juju alias work through the launcher'
 

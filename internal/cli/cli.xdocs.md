@@ -12,7 +12,7 @@ files:
   "cmd_info.go": "list, status and check."
   "cmd_key.go": "key show, export, rotate and retire."
   "cmd_schema.go": "schema infer."
-  "cmd_juju.go": "enable-juju and disable-juju (alias ownership by SHA-256)."
+  "cmd_juju.go": "juju-enable and juju-disable (alias ownership by SHA-256)."
   "cmd_agent.go": "agent skill, instruction and prompt commands."
   "cmd_upgrade.go": "upgrade, upgrade check and upgrade list with the reinstall recovery block."
   "cmd_uninstall.go": "uninstall with the REMOVE/PRESERVE plan and key protection."
@@ -37,7 +37,7 @@ keywords:
   - "decrypt"
   - "uninstall"
   - "upgrade"
-  - "enable-juju"
+  - "juju-enable"
 flags: []
 status: stable
 ---
@@ -56,7 +56,7 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `cmd_info.go`: list, status and check.
 - `cmd_key.go`: key show, export, rotate and retire.
 - `cmd_schema.go`: schema infer.
-- `cmd_juju.go`: enable-juju and disable-juju (alias ownership by SHA-256).
+- `cmd_juju.go`: juju-enable and juju-disable (alias ownership by SHA-256).
 - `cmd_agent.go`: agent skill, instruction and prompt commands.
 - `cmd_upgrade.go`: upgrade, upgrade check and upgrade list with the reinstall recovery block.
 - `cmd_uninstall.go`: uninstall with the REMOVE/PRESERVE plan and key protection.
