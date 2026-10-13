@@ -132,6 +132,8 @@ func Render(goos, goarch, version string, color bool) string {
 	}
 
 	var b strings.Builder
+	// Blank lines frame the page so it never touches the prompt lines.
+	b.WriteByte('\n')
 	for _, row := range Logo() {
 		b.WriteString(paint(row, ansiGold+ansiBold))
 		b.WriteByte('\n')
@@ -152,7 +154,7 @@ func Render(goos, goarch, version string, color bool) string {
 
 	b.WriteString("Run ")
 	b.WriteString(paint("jureuma --help", ansiOffWhite+ansiBold))
-	b.WriteString(" to see available commands.\n")
+	b.WriteString(" to see available commands.\n\n")
 	return b.String()
 }
 
