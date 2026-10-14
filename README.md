@@ -1,6 +1,6 @@
-# jureuma
+# GUIHO Jureuma
 
-**jureuma** is an agent-safe configuration CLI. Humans write configuration and secrets in a plain JSON file that never leaves their machine. jureuma encrypts every value into a sibling file that is safe to commit and validates the configuration against a JSON Schema. AI agents can **set** values and **inject** them into processes, but they cannot **read** them through jureuma.
+**GUIHO Jureuma** (`jureuma`) is an agent-safe configuration CLI. Humans write configuration and secrets in a plain JSON file that never leaves their machine. jureuma encrypts every value into a sibling file that is safe to commit and validates the configuration against a JSON Schema. AI agents can **set** values and **inject** them into processes, but they cannot **read** them through jureuma.
 
 ```text
 config.unencrypted.json   plaintext, human-owned, always gitignored
