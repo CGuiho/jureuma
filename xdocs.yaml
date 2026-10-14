@@ -1,0 +1,50 @@
+schema: 1
+extensions:
+  supported:
+    - .xdocs.md
+ai:
+  mode: auto
+scan:
+  exclude:
+    - .git
+    - bin
+    - dist
+ignore:
+  gitignore: true
+  rules:
+    - pattern: "**/AGENTS.md"
+      kind: file
+      frontmatter: false
+    - pattern: "**/CLAUDE.md"
+      kind: file
+      frontmatter: false
+    - pattern: "**/README.md"
+      kind: file
+      frontmatter: false
+    - pattern: "CHANGELOG.md"
+      kind: file
+      frontmatter: false
+    # Shipped agent artifacts: their content (and SKILL.md's own skill
+    # frontmatter) is released verbatim, so no XDocs frontmatter is added.
+    - pattern: "internal/agentres/assets/instruction.md"
+      kind: file
+      frontmatter: false
+    - pattern: "internal/agentres/assets/prompts/guiho-p-jureuma.md"
+      kind: file
+      frontmatter: false
+    - pattern: "internal/agentres/assets/prompts/guiho-p-jureuma-install.md"
+      kind: file
+      frontmatter: false
+    - pattern: "internal/agentres/assets/prompts/guiho-p-jureuma-uninstall.md"
+      kind: file
+      frontmatter: false
+    - pattern: "internal/agentres/assets/skills/guiho-s-jureuma/SKILL.md"
+      kind: file
+      frontmatter: false
+    # Shared GUIHO convention, copied verbatim; its frontmatter belongs to the
+    # convention source and is not edited here.
+    - pattern: "guiho-convention-0001-cli.md"
+      kind: file
+      frontmatter: false
+project:
+  name: "jureuma"
