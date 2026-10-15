@@ -20,6 +20,7 @@ documents:
   "AGENTS.md": "Instructions for AI agents working in this repository (project scope, governing convention, tooling rules, Mandume coordination section)."
   "CHANGELOG.md": "Release notes maintained at release time under Mirror (agents.write_changelog)."
   "todo.md": "GitHub-first task index: the bound GUIHO Project (GitHub component jureuma) mirrored locally; every task is a real issue in CGuiho/jureuma."
+  "XDOCS.md": "Root XDocs index (special setup file): root descriptor and top-level directories; browse with xdocs tree."
   "guiho-convention-0001-cli.md": "The governing GUIHO CLI Convention (copied verbatim; authoritative over AGENTS.md)."
 tags:
   - "cli"

@@ -74,7 +74,7 @@ The repository root must contain `mirror.yaml`, `runx.yaml`, and `xdocs.yaml`.
 
 - **Mirror** is the sole authority for versions, changelog, release commits, and tags. Never edit version fields or create tags by hand. Run `mirror config check` and `mirror version plan <target>`; run `mirror version apply <target> --yes` only with explicit user authorization.
 - **RunX** catalogs every supported project command in `runx.yaml` (build, test, vet, docs, schema generation, release prep, etc.). No workflow may exist only in a README, CI step, or shell history. Use `runx list` to discover operations and `runx run --dry-run <uid>` before mutating commands. After catalog changes run `runx check --format json` and `runx list --format json`.
-- **XDocs** documents every project-owned directory with exactly one `*.xdocs.md` descriptor (no root `XDOCS.md` index; browse with `xdocs tree`). Update descriptors in the same work unit as the change. Validate with `xdocs meta <scope> --documents --strict`, `xdocs tree`, and `xdocs doctor <scope>`.
+- **XDocs** documents every project-owned directory with exactly one `*.xdocs.md` descriptor (plus the special root `XDOCS.md` setup index; browse with `xdocs tree`). Update descriptors in the same work unit as the change. Validate with `xdocs meta <scope> --documents --strict`, `xdocs tree`, and `xdocs doctor <scope>`.
 
 ## Key CLI Rules (summary; the convention is authoritative)
 

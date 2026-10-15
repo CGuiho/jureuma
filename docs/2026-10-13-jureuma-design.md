@@ -17,7 +17,7 @@ keywords:
 
 # Jureuma Design
 
-Status: **draft, revision 2** (after a four-lens review: cryptography, agent safety, convention compliance, lifecycle). Nothing here is implemented.
+Status: **implemented** — revision 2 of this design (after a four-lens review: cryptography, agent safety, convention compliance, lifecycle) is implemented in full as of 2026-10-16; see `CHANGELOG.md` for the release state.
 
 ## Summary
 
@@ -531,7 +531,7 @@ The uninstall plan lists every `keyId` it would remove and how many `*.encrypted
 | Q4 | Store developer private keys in the OS keychain? | v1 files; keychain later. |
 | Q5 | Should `set` also update an existing unencrypted file? | Yes (described above). |
 | Q6 | `juju` alias may clash with Canonical's `juju` CLI. | Resolved: the alias is opt-in (`juju-enable`) and refuses to overwrite a `juju` it does not own. |
-| Q7 | Convention names. | Resolved: home `~/.guiho/jureuma/`, skill `guiho-s-jureuma`, prompt `guiho-p-jureuma`, repo `github.com/CGuiho/jureuma` (not created yet). |
+| Q7 | Convention names. | Resolved: home `~/.guiho/jureuma/`, skill `guiho-s-jureuma`, prompt `guiho-p-jureuma`, repo `github.com/CGuiho/jureuma` (live). |
 | Q8 | Narrowed `--yes` contract for uninstalling `keys/`. | Resolved: accepted. |
 
 ## References
