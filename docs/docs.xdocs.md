@@ -1,8 +1,11 @@
 ---
 subject: jureuma-docs
-description: "Design and implementation-contract documents for jureuma."
+description: "Design and implementation-contract documents for jureuma, plus the planning, question-ledger and review trees of its Mandume lifecycle."
 parent: jureuma
-children: []
+children:
+  - jureuma-docs-plans
+  - jureuma-docs-questions
+  - jureuma-docs-reviews
 files: {}
 documents:
   "2026-10-13-jureuma-design.md": "Behavioural design: file model, cryptography, agent-safety model, run injection, lifecycle, commands, configuration and owned paths."
