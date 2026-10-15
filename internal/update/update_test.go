@@ -3,12 +3,14 @@ package update
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -124,5 +126,88 @@ func TestSelectSkipsIncompleteReleases(t *testing.T) {
 	}
 	if got := Installable(rs); len(got) != 1 {
 		t.Fatalf("Installable = %+v", got)
+	}
+}
+
+// catalogEntry renders one release-catalog entry.
+func catalogEntry(tag string, draft bool) string {
+	return fmt.Sprintf(`{"tag_name":%q,"draft":%t,"html_url":"x","assets":[]}`, tag, draft)
+}
+
+// catalogPage renders a release-catalog page from rendered entries.
+func catalogPage(entries ...string) string {
+	return "[" + strings.Join(entries, ",") + "]"
+}
+
+// catalogEntries returns n entries with sequential SemVer tags starting at first.
+func catalogEntries(first, n int) []string {
+	out := make([]string, n)
+	for i := range out {
+		out[i] = catalogEntry(fmt.Sprintf("v%d.0.0", first+i), false)
+	}
+	return out
+}
+
+func TestFetchReleasesPaginatesToShortPage(t *testing.T) {
+	t.Setenv("JUREUMA_USER_HOME", t.TempDir())
+	// Page 1 is full (100 entries) and mixes valid releases with one draft and
+	// one malformed tag; page 2 is short and must stop the walk. Any request
+	// beyond page 2 fails the test through HTTP 500.
+	full := catalogPage(append(catalogEntries(1, 98),
+		catalogEntry("v99.9.9", true),
+		`{"tag_name":"not-a-version","draft":false,"assets":[]}`)...)
+	short := catalogPage(catalogEntries(101, 3)...)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("page") {
+		case "1":
+			io.WriteString(w, full)
+		case "2":
+			io.WriteString(w, short)
+		default:
+			http.Error(w, "unexpected page", http.StatusInternalServerError)
+		}
+	}))
+	defer srv.Close()
+	t.Setenv(ReleasesEnv, srv.URL)
+
+	rs, err := FetchReleases(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rs) != 101 {
+		t.Fatalf("got %d releases, want 101 (98 + 3, drafts and malformed skipped)", len(rs))
+	}
+	if rs[0].Version != "103.0.0" || rs[len(rs)-1].Version != "1.0.0" {
+		t.Fatalf("not sorted newest first: %s ... %s", rs[0].Version, rs[len(rs)-1].Version)
+	}
+	for _, r := range rs {
+		if r.Version == "99.9.9" {
+			t.Fatal("draft leaked into the catalog")
+		}
+	}
+}
+
+func TestFetchReleasesStopsAtPageBound(t *testing.T) {
+	t.Setenv("JUREUMA_USER_HOME", t.TempDir())
+	if MaxCatalogPages < 50 {
+		t.Fatalf("MaxCatalogPages = %d; the safety bound must cover the installers' 50 pages", MaxCatalogPages)
+	}
+	var requests atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		io.WriteString(w, catalogPage(catalogEntries(1, catalogPerPage)...))
+	}))
+	defer srv.Close()
+	t.Setenv(ReleasesEnv, srv.URL)
+
+	rs, err := FetchReleases(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := requests.Load(); got != MaxCatalogPages {
+		t.Fatalf("requested %d pages, want %d", got, MaxCatalogPages)
+	}
+	if len(rs) != MaxCatalogPages*catalogPerPage {
+		t.Fatalf("got %d releases, want %d", len(rs), MaxCatalogPages*catalogPerPage)
 	}
 }

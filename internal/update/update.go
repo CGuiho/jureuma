@@ -217,8 +217,19 @@ type ghRelease struct {
 // ErrNoReleases is returned when the catalog has no usable release.
 var ErrNoReleases = errors.New("no published releases found")
 
-// FetchReleases reads every page of the release catalog (bounded), skipping
-// drafts and malformed versions, sorted newest first.
+// Catalog pagination: the release API serves catalogPerPage releases per
+// page, and FetchReleases walks pages until one returns fewer than
+// catalogPerPage items. MaxCatalogPages is the documented safety bound; it is
+// no smaller than the 50-page bound of devops/install.sh and devops/install.ps1
+// so channel discovery sees at least as many releases as the installers.
+const (
+	catalogPerPage  = 100
+	MaxCatalogPages = 50
+)
+
+// FetchReleases reads every page of the release catalog (bounded by
+// MaxCatalogPages, stopping at the first page with fewer than catalogPerPage
+// items), skipping drafts and malformed versions, sorted newest first.
 func FetchReleases(ctx context.Context) ([]Release, error) {
 	base := ReleasesAPI
 	if u := os.Getenv(ReleasesEnv); u != "" {
@@ -228,8 +239,8 @@ func FetchReleases(ctx context.Context) ([]Release, error) {
 	defer cancel()
 	client := &http.Client{Timeout: FetchTimeout}
 	var out []Release
-	for page := 1; page <= 10; page++ {
-		url := fmt.Sprintf("%s?per_page=100&page=%d", base, page)
+	for page := 1; page <= MaxCatalogPages; page++ {
+		url := fmt.Sprintf("%s?per_page=%d&page=%d", base, catalogPerPage, page)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
@@ -269,7 +280,7 @@ func FetchReleases(ctx context.Context) ([]Release, error) {
 			}
 			out = append(out, rel)
 		}
-		if len(rs) < 100 {
+		if len(rs) < catalogPerPage {
 			break
 		}
 	}
