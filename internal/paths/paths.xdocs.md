@@ -7,7 +7,7 @@ files:
   "paths.go": "Path resolution, atomic writes and locks."
   "alive_unix.go": "Process liveness on Unix."
   "alive_windows.go": "Process liveness on Windows."
-  "paths_test.go": "Tests for marker-preserving temp names and home relocation detection."
+  "paths_test.go": "Tests for marker-preserving temp names, home relocation detection, locks and project-root detection."
 documents: {}
 tags:
   - "go"
@@ -28,4 +28,4 @@ Platform-native locations (~/.guiho/jureuma, ~/.guiho/bin, ~/.guiho/.temp, JUREU
 - `paths.go`: Path resolution, atomic writes and locks.
 - `alive_unix.go`: Process liveness on Unix.
 - `alive_windows.go`: Process liveness on Windows.
-- `paths_test.go`: Tests for marker-preserving temp names and home relocation detection.
+- `paths_test.go`: Tests for marker-preserving temp names, home relocation detection, locks and project-root detection.
