@@ -5,6 +5,7 @@ parent: jureuma-internal
 children: []
 files:
   "doc.go": "Document model, JSON Pointer get/set/delete and marshalling."
+  "doc_test.go": "Table-driven tests for JSON Pointers, set/delete, canonical scalars, marshalling and Go-value conversion."
 documents: {}
 tags:
   - "go"
@@ -23,3 +24,4 @@ Ordered JSON value tree with JSON Pointer operations and canonical serialisation
 ## Files
 
 - `doc.go`: Document model, JSON Pointer get/set/delete and marshalling.
+- `doc_test.go`: Table-driven tests for JSON Pointers, set/delete, canonical scalars, marshalling and Go-value conversion.
