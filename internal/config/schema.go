@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 
@@ -69,6 +70,9 @@ func mustCompile(name string, data []byte) *jsonschema.Schema {
 // Errors report only instance locations (known keys and indices) and the
 // failing keyword, never values or library message text.
 func validateSchema(s *jsonschema.Schema, raw any, file string) error {
+	if !jsonRepresentable(raw) {
+		return fmt.Errorf("%s: contains a value that is not representable as JSON (non-string key or non-finite number)", file)
+	}
 	js, err := json.Marshal(raw)
 	if err != nil {
 		return fmt.Errorf("%s: contains a value that is not representable as JSON (non-string key or non-finite number)", file)
@@ -110,6 +114,43 @@ func validateSchema(s *jsonschema.Schema, raw any, file string) error {
 	}
 	sort.Strings(msgs)
 	return fmt.Errorf("%s: %s", file, strings.Join(msgs, "; "))
+}
+
+// jsonRepresentable reports whether v survives a JSON round-trip: every map
+// key is a string and every number is finite. YAML decoding can produce
+// map[any]any with non-string keys (for example the integer key `1`), which
+// encoding/json would silently turn into the object key "1"; configuration
+// files reject those instead.
+func jsonRepresentable(v any) bool {
+	switch t := v.(type) {
+	case map[string]any:
+		for _, x := range t {
+			if !jsonRepresentable(x) {
+				return false
+			}
+		}
+		return true
+	case map[any]any:
+		for k, x := range t {
+			if _, ok := k.(string); !ok {
+				return false
+			}
+			if !jsonRepresentable(x) {
+				return false
+			}
+		}
+		return true
+	case []any:
+		for _, x := range t {
+			if !jsonRepresentable(x) {
+				return false
+			}
+		}
+		return true
+	case float64:
+		return !math.IsNaN(t) && !math.IsInf(t, 0)
+	}
+	return true
 }
 
 func collectLeaves(e *jsonschema.ValidationError, f func(*jsonschema.ValidationError)) {
