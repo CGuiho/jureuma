@@ -1,3 +1,5 @@
+#### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
+
 # GUIHO Jureuma
 
 **GUIHO Jureuma** (`jureuma`) is an agent-safe configuration CLI. Humans write configuration and secrets in a plain JSON file that never leaves their machine. jureuma encrypts every value into a sibling file that is safe to commit and validates the configuration against a JSON Schema. AI agents can **set** values and **inject** them into processes, but they cannot **read** them through jureuma.
@@ -157,3 +159,15 @@ runx run test-e2e        # end-to-end tests against a built binary
 runx run test-installers # install/uninstall scripts against a local release catalog
 runx run release-prepare # dist/: six binaries, agent artifacts, schemas, artifacts.json, checksums.txt
 ```
+
+## Browser Automation
+
+Use `agent-browser` for web automation. Run `agent-browser --help` for all commands.
+
+Core workflow:
+1. `agent-browser open <url>` - Navigate to page
+2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
+3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
+4. Re-snapshot after page changes
+
+Browser: use `yarn add` to add Playwright to the project, and also add `agent-browser`.
