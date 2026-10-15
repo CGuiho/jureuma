@@ -11,6 +11,7 @@
 #
 # Output (all listed in artifacts.json and checksums.txt):
 #   jureuma-<os>-<arch>[.exe]      native CLI payloads
+#   jureuma-launcher-<os>-<arch>[.exe]      stable launcher binaries
 #   guiho-s-jureuma.zip              main agent skill (directory guiho-s-jureuma/)
 #   guiho-p-jureuma.md, guiho-p-jureuma-install.md, guiho-p-jureuma-uninstall.md  prompts
 #   jureuma-instruction.md         agent instruction source (AGENTS.md block)
@@ -74,8 +75,9 @@ cp -- "$root/internal/config/schemas/jureuma.global.schema.json" "$out/jureuma.g
 cp -- "$root/internal/config/examples/jureuma.yaml" "$out/jureuma.example.yaml"
 cp -- "$root/internal/config/examples/jureuma.global.yaml" "$out/jureuma.global.example.yaml"
 
-# artifacts.json: installed paths are relative to ~/.guiho/jureuma; projections
-# are the managed copies the installers and the CLI maintain.
+# artifacts.json: installed paths are relative to ~/.guiho/jureuma, except
+# launcher artifacts, which install to the shared ~/.guiho/bin command path;
+# projections are the managed copies the installers and the CLI maintain.
 v="versions/$version"
 {
   printf '{\n'
@@ -84,7 +86,7 @@ v="versions/$version"
   printf '  "version": "%s",\n' "$version"
   printf '  "tag": "v%s",\n' "$version"
   printf '  "repository": "https://github.com/CGuiho/jureuma",\n'
-  printf '  "launcher": {"unix": "generated-sh", "windows": "payload-copy", "path": "~/.guiho/bin/jureuma"},\n'
+  printf '  "launcher": {"unix": "released-binary", "windows": "released-binary", "assetPattern": "jureuma-launcher-<os>-<arch>[.exe]", "path": "$HOME/.guiho/bin/jureuma", "pathWindows": "$HOME/.guiho/bin/jureuma.exe"},\n'
   printf '  "persistent": ["jureuma.global.yaml", "keys/", "state/", "audit.log"],\n'
   printf '  "disposable": ["cache.json", "update-worker.lease", "locks/", "run/"],\n'
   printf '  "artifacts": [\n'
@@ -100,7 +102,15 @@ v="versions/$version"
     plat=${name#jureuma-}; plat=${plat%.exe}
     os=${plat%-*}; arch=${plat#*-}
     exe=jureuma; [ "$os" = windows ] && exe=jureuma.exe
-    emit "payload-$os-$arch" binary "$name" "$os" "$arch" "$v/$exe" '["~/.guiho/bin/jureuma"]'
+    emit "payload-$os-$arch" binary "$name" "$os" "$arch" "$v/$exe" '[]'
+  done
+  for f in "$out"/jureuma-launcher-linux-* "$out"/jureuma-launcher-darwin-* "$out"/jureuma-launcher-windows-*; do
+    [ -f "$f" ] || continue
+    name=$(basename -- "$f")
+    plat=${name#jureuma-launcher-}; plat=${plat%.exe}
+    os=${plat%-*}; arch=${plat#*-}
+    lpath='$HOME/.guiho/bin/jureuma'; [ "$os" = windows ] && lpath="$lpath.exe"
+    emit "launcher-$os-$arch" launcher "$name" "$os" "$arch" "$lpath" '[]'
   done
   emit skill-guiho-s-jureuma skill guiho-s-jureuma.zip any any "$v/artifacts/skills/guiho-s-jureuma" \
     '["~/.claude/skills/guiho-s-jureuma", "~/.agents/skills/guiho-s-jureuma", "~/.codex/skills/guiho-s-jureuma"]'

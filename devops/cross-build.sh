@@ -1,6 +1,7 @@
 #!/bin/sh
-# Cross-build jureuma for every supported release target into an output
-# directory (default dist/), named jureuma-<os>-<arch>[.exe].
+# Cross-build jureuma and its stable launcher for every supported release
+# target into an output directory (default dist/), named jureuma-<os>-<arch>[.exe]
+# and jureuma-launcher-<os>-<arch>[.exe].
 #
 # usage: devops/cross-build.sh [--release] [--out <dir>]
 #   --release  require an exact release version (see devops/version.sh)
@@ -26,8 +27,13 @@ for target in $targets; do
   goos=${target%/*}
   goarch=${target#*/}
   name="jureuma-$goos-$goarch"
-  if [ "$goos" = windows ]; then name="$name.exe"; fi
+  launcher="jureuma-launcher-$goos-$goarch"
+  if [ "$goos" = windows ]; then name="$name.exe"; launcher="$launcher.exe"; fi
   CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch go build -trimpath \
     -ldflags "-s -w -X main.version=$version" -o "$out/$name" ./cmd/jureuma
   printf 'built %s (%s)\n' "$name" "$version"
+  # The stable launcher is release-independent: no version is injected.
+  CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch go build -trimpath \
+    -ldflags "-s -w" -o "$out/$launcher" ./cmd/jureuma-launcher
+  printf 'built %s\n' "$launcher"
 done

@@ -6,10 +6,11 @@
 #   --version  expected version (default: artifacts.json version)
 #   --partial  allow a subset of the six binary targets (local testing)
 #
-# Checks: every mandatory asset exists; checksums.txt is well formed, has no
-# duplicates, covers every file except itself and matches every digest;
-# artifacts.json lists every asset with the same digest; the host payload (when
-# present) prints exactly the expected version.
+# Checks: every mandatory asset exists; every payload has its paired launcher
+# asset; checksums.txt is well formed, has no duplicates, covers every file
+# except itself and matches every digest; artifacts.json lists every asset with
+# the same digest; the host payload (when present) prints exactly the expected
+# version.
 set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 dir="$root/dist"
@@ -42,8 +43,23 @@ version=$mv_version
 mandatory="guiho-s-jureuma.zip guiho-p-jureuma.md guiho-p-jureuma-install.md guiho-p-jureuma-uninstall.md jureuma-instruction.md jureuma.schema.json jureuma.global.schema.json jureuma.example.yaml jureuma.global.example.yaml artifacts.json"
 if [ "$partial" != true ]; then
   mandatory="$mandatory jureuma-linux-amd64 jureuma-linux-arm64 jureuma-darwin-amd64 jureuma-darwin-arm64 jureuma-windows-amd64.exe jureuma-windows-arm64.exe"
+  mandatory="$mandatory jureuma-launcher-linux-amd64 jureuma-launcher-linux-arm64 jureuma-launcher-darwin-amd64 jureuma-launcher-darwin-arm64 jureuma-launcher-windows-amd64.exe jureuma-launcher-windows-arm64.exe"
 fi
 for a in $mandatory; do [ -f "$dir/$a" ] || fail "missing mandatory asset $a"; done
+
+# Every payload present must ship its paired launcher (and the other way).
+for f in "$dir"/jureuma-*; do
+  [ -f "$f" ] || continue
+  name=$(basename -- "$f")
+  case "$name" in
+    jureuma-launcher-linux-*|jureuma-launcher-darwin-*|jureuma-launcher-windows-*)
+      twin="jureuma-${name#jureuma-launcher-}" ;;
+    jureuma-linux-*|jureuma-darwin-*|jureuma-windows-*)
+      twin="jureuma-launcher-${name#jureuma-}" ;;
+    *) continue ;;
+  esac
+  [ -f "$dir/$twin" ] || fail "$name has no paired asset $twin"
+done
 
 awk '
   NF != 2 || $1 !~ /^[0-9a-f]+$/ || length($1) != 64 { bad = 1 }

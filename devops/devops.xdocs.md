@@ -10,10 +10,10 @@ files:
   "uninstall.ps1": "PowerShell uninstaller with the same contract as uninstall.sh (-PreserveConfig, -PreserveData, -DryRun, -Yes)."
   "version.sh": "Resolves the build version: JUREUMA_VERSION, else the exact v<semver> tag at HEAD, else 0.0.0-dev (--release forbids the dev version)."
   "version-sync.sh": "Pins (or with --check verifies) the schema URLs in internal/config/examples to a version; the version-bearing files Mirror cannot write."
-  "build.sh": "Builds bin/jureuma for the host with the version injected."
-  "cross-build.sh": "Builds jureuma-<os>-<arch>[.exe] for linux/darwin/windows on amd64/arm64 into dist/ (JUREUMA_TARGETS narrows the list)."
-  "release-prepare.sh": "Recreates dist/ with every release artifact, writes artifacts.json and checksums.txt and verifies the result."
-  "release-verify.sh": "Verifies a release directory: mandatory assets, checksums.txt shape and digests, artifacts.json consistency, host payload version."
+  "build.sh": "Builds bin/jureuma (version injected) and bin/jureuma-launcher for the host."
+  "cross-build.sh": "Builds jureuma-<os>-<arch>[.exe] payloads and jureuma-launcher-<os>-<arch>[.exe] stable launchers for linux/darwin/windows on amd64/arm64 into dist/ (JUREUMA_TARGETS narrows the list)."
+  "release-prepare.sh": "Recreates dist/ with every release artifact (payloads, stable launchers, agent assets), writes artifacts.json and checksums.txt and verifies the result."
+  "release-verify.sh": "Verifies a release directory: mandatory assets, payload/launcher pairing, checksums.txt shape and digests, artifacts.json consistency, host payload version."
   "release-publish.sh": "Creates the GitHub release for the pushed v<version> tag from a verified dist/ with gh (explicit authorization required)."
   "schema-publish.sh": "Uploads the two configuration JSON Schemas to the GitHub release v<version> (explicit authorization required)."
   "smoke.sh": "Smoke-tests a built binary in a temporary JUREUMA_USER_HOME and git project and fails if planted values leak."
@@ -50,10 +50,10 @@ Lifecycle scripts (install.sh, install.ps1, uninstall.sh, uninstall.ps1) and the
 - `uninstall.ps1`: PowerShell uninstaller with the same contract as uninstall.sh (-PreserveConfig, -PreserveData, -DryRun, -Yes).
 - `version.sh`: Resolves the build version: JUREUMA_VERSION, else the exact v<semver> tag at HEAD, else 0.0.0-dev (--release forbids the dev version).
 - `version-sync.sh`: Pins (or with --check verifies) the schema URLs in internal/config/examples to a version; the version-bearing files Mirror cannot write.
-- `build.sh`: Builds bin/jureuma for the host with the version injected.
-- `cross-build.sh`: Builds jureuma-<os>-<arch>[.exe] for linux/darwin/windows on amd64/arm64 into dist/ (JUREUMA_TARGETS narrows the list).
-- `release-prepare.sh`: Recreates dist/ with every release artifact, writes artifacts.json and checksums.txt and verifies the result.
-- `release-verify.sh`: Verifies a release directory: mandatory assets, checksums.txt shape and digests, artifacts.json consistency, host payload version.
+- `build.sh`: Builds bin/jureuma (version injected) and bin/jureuma-launcher for the host.
+- `cross-build.sh`: Builds jureuma-<os>-<arch>[.exe] payloads and jureuma-launcher-<os>-<arch>[.exe] stable launchers for linux/darwin/windows on amd64/arm64 into dist/ (JUREUMA_TARGETS narrows the list).
+- `release-prepare.sh`: Recreates dist/ with every release artifact (payloads, stable launchers, agent assets), writes artifacts.json and checksums.txt and verifies the result.
+- `release-verify.sh`: Verifies a release directory: mandatory assets, payload/launcher pairing, checksums.txt shape and digests, artifacts.json consistency, host payload version.
 - `release-publish.sh`: Creates the GitHub release for the pushed v<version> tag from a verified dist/ with gh (explicit authorization required).
 - `schema-publish.sh`: Uploads the two configuration JSON Schemas to the GitHub release v<version> (explicit authorization required).
 - `smoke.sh`: Smoke-tests a built binary in a temporary JUREUMA_USER_HOME and git project and fails if planted values leak.

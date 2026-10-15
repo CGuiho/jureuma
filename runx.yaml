@@ -50,14 +50,14 @@ commands:
     commands:
       - uid: build
         id: host
-        summary: 'Build bin/jureuma for the host.'
-        description: 'Build the host binary into bin/ with -ldflags "-X main.version=<version>", where the version comes from devops/version.sh (exact v<semver> tag at HEAD, JUREUMA_VERSION, else 0.0.0-dev).'
+        summary: 'Build bin/jureuma and bin/jureuma-launcher for the host.'
+        description: 'Build the host payload and stable launcher into bin/ with -ldflags "-X main.version=<version>" on the payload, where the version comes from devops/version.sh (exact v<semver> tag at HEAD, JUREUMA_VERSION, else 0.0.0-dev).'
         command: 'sh devops/build.sh'
 
       - uid: build-cross
         id: cross
         summary: 'Cross-build all six release targets into dist/.'
-        description: 'Build jureuma-<os>-<arch>[.exe] for linux, darwin and windows on amd64 and arm64 into dist/ (or --out <dir>), CGO disabled, trimpath, with -ldflags "-s -w -X main.version=<version>". Pass --release to require an exact release version.'
+        description: 'Build jureuma-<os>-<arch>[.exe] payloads and jureuma-launcher-<os>-<arch>[.exe] stable launchers for linux, darwin and windows on amd64 and arm64 into dist/ (or --out <dir>), CGO disabled, trimpath, with -ldflags "-s -w -X main.version=<version>" on the payloads. Pass --release to require an exact release version.'
         command: 'sh devops/cross-build.sh'
 
       - uid: run
@@ -99,13 +99,13 @@ commands:
       - uid: release-prepare
         id: prepare
         summary: 'Prepare the complete release artifact set in dist/.'
-        description: 'Recreate dist/ with the six native payloads, guiho-s-jureuma.zip, the three prompts, jureuma-instruction.md, both configuration schemas and examples, artifacts.json (ownership manifest) and checksums.txt, then verify it. Requires the exact v<semver> tag at HEAD (or JUREUMA_VERSION) and matching pinned schema URLs.'
+        description: 'Recreate dist/ with the six native payloads, the six stable launcher binaries, guiho-s-jureuma.zip, the three prompts, jureuma-instruction.md, both configuration schemas and examples, artifacts.json (ownership manifest) and checksums.txt, then verify it. Requires the exact v<semver> tag at HEAD (or JUREUMA_VERSION) and matching pinned schema URLs.'
         command: 'sh devops/release-prepare.sh'
 
       - uid: release-verify
         id: verify
         summary: 'Verify a prepared release directory.'
-        description: 'Check that dist/ has every mandatory asset, that checksums.txt is well formed and matches every file, that artifacts.json declares every asset with the same digest, and that the host payload prints the expected version. Changes nothing.'
+        description: 'Check that dist/ has every mandatory asset (payloads and stable launchers paired per target), that checksums.txt is well formed and matches every file, that artifacts.json declares every asset with the same digest, and that the host payload prints the expected version. Changes nothing.'
         command: 'sh devops/release-verify.sh'
 
       - uid: release-publish
