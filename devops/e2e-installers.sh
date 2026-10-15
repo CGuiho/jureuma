@@ -81,6 +81,14 @@ export JUREUMA_NO_UPDATE_CHECK=1
 unset JUREUMA_USER_HOME || true
 clean_path=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '\.guiho/bin' | paste -sd: -)
 
+# Invocations that do not target a project run from a neutral directory:
+# install.sh applies the jureuma AGENTS.md block when the current directory is
+# a project root, and this test must never modify the directory it was invoked
+# from. The guard at the end of the script verifies that.
+neutral="$work/neutral"; mkdir -p "$neutral"
+cwd_agents_sum=
+[ ! -f "$PWD/AGENTS.md" ] || cwd_agents_sum=$(cksum < "$PWD/AGENTS.md")
+
 run_install() { # home catalog args...
   h=$1; c=$2; shift 2
   env HOME="$h" PATH="$clean_path" JUREUMA_RELEASES_URL="$base/$c" sh "$root/devops/install.sh" "$@"
@@ -100,12 +108,12 @@ ok 'install.sh rejects --version with --channel'
 if sh "$root/devops/install.sh" --version not-a-version >/dev/null 2>&1; then fail 'invalid version accepted'; fi
 ok 'install.sh rejects an invalid version'
 
-out=$(run_install "$H" releases-good.json --dry-run)
+out=$(cd "$neutral" && run_install "$H" releases-good.json --dry-run)
 printf '%s\n' "$out" | grep -q 'Version:      0.1.0' || fail "dry run did not resolve 0.1.0: $out"
 [ ! -e "$H/.guiho" ] || fail 'dry run created ~/.guiho'
 ok 'install.sh --dry-run resolves latest stable and changes nothing'
 
-run_install "$H" releases-good.json >/dev/null
+(cd "$neutral" && run_install "$H" releases-good.json >/dev/null)
 [ "$(active_of "$H")" = 0.1.0 ] || fail 'active is not 0.1.0'
 [ "$("$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher version'
 [ -x "$H/.guiho/jureuma/versions/0.1.0/jureuma" ] || fail 'payload missing'
@@ -117,25 +125,25 @@ grep -q '\.guiho/bin' "$H/.profile" || fail 'PATH not added to .profile'
 [ -z "$(ls -A "$H/.guiho/.temp")" ] || fail 'staging directory left behind'
 ok 'install.sh installs 0.1.0 (payload, launcher, current.json, manifest, skills, PATH, staging cleaned)'
 
-run_install "$H" releases-good.json >/dev/null
+(cd "$neutral" && run_install "$H" releases-good.json >/dev/null)
 [ "$(grep -c '\.guiho/bin' "$H/.profile")" = 1 ] || fail 'PATH line duplicated'
 [ "$(active_of "$H")" = 0.1.0 ] || fail 'reinstall changed the version'
 ok 'install.sh reinstall is idempotent'
 
-run_install "$H" releases.json --channel beta >/dev/null
+(cd "$neutral" && run_install "$H" releases.json --channel beta >/dev/null)
 [ "$(active_of "$H")" = 0.2.0-beta.1 ] || fail 'beta channel not selected'
 grep -q '"previous":"0.1.0"' "$H/.guiho/jureuma/current.json" || fail 'previous not recorded'
 ok 'install.sh --channel beta selects 0.2.0-beta.1 and records the previous version'
 
-run_install "$H" releases.json --version 0.1.0 >/dev/null
+(cd "$neutral" && run_install "$H" releases.json --version 0.1.0 >/dev/null)
 [ "$(active_of "$H")" = 0.1.0 ] || fail 'exact version not installed'
 ok 'install.sh --version 0.1.0 installs the exact older version'
 
 before=$(cat "$H/.guiho/jureuma/current.json")
-if run_install "$H" releases.json --version 0.3.0 >/dev/null 2>&1; then fail '0.3.0 (missing assets) installed'; fi
-if run_install "$H" releases.json --version 9.9.9 >/dev/null 2>&1; then fail 'draft installed'; fi
-if run_install "$H" releases.json --channel nightly >/dev/null 2>&1; then fail 'empty channel installed'; fi
-if run_install "$H" releases.json --version 0.4.0 >/dev/null 2>&1; then fail 'corrupted payload installed'; fi
+if (cd "$neutral" && run_install "$H" releases.json --version 0.3.0 >/dev/null 2>&1); then fail '0.3.0 (missing assets) installed'; fi
+if (cd "$neutral" && run_install "$H" releases.json --version 9.9.9 >/dev/null 2>&1); then fail 'draft installed'; fi
+if (cd "$neutral" && run_install "$H" releases.json --channel nightly >/dev/null 2>&1); then fail 'empty channel installed'; fi
+if (cd "$neutral" && run_install "$H" releases.json --version 0.4.0 >/dev/null 2>&1); then fail 'corrupted payload installed'; fi
 [ "$(cat "$H/.guiho/jureuma/current.json")" = "$before" ] || fail 'failed installs changed current.json'
 [ ! -e "$H/.guiho/jureuma/versions/0.4.0" ] || fail 'corrupted version directory left behind'
 [ "$("$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher broken after failed installs'
@@ -197,7 +205,7 @@ mv "$H/.guiho/jureuma/versions/0.2.0-beta.1" "$work/moved-payload"
 [ "$("$H/.guiho/bin/jureuma" --version 2>/dev/null)" = 0.1.0 ] || fail 'launcher did not fall back to the previous payload'
 mv "$work/moved-payload" "$H/.guiho/jureuma/versions/0.2.0-beta.1"
 ok 'the launcher falls back to the previous payload when the active one is missing'
-run_install "$H" releases.json --version 0.1.0 >/dev/null
+(cd "$neutral" && run_install "$H" releases.json --version 0.1.0 >/dev/null)
 
 # Project integration, juju alias, uninstall.sh.
 P="$work/project"; mkdir -p "$P"; git -C "$P" init -q
@@ -243,7 +251,7 @@ ok 'uninstall.sh native fallback removes everything except keys (non-interactive
 # --- install.ps1 / uninstall.ps1 (pwsh) -------------------------------------
 if command -v pwsh >/dev/null 2>&1; then
   W="$work/home-ps"; mkdir -p "$W"
-  pw() { h=$1; c=$2; shift 2; env HOME="$h" PATH="$clean_path" JUREUMA_RELEASES_URL="$base/$c" pwsh -NoProfile -NonInteractive -File "$@"; }
+  pw() { h=$1; c=$2; shift 2; (cd "$neutral" && env HOME="$h" PATH="$clean_path" JUREUMA_RELEASES_URL="$base/$c" pwsh -NoProfile -NonInteractive -File "$@"); }
   pw "$W" releases-good.json "$root/devops/install.ps1" -Help | grep -q -- '-Channel' || fail 'install.ps1 -Help'
   pw "$W" releases-good.json "$root/devops/install.ps1" -DryRun | grep -q 'Version:      0.1.0' || fail 'install.ps1 dry run'
   [ ! -e "$W/.guiho" ] || fail 'install.ps1 dry run created ~/.guiho'
@@ -258,12 +266,19 @@ if command -v pwsh >/dev/null 2>&1; then
   ok 'install.ps1 installs, selects channels and rolls back a corrupted release'
   pw "$W" releases.json "$root/devops/uninstall.ps1" -DryRun | grep -q 'REMOVE' || fail 'uninstall.ps1 dry run'
   [ -x "$W/.guiho/bin/jureuma" ] || fail 'uninstall.ps1 dry run changed something'
-  env HOME="$W" PATH="$clean_path" JUREUMA_UNINSTALL_NATIVE=1 pwsh -NoProfile -NonInteractive -File "$root/devops/uninstall.ps1" -Yes >/dev/null
+  (cd "$neutral" && env HOME="$W" PATH="$clean_path" JUREUMA_UNINSTALL_NATIVE=1 pwsh -NoProfile -NonInteractive -File "$root/devops/uninstall.ps1" -Yes) >/dev/null
   [ ! -e "$W/.guiho/bin/jureuma" ] && [ ! -e "$W/.guiho/jureuma/versions" ] || fail 'uninstall.ps1 native'
   [ -d "$W/.guiho/bin" ] || fail 'uninstall.ps1 removed the shared bin directory'
   ok 'uninstall.ps1 dry run and native uninstall'
 else
   echo '# pwsh not found: install.ps1 and uninstall.ps1 were not exercised'
+fi
+
+if [ -n "$cwd_agents_sum" ]; then
+  [ "$(cksum < "$PWD/AGENTS.md")" = "$cwd_agents_sum" ] || fail 'the invoking directory AGENTS.md was modified'
+  ok 'the invoking directory AGENTS.md was not modified'
+elif [ -e "$PWD/AGENTS.md" ]; then
+  fail 'the invoking directory AGENTS.md was created by this test'
 fi
 
 echo "e2e-installers: $pass checks passed"
