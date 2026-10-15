@@ -44,16 +44,27 @@ full validation suite, the Mirror version apply for `0.1.0`
 
 ## Units
 
-Defined from the reconnaissance reports; see the execution section of
-this plan and `todo.md`. Units are ordered by dependency; disjoint units
-may run in parallel on `main` with serialized Git indexes.
+Defined from the reconnaissance reports (gap analysis, Convention 0001
+compliance audit, sibling-CLI study — all 2026-10-16). Every unit is a real
+GitHub issue on the bound Project with the `jureuma` component; disjoint
+units run in parallel on `main` with serialized Git indexes, and briefs live
+under `execution/handoffs/`.
 
-1. Baseline repair (done, in-loop): config + redact test failures.
-2. Remaining implementation gaps (from recon).
-3. Full validation (`ci-check`, e2e, smoke, installers).
-4. Technical self-review (`guiho-s-0445-review`).
-5. Release: Mirror apply 0.1.0, version-sync, release-prepare, verify,
-   publish, schema-publish, push.
+1. Baseline repair (done, in-loop): config + redact test failures
+   (`c80be4b`, `0af1e01`); installer-test hermeticity fix (`cc1645e`);
+   stale RunX selectors fixed (`8895a7f`).
+2. W1 — released launcher artifacts and installer download (issue #5).
+3. W2 — contract test coverage and full catalog pagination (issue #6).
+4. W3 — Convention 0002 agent-artifact metadata (issue #7).
+5. W4 — upgrade transaction journal and instance termination (issue #8;
+   queued behind W1).
+6. Full validation (`ci-check`, e2e, smoke, installers) at the release
+   commit.
+7. Technical self-review (`guiho-s-0445-review`) and the human-review
+   handoff packet under `docs/reviews/handoff/`.
+8. Release: CHANGELOG entry, `version-sync -- 0.1.0`, Mirror apply 0.1.0
+   (commit, tag `v0.1.0`, push), `release-prepare`, `release-verify`,
+   `release-publish` (+ `schema-publish` only if repair is needed), push.
 
 ## Constraints
 

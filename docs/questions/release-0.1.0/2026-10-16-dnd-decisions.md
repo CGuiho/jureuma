@@ -58,10 +58,72 @@ initialization (auto-commit each coherent change and push finished work unless
 told otherwise) is unchanged. Pushes happen at safe milestones so verified
 work survives any session loss.
 
+## Q5 — Which reconnaissance gaps became work units?
+
+**Answer: four units, each a real issue on the bound Project (component
+`jureuma`), plus the umbrella release issue.** The convention audit
+(2026-10-16) and the gap analysis (2026-10-16) drove the selection:
+
+| Unit | Issue | Gap | Dispatch |
+| --- | --- | --- | --- |
+| W1 | [#5](https://github.com/CGuiho/jureuma/issues/5) | Released per-target launcher artifacts; installers download the launcher; Windows stable launcher (Convention 0001 release-artifact set and installer step 4) | session `ses_ebe307ee2ffeOKyDhcDx7Lmh7y` |
+| W2 | [#6](https://github.com/CGuiho/jureuma/issues/6) | Contract test coverage for `doc`, `xerr`, `update`, `paths`; full release-catalog pagination | session `ses_ebe307edeffey5xJMjfgIGgjIb` |
+| W3 | [#7](https://github.com/CGuiho/jureuma/issues/7) | Convention 0002 metadata on the bundled agent artifacts | session `ses_ebe307ea8ffea713RdeHld2eGo` |
+| W4 | [#8](https://github.com/CGuiho/jureuma/issues/8) | Upgrade transaction journal with repair; verified old-payload instance termination (Convention 0001, lines 962 and 1002) | queued behind W1 |
+
+One claimed gap was retracted after cross-check: the gap analysis said
+`jureuma upgrade` had no automated coverage, but `devops/e2e-installers.sh`
+already exercises it (corruption refusal, missing-asset refusal, rollback,
+channel install, launcher fallback — checks 11–15). No unit created for it.
+
+## Q6 — Convention deviations kept deliberately
+
+**Answer: keep each one, with the rationale below** (all recorded for CG's
+review; largely deliberate safety or already-confirmed design decisions):
+
+- **Prompt file naming** (`guiho-p-jureuma-install` instead of the literal
+  `<cliname>-p-install`): Convention 0001 is internally inconsistent here —
+  0002 mandates the `guiho-p-` grammar and the AGENTS.md confirmed decisions
+  fix `guiho-p-jureuma-`. Kept; escalated as a convention fix for CG.
+- **Uninstall key protection**: `uninstall` demands a human-only confirmation
+  for `keys/` even with `--yes`, and preserves keys on non-interactive runs.
+  Deleting keys destroys the ability to decrypt committed ciphertext — an
+  irreversible data-loss risk — so safety wins over the literal `--yes`
+  contract. Kept; documented in the README.
+- **`juju` alias** writes `~/.guiho/bin/juju`: a designed, user-invoked
+  feature with checksum-tracked ownership and refusal of unowned files.
+  Kept.
+- **Binary-replacement mechanics** (`.old` pre-clean list, Windows detached
+  helper): jureuma meets the mandated goal (stale-backup-proof replacement,
+  verification-gated activation, idempotent reruns) through staging-only
+  backups and rename replacement rather than the literal mechanics. Kept.
+- **Root `XDOCS.md` index**: Convention 0001 requires it while the project
+  text (and some sibling repos) operated without one. Resolved toward the
+  convention: the root index now exists as the special setup file, is listed
+  in the root descriptor, and the AGENTS.md sentence was updated.
+
+## Q7 — What state did the managed-block incident end in?
+
+**Answer: clean, with the systematic cause fixed.** The audit report
+recorded the jureuma managed block present in this repository's AGENTS.md
+during its run. The systematic cause — the installer e2e suite invoking
+`install.sh` from the repository root — was already fixed (cc1645e) with a
+guard check that now passes; the tree is clean at every commit since. The
+dogfooding question stays open above.
+
+## Repairs in-loop (defects, not questions)
+
+- Stale RunX selectors (`runx run jureuma-<uid>`) in the `mirror.yaml` hook
+  text and the AGENTS.md "Everyday commands" block were corrected to the live
+  bare uids (8895a7f); all 15 selectors verified to resolve first.
+- The design document's stale status line ("nothing here is implemented") and
+  its Q7 "(repo not created yet)" note were corrected (c90d635).
+
 ## Open questions for CG (not blocking)
 
 - Should this repository carry its own jureuma managed block on purpose
   (dogfooding), now that the installer test can no longer add it by accident?
-- Anything found by the gap-analysis and convention-audit reconnaissance that
-  cannot be answered with a reversible choice is appended here before the
-  release.
+- Convention 0001 vs 0002 prompt-file naming inconsistency (see Q6) — the
+  convention text should be reconciled.
+- Anything found later in the run that cannot be answered with a reversible
+  choice is appended here before the release.
