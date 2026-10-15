@@ -89,8 +89,6 @@ type upgradeTx struct {
 	currentWritten  bool
 	manifestBackup  []byte
 	manifestWritten bool
-	launcherBackup  string // Windows: the previous launcher, moved aside
-	launcherWritten bool
 	skillBackups    map[string]string // target -> backup path
 	skillsWritten   []string
 	agentsTarget    string
@@ -235,11 +233,6 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 		outf(cmd, "  AGENTS.md: %s (jureuma block)\n", tx.agentsTarget)
 	}
 	outf(cmd, "verified: %s --version reports %s\n", launcher, tx.version)
-	if runtime.GOOS == "windows" {
-		if _, _, owned := aliasOwned(home); owned {
-			outf(cmd, "note: re-run jureuma juju-enable to refresh the juju alias\n")
-		}
-	}
 	outf(cmd, "next: run jureuma init, then jureuma --version\n")
 	return nil
 }
@@ -305,7 +298,7 @@ func (tx *upgradeTx) download() (*update.Manifest, map[string]string, error) {
 	for _, art := range man.ForPlatform(runtime.GOOS, runtime.GOARCH) {
 		declared[art.Asset] = true
 	}
-	for _, need := range append([]string{tx.asset}, update.AgentAssets...) {
+	for _, need := range append([]string{tx.asset, update.LauncherAsset(runtime.GOOS, runtime.GOARCH)}, update.AgentAssets...) {
 		if !declared[need] {
 			return nil, nil, xerr.Failure("artifacts.json does not declare %s; nothing was changed", need)
 		}
@@ -362,6 +355,8 @@ func (tx *upgradeTx) checkCandidate(payload string) error {
 }
 
 // buildVersion builds versions/<v>/ beside its final place and renames it in.
+// Launcher artifacts are not installed here: the stable launcher lives in the
+// shared ~/.guiho/bin directory and ordinary upgrades never replace it.
 func (tx *upgradeTx) buildVersion(man *update.Manifest, files map[string]string) error {
 	versions := filepath.Join(tx.home, "versions")
 	if err := os.MkdirAll(versions, 0o755); err != nil {
@@ -371,6 +366,9 @@ func (tx *upgradeTx) buildVersion(man *update.Manifest, files map[string]string)
 	defer os.RemoveAll(cand)
 	prefix := "versions/" + tx.version + "/"
 	for _, art := range man.ForPlatform(runtime.GOOS, runtime.GOARCH) {
+		if art.Kind == "launcher" {
+			continue
+		}
 		rel := strings.TrimPrefix(art.InstalledPath, prefix)
 		dst := filepath.Join(cand, filepath.FromSlash(rel))
 		var err error
@@ -596,20 +594,11 @@ func (tx *upgradeTx) writeManifest(src string) error {
 	return nil
 }
 
-// activate replaces the Windows launcher (a payload copy) and current.json.
+// activate writes current.json atomically so the stable launcher selects the
+// new immutable payload. The launcher itself is never replaced here: it is a
+// released binary owned by the installers, and ordinary upgrades must not
+// replace the running launcher.
 func (tx *upgradeTx) activate(next currentPointer) error {
-	if runtime.GOOS == "windows" {
-		backup := filepath.Join(tx.stage, "backup-launcher.exe")
-		// A running executable can be renamed but not overwritten.
-		if err := os.Rename(tx.launcher, backup); err != nil {
-			return xerr.Failure("cannot replace the launcher %s", tx.launcher)
-		}
-		tx.launcherBackup = backup
-		tx.launcherWritten = true
-		if err := copyFile(filepath.Join(tx.home, "versions", tx.version, tx.payloadName), tx.launcher, 0o755); err != nil {
-			return xerr.Failure("cannot write the launcher %s", tx.launcher)
-		}
-	}
 	p := filepath.Join(tx.home, currentFile)
 	if data, err := os.ReadFile(p); err == nil {
 		tx.currentBackup = data
@@ -674,12 +663,6 @@ func (tx *upgradeTx) rollback() {
 			_ = paths.AtomicWrite(p, tx.currentBackup, 0o644)
 		} else {
 			_ = os.Remove(p)
-		}
-	}
-	if tx.launcherWritten {
-		_ = os.Remove(tx.launcher)
-		if tx.launcherBackup != "" {
-			_ = os.Rename(tx.launcherBackup, tx.launcher)
 		}
 	}
 	if tx.manifestWritten {

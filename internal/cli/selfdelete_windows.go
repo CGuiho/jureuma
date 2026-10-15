@@ -14,8 +14,8 @@ import (
 // releaseRunningImage lets uninstall remove the executable that is running
 // it. Windows refuses to delete a running image but allows renaming it, so
 // when the running executable is one of the paths uninstall removes (the
-// launcher, which is a payload copy, or a payload under home), it is moved
-// into a unique ~/.guiho/.temp/jureuma-uninstall-* directory. The returned
+// stable launcher in ~/.guiho/bin or a payload under home), it is moved into
+// a unique ~/.guiho/.temp/jureuma-uninstall-* directory. The returned
 // function schedules that directory's deletion once this process has exited.
 func releaseRunningImage(home, launcher string) func() {
 	exe, err := os.Executable()

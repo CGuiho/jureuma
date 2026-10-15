@@ -123,7 +123,9 @@ type Manifest struct {
 }
 
 // Artifact is one entry of Manifest.Artifacts. InstalledPath is relative to
-// ~/.guiho/jureuma and always below versions/<version>/.
+// ~/.guiho/jureuma and, except for kind "launcher", always below
+// versions/<version>/. Launcher artifacts install to the shared
+// ~/.guiho/bin directory and carry that absolute-convention path instead.
 type Artifact struct {
 	ID            string   `json:"id"`
 	Kind          string   `json:"kind"`
@@ -135,8 +137,17 @@ type Artifact struct {
 	Projections   []string `json:"projections"`
 }
 
+// launcherPaths are the only installed paths a kind "launcher" artifact may
+// declare: the stable launcher in the shared ~/.guiho/bin directory.
+var launcherPaths = map[string]bool{
+	"$HOME/.guiho/bin/jureuma":     true,
+	"$HOME/.guiho/bin/jureuma.exe": true,
+}
+
 // ParseManifest parses and checks artifacts.json: every asset name is plain,
-// every installed path is a clean relative path below versions/<version>/.
+// every non-launcher installed path is a clean relative path below
+// versions/<version>/, and every launcher installed path is the shared
+// command path for its platform.
 func ParseManifest(data []byte) (*Manifest, error) {
 	var m Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -154,6 +165,12 @@ func ParseManifest(data []byte) (*Manifest, error) {
 			return nil, errors.New("artifacts.json names an unsafe asset")
 		}
 		p := a.InstalledPath
+		if a.Kind == "launcher" {
+			if !launcherPaths[p] {
+				return nil, errors.New("artifacts.json has an unsafe launcher installed path")
+			}
+			continue
+		}
 		if strings.Contains(p, `\`) || path.Clean(p) != p || !strings.HasPrefix(p, prefix) || len(p) == len(prefix) {
 			return nil, errors.New("artifacts.json has an unsafe installed path")
 		}
@@ -161,12 +178,24 @@ func ParseManifest(data []byte) (*Manifest, error) {
 	return &m, nil
 }
 
-// ForPlatform returns the artifacts to install on goos/goarch: the payload
-// of that platform and every non-binary artifact.
+// ForPlatform returns the artifacts that belong to goos/goarch: that
+// platform's payload and stable launcher and every platform-independent
+// artifact. Launcher artifacts are downloaded and verified with the release
+// but install to the shared ~/.guiho/bin directory, never into a version
+// directory.
 func (m *Manifest) ForPlatform(goos, goarch string) []Artifact {
 	var out []Artifact
 	for _, a := range m.Artifacts {
-		if a.Kind != "binary" || a.Asset == PayloadAsset(goos, goarch) {
+		switch a.Kind {
+		case "binary":
+			if a.Asset == PayloadAsset(goos, goarch) {
+				out = append(out, a)
+			}
+		case "launcher":
+			if a.Asset == LauncherAsset(goos, goarch) {
+				out = append(out, a)
+			}
+		default:
 			out = append(out, a)
 		}
 	}

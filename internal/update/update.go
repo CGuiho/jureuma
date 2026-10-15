@@ -172,11 +172,22 @@ func PayloadAsset(goos, goarch string) string {
 	return name
 }
 
+// LauncherAsset returns the release asset name of the stable launcher for a
+// platform. The launcher installs to the shared ~/.guiho/bin directory and is
+// never part of a versions/<version>/ payload directory.
+func LauncherAsset(goos, goarch string) string {
+	name := "jureuma-launcher-" + goos + "-" + goarch
+	if goos == "windows" {
+		name += ".exe"
+	}
+	return name
+}
+
 // RequiredAssets returns every asset a release must carry to be installable
-// on goos/goarch: the payload, checksums.txt, artifacts.json and the agent
-// artifacts.
+// on goos/goarch: the payload, the stable launcher, checksums.txt,
+// artifacts.json and the agent artifacts.
 func RequiredAssets(goos, goarch string) []string {
-	return append([]string{PayloadAsset(goos, goarch), "checksums.txt", "artifacts.json"}, AgentAssets...)
+	return append([]string{PayloadAsset(goos, goarch), LauncherAsset(goos, goarch), "checksums.txt", "artifacts.json"}, AgentAssets...)
 }
 
 // Compatible reports whether r carries every asset RequiredAssets lists.
