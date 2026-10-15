@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -63,6 +64,42 @@ func TestBodyNormalization(t *testing.T) {
 	}
 	if !HasCurrentBlock(a, "## jureuma\n\nline one\nline two") {
 		t.Fatal("trailing newline should not matter")
+	}
+}
+
+func TestStripFrontmatter(t *testing.T) {
+	tests := []struct{ name, in, want string }{
+		{"plain body", "## jureuma\n\nx\n", "## jureuma\n\nx\n"},
+		{"closed", "---\nname: guiho-i-x\n---\n\n## jureuma\nx\n", "## jureuma\nx\n"},
+		{"closed keeps body blank lines", "---\na: 1\n---\n\n\nbody\n\nmore\n", "body\n\nmore\n"},
+		{"crlf", "---\r\nname: x\r\n---\r\n\r\nbody\r\n", "body\n"},
+		{"nested metadata", "---\nname: x\nmetadata:\n  version: \"0.1.0\"\n---\nbody\n", "body\n"},
+		{"unterminated", "---\nname: x\nbody\n", "---\nname: x\nbody\n"},
+		{"frontmatter only", "---\nname: x\n---\n", ""},
+		{"not frontmatter", "text\n---\nname: x\n---\nbody\n", "text\n---\nname: x\n---\nbody\n"},
+		{"closing at eof without newline", "---\nname: x\n---", "---\nname: x\n---"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := stripFrontmatter(tt.in); got != tt.want {
+				t.Fatalf("stripFrontmatter(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestApplyBlockStripsFrontmatter(t *testing.T) {
+	with := "---\nname: guiho-i-x\nmetadata:\n  version: \"0.1.0\"\n---\n\n" + body
+	got := ApplyBlock([]byte("a\n"), with)
+	want := ApplyBlock([]byte("a\n"), body)
+	if !bytes.Equal(got, want) {
+		t.Fatalf("frontmatter body rendered differently:\n%q\n%q", got, want)
+	}
+	if bytes.Contains(got, []byte("---")) || bytes.Contains(got, []byte("metadata")) {
+		t.Fatalf("applied block contains frontmatter:\n%q", got)
+	}
+	if !HasCurrentBlock(got, with) {
+		t.Fatal("HasCurrentBlock must ignore a frontmatter body prefix")
 	}
 }
 
@@ -196,6 +233,9 @@ func TestEmbeddedArtifacts(t *testing.T) {
 	if strings.Contains(ins, BeginMarker) || strings.Contains(ins, EndMarker) {
 		t.Error("instruction must not contain markers")
 	}
+	if strings.HasPrefix(ins, "---") || strings.Contains(ins, "name: guiho-i-jureuma") || strings.Contains(ins, "metadata:") {
+		t.Error("instruction must not carry artifact frontmatter")
+	}
 	for _, want := range []string{"https://github.com/CGuiho/jureuma", "*.unencrypted.*", "guiho-s-jureuma", "guiho-p-jureuma", "--help-docs", "125"} {
 		if !strings.Contains(ins, want) {
 			t.Errorf("instruction missing %q", want)
@@ -204,6 +244,91 @@ func TestEmbeddedArtifacts(t *testing.T) {
 	if strings.Contains(ins, "\r") || !strings.HasSuffix(ins, "\n") || strings.HasSuffix(ins, "\n\n") {
 		t.Error("instruction not normalized")
 	}
+}
+
+// fmFields parses the leading YAML frontmatter of an artifact into simple
+// top-level scalars plus "metadata.version". It returns nil when the block is
+// missing, unclosed, or carries no metadata version.
+func fmFields(md string) map[string]string {
+	lines := strings.Split(md, "\n")
+	if len(lines) < 3 || lines[0] != "---" {
+		return nil
+	}
+	out := map[string]string{}
+	inMeta := false
+	for _, line := range lines[1:] {
+		switch {
+		case line == "---":
+			if out["metadata.version"] == "" {
+				return nil
+			}
+			return out
+		case line == "metadata:":
+			inMeta = true
+		case inMeta && strings.HasPrefix(line, `  version: "`):
+			out["metadata.version"] = strings.TrimSuffix(strings.TrimPrefix(line, `  version: "`), `"`)
+		case strings.HasPrefix(line, "version: "):
+			out["version"] = strings.Trim(strings.TrimPrefix(line, "version: "), `"`)
+		case line == "" || strings.HasPrefix(line, " "):
+		default:
+			if i := strings.Index(line, ": "); i > 0 {
+				out[line[:i]] = line[i+2:]
+			}
+		}
+	}
+	return nil
+}
+
+var semverPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$`)
+
+// TestArtifactMetadata pins GUIHO convention 0002: every shipped agent
+// artifact carries name, description and a SemVer metadata.version; prompts
+// and the instruction also carry purpose, created, version and owner.
+func TestArtifactMetadata(t *testing.T) {
+	check := func(path, id, owner, md string) {
+		t.Helper()
+		fm := fmFields(md)
+		if fm == nil {
+			t.Errorf("%s: missing or unclosed frontmatter or metadata.version", path)
+			return
+		}
+		if fm["name"] != id {
+			t.Errorf("%s: name = %q, want %q", path, fm["name"], id)
+		}
+		if strings.TrimSpace(fm["description"]) == "" {
+			t.Errorf("%s: empty description", path)
+		}
+		if !semverPattern.MatchString(fm["metadata.version"]) {
+			t.Errorf("%s: metadata.version = %q, not SemVer", path, fm["metadata.version"])
+		}
+		if owner == "" {
+			return
+		}
+		for _, key := range []string{"purpose", "created", "version", "owner"} {
+			if strings.TrimSpace(fm[key]) == "" {
+				t.Errorf("%s: empty %s", path, key)
+			}
+		}
+		if fm["owner"] != owner {
+			t.Errorf("%s: owner = %q, want %q", path, fm["owner"], owner)
+		}
+		if fm["version"] != fm["metadata.version"] {
+			t.Errorf("%s: version %q != metadata.version %q", path, fm["version"], fm["metadata.version"])
+		}
+	}
+	s, ok := SkillByID(MainSkillID)
+	if !ok {
+		t.Fatal("main skill missing")
+	}
+	check("skills/guiho-s-jureuma/SKILL.md", MainSkillID, "", string(s.Files["SKILL.md"]))
+	for _, p := range Prompts() {
+		check("prompts/"+p.ID+".md", p.ID, "jureuma-prompts", p.Body)
+	}
+	raw, err := assets.ReadFile("assets/instruction.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check("instruction.md", "guiho-i-jureuma", "jureuma", string(raw))
 }
 
 func TestSkillDestinations(t *testing.T) {

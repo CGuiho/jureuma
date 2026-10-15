@@ -1,3 +1,23 @@
+---
+name: guiho-p-jureuma-install
+purpose: Install the jureuma CLI without initializing a project.
+description: Use when an agent must install and verify jureuma while keeping project initialization as a separate explicit task.
+created: 2026-10-13
+version: "0.1.0"
+owner: jureuma-prompts
+flags: []
+tags:
+  - installation
+  - lifecycle
+keywords:
+  - jureuma
+  - install
+  - checksums
+  - stable launcher
+metadata:
+  version: "0.1.0"
+---
+
 Install jureuma, the GUIHO agent-safe configuration CLI (https://github.com/CGuiho/jureuma).
 jureuma keeps configuration and secrets in a committed encrypted JSON file, a gitignored
 plaintext JSON file, and a committed JSON Schema, and lets agents set values and inject them

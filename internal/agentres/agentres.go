@@ -117,14 +117,16 @@ func PromptByID(id string) (Prompt, bool) {
 	return Prompt{}, false
 }
 
-// Instruction returns the managed AGENTS.md block body, without markers,
-// with LF line endings and exactly one trailing newline.
+// Instruction returns the managed AGENTS.md block body, without markers and
+// without its YAML artifact frontmatter, with LF line endings and exactly one
+// trailing newline. This is both what `agent instruction apply` writes into
+// the block and what `agent instruction show` prints.
 func Instruction() string {
 	b, err := assets.ReadFile("assets/instruction.md")
 	if err != nil {
 		panic("agentres: embedded instruction missing")
 	}
-	return normalizeBody(string(b)) + "\n"
+	return normalizeBody(stripFrontmatter(string(b))) + "\n"
 }
 
 // isDescriptor reports whether p is an XDocs descriptor (*.xdocs.md), which

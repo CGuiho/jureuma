@@ -192,11 +192,23 @@ func TestAgentCommandsAndJuju(t *testing.T) {
 	if !strings.Contains(out, "guiho-p-jureuma (default)") {
 		t.Fatalf("prompt list: %s", out)
 	}
-	h.expect(0, "", "agent", "prompt", "show")
+	if out := h.expect(0, "", "agent", "prompt", "show"); !strings.HasPrefix(out, "---\nname: guiho-p-jureuma\n") {
+		t.Fatalf("prompt show must print the raw prompt with its metadata: %s", out)
+	}
 	h.expect(2, "", "agent", "prompt", "show", "nope")
 	h.expect(0, "", "agent", "skill", "install")
 	h.expect(0, "", "agent", "skill", "list")
+	skillMD, err := os.ReadFile(filepath.Join(h.home, ".agents", "skills", "guiho-s-jureuma", "SKILL.md"))
+	if err != nil || !bytes.Contains(skillMD, []byte("metadata:\n  version: \"")) {
+		t.Fatalf("installed SKILL.md must carry metadata.version: %v", err)
+	}
+	if out := h.expect(0, "", "agent", "instruction", "show"); strings.Contains(out, "---") || strings.Contains(out, "name: guiho-i-jureuma") {
+		t.Fatalf("instruction show must print the block body without frontmatter: %s", out)
+	}
 	h.expect(0, "", "agent", "instruction", "apply")
+	if agents, _ := os.ReadFile(filepath.Join(h.proj, "AGENTS.md")); bytes.Contains(agents, []byte("name: guiho-i-jureuma")) || bytes.Contains(agents, []byte("metadata:")) {
+		t.Fatal("applied AGENTS.md block contains artifact frontmatter")
+	}
 	h.expect(0, "", "agent", "instruction", "upgrade")
 	h.expect(0, "", "agent", "instruction", "remove")
 	h.expect(1, "", "agent", "instruction", "upgrade")

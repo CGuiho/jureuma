@@ -1,6 +1,8 @@
 ---
 name: guiho-s-jureuma
 description: Use whenever a project uses jureuma (or its juju alias) or needs configuration or secrets handled safely by an agent - installing, initializing, upgrading, or uninstalling jureuma; reading the shape of configuration with list/status/check; setting or unsetting values without seeing them; running commands with injected configuration (JUREUMA_CONFIG); writing or refining config.schema.json(c) JSON Schemas; rotating keys; or reporting jureuma bugs and improvements.
+metadata:
+  version: "0.1.0"
 ---
 
 # guiho-s-jureuma

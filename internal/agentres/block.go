@@ -63,6 +63,24 @@ func detectEOL(data []byte) string {
 	return "\n"
 }
 
+// stripFrontmatter removes one leading YAML frontmatter block (a first line of
+// "---", its content, and the closing "---" line) together with the blank lines
+// immediately after it. The managed block body is instruction text; artifact
+// metadata must never be applied into AGENTS.md. Content without a leading,
+// closed frontmatter block is returned unchanged.
+func stripFrontmatter(body string) string {
+	const open, closing = "---\n", "\n---\n"
+	b := strings.ReplaceAll(body, "\r\n", "\n")
+	if !strings.HasPrefix(b, open) {
+		return body
+	}
+	end := strings.Index(b[len(open):], closing)
+	if end < 0 {
+		return body
+	}
+	return strings.TrimLeft(b[len(open)+end+len(closing):], "\n")
+}
+
 // normalizeBody converts line endings to LF and strips leading and trailing
 // blank lines.
 func normalizeBody(body string) string {
@@ -73,9 +91,10 @@ func normalizeBody(body string) string {
 }
 
 // renderBlock builds the complete block (markers included, no trailing line
-// terminator) using eol as line terminator.
+// terminator) using eol as line terminator. A leading YAML frontmatter block
+// in body is stripped first, so the applied block body never contains it.
 func renderBlock(body, eol string) []byte {
-	b := normalizeBody(body)
+	b := normalizeBody(stripFrontmatter(body))
 	var sb strings.Builder
 	sb.WriteString(BeginMarker)
 	sb.WriteString(eol)

@@ -1,3 +1,23 @@
+---
+name: guiho-i-jureuma
+purpose: Provide the bounded jureuma managed block for a project's AGENTS.md.
+description: Repository instructions that keep project configuration and secrets agent-safe under jureuma; applied as the managed AGENTS.md block with its metadata frontmatter stripped.
+created: 2026-10-13
+version: "0.1.0"
+owner: jureuma
+flags: []
+tags:
+  - repository-instructions
+  - configuration
+  - secrets
+keywords:
+  - jureuma
+  - agent-safe configuration
+  - JUREUMA_CONFIG
+metadata:
+  version: "0.1.0"
+---
+
 ## jureuma (agent-safe configuration and secrets)
 
 This project's configuration and secrets are owned by **jureuma** (https://github.com/CGuiho/jureuma). `juju` may be installed as an alias; prefer `jureuma`.
