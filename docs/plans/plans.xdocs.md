@@ -2,7 +2,8 @@
 subject: jureuma-docs-plans
 description: "Implementation plans for jureuma work; each plan lives in its own directory with plan.md and, while executing, execution/handoffs/ worker briefs."
 parent: jureuma-docs
-children: []
+children:
+  - jureuma-docs-plans-release-0.1.0
 files: {}
 documents: {}
 tags:
