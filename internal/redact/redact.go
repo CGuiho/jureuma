@@ -199,14 +199,17 @@ func (r *Writer) matchAt(s []byte, final bool) (matchLen int, undecided bool) {
 
 // Variants expands one secret into the forms to redact: raw, base64 std,
 // base64 url (padded and raw), URL query-escaped, and JSON-escaped (without
-// quotes). It also includes unpadded standard base64, URL path escaping, and
-// the JSON escape without HTML escaping when those differ. The result has no
+// quotes). It also includes unpadded standard base64, URL path escaping, the
+// JSON escape without HTML escaping, and the \ufffd-escaped form of both JSON
+// escapes when they differ. The result has no
 // duplicates and no empty strings; an empty secret yields nil.
 func Variants(secret string) []string {
 	if secret == "" {
 		return nil
 	}
 	b := []byte(secret)
+	escHTML := jsonEscape(secret, true)
+	escPlain := jsonEscape(secret, false)
 	cands := []string{
 		secret,
 		base64.StdEncoding.EncodeToString(b),
@@ -215,8 +218,12 @@ func Variants(secret string) []string {
 		base64.RawURLEncoding.EncodeToString(b),
 		url.QueryEscape(secret),
 		url.PathEscape(secret),
-		jsonEscape(secret, true),
-		jsonEscape(secret, false),
+		escHTML,
+		escPlain,
+		// encoding/json writes a literal U+FFFD for invalid UTF-8 while other
+		// encoders write the \ufffd escape; redact both representations.
+		strings.ReplaceAll(escHTML, "\uFFFD", `\ufffd`),
+		strings.ReplaceAll(escPlain, "\uFFFD", `\ufffd`),
 	}
 	seen := make(map[string]bool, len(cands))
 	out := make([]string, 0, len(cands))
