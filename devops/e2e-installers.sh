@@ -39,6 +39,12 @@ for v in 0.1.0 0.2.0-beta.1 0.4.0; do
   JUREUMA_VERSION=$v JUREUMA_TARGETS="$host_target windows/amd64" "$root/devops/release-prepare.sh" --allow-dev --out "$srv/download/v$v" >/dev/null
 done
 printf 'corrupted' >> "$srv/download/v0.4.0/jureuma-$os-$arch"
+
+# The fixture asset set is what the installers consume: every fixture must
+# carry its released launcher binary for every target it builds.
+[ -f "$srv/download/v0.1.0/jureuma-launcher-$os-$arch" ] || fail 'the host fixture is missing the launcher asset'
+[ -f "$srv/download/v0.1.0/jureuma-launcher-windows-amd64.exe" ] || fail 'the windows fixture is missing the launcher asset'
+ok 'release fixtures carry the released launcher assets (host and windows)'
 assets_json() {
   first=true
   printf '['
@@ -115,8 +121,9 @@ ok 'install.sh --dry-run resolves latest stable and changes nothing'
 
 (cd "$neutral" && run_install "$H" releases-good.json >/dev/null)
 [ "$(active_of "$H")" = 0.1.0 ] || fail 'active is not 0.1.0'
-[ "$("$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher version'
+[ "$(env HOME="$H" "$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher version'
 [ -x "$H/.guiho/jureuma/versions/0.1.0/jureuma" ] || fail 'payload missing'
+[ "$(cksum < "$H/.guiho/bin/jureuma")" = "$(cksum < "$srv/download/v0.1.0/jureuma-launcher-$os-$arch")" ] || fail 'the installed launcher is not the released launcher binary'
 [ -f "$H/.guiho/jureuma/installed-artifacts.json" ] || fail 'installed-artifacts.json missing'
 [ -f "$H/.guiho/jureuma/versions/0.1.0/artifacts/skills/guiho-s-jureuma/SKILL.md" ] || fail 'canonical skill missing'
 [ -f "$H/.agents/skills/guiho-s-jureuma/SKILL.md" ] && [ -f "$H/.claude/skills/guiho-s-jureuma/SKILL.md" ] || fail 'skill projections missing'
@@ -146,7 +153,7 @@ if (cd "$neutral" && run_install "$H" releases.json --channel nightly >/dev/null
 if (cd "$neutral" && run_install "$H" releases.json --version 0.4.0 >/dev/null 2>&1); then fail 'corrupted payload installed'; fi
 [ "$(cat "$H/.guiho/jureuma/current.json")" = "$before" ] || fail 'failed installs changed current.json'
 [ ! -e "$H/.guiho/jureuma/versions/0.4.0" ] || fail 'corrupted version directory left behind'
-[ "$("$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher broken after failed installs'
+[ "$(env HOME="$H" "$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher broken after failed installs'
 [ -z "$(ls -A "$H/.guiho/.temp")" ] || fail 'staging directory left behind after failure'
 ok 'install.sh refuses incomplete, draft, unknown-channel and corrupted releases without changing anything'
 
@@ -159,10 +166,11 @@ if (cd "$B" && env HOME="$H" PATH="$clean_path" JUREUMA_RELEASES_URL="$base/rele
 fi
 [ "$(cat "$H/.guiho/jureuma/current.json")" = "$before" ] || fail 'rollback did not restore current.json'
 [ "$(cksum < "$H/.guiho/bin/jureuma")" = "$launcher_sum" ] || fail 'rollback did not restore the launcher'
+[ "$(cksum < "$H/.guiho/bin/jureuma")" = "$(cksum < "$srv/download/v0.1.0/jureuma-launcher-$os-$arch")" ] || fail 'rollback left a launcher that is not the released 0.1.0 launcher'
 [ "$(cksum < "$H/.guiho/jureuma/installed-artifacts.json")" = "$manifest_sum" ] || fail 'rollback did not restore the manifest'
 [ -x "$H/.guiho/jureuma/versions/0.2.0-beta.1/jureuma" ] || fail 'rollback lost the retained 0.2.0-beta.1 payload'
 [ -f "$H/.agents/skills/guiho-s-jureuma/SKILL.md" ] && [ -f "$H/.claude/skills/guiho-s-jureuma/SKILL.md" ] || fail 'rollback lost the skill copies'
-[ "$("$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher broken after rollback'
+[ "$(env HOME="$H" "$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher broken after rollback'
 [ -z "$(ls -A "$H/.guiho/.temp")" ] || fail 'staging directory left behind after rollback'
 ok 'install.sh rolls back launcher, pointer, manifest, payloads and skills when a late step fails'
 
@@ -187,13 +195,13 @@ fi
 [ "$(cksum < "$H/.guiho/bin/jureuma")" = "$launcher_sum" ] || fail 'upgrade rollback changed the launcher'
 [ "$(cksum < "$H/.guiho/jureuma/installed-artifacts.json")" = "$manifest_sum" ] || fail 'upgrade rollback did not restore the manifest'
 [ -f "$H/.agents/skills/guiho-s-jureuma/SKILL.md" ] && [ -f "$H/.claude/skills/guiho-s-jureuma/SKILL.md" ] || fail 'upgrade rollback lost the skill copies'
-[ "$("$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher broken after upgrade rollback'
+[ "$(env HOME="$H" "$H/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'launcher broken after upgrade rollback'
 [ -z "$(ls -A "$H/.guiho/.temp")" ] || fail 'upgrade rollback left staging data'
 ok 'jureuma upgrade rolls back pointer, manifest and skills when a late step fails'
 out=$(run_upgrade releases.json --channel beta 2>&1) || fail "jureuma upgrade --channel beta failed: $out"
 [ "$(active_of "$H")" = 0.2.0-beta.1 ] || fail 'upgrade did not activate 0.2.0-beta.1'
 grep -q '"previous":"0.1.0"' "$H/.guiho/jureuma/current.json" || fail 'upgrade did not record the previous version'
-[ "$("$H/.guiho/bin/jureuma" --version)" = 0.2.0-beta.1 ] || fail 'launcher does not run the upgraded payload'
+[ "$(env HOME="$H" "$H/.guiho/bin/jureuma" --version)" = 0.2.0-beta.1 ] || fail 'launcher does not run the upgraded payload'
 [ -f "$H/.agents/skills/guiho-s-jureuma/SKILL.md" ] && [ -f "$H/.claude/skills/guiho-s-jureuma/SKILL.md" ] || fail 'upgrade lost the skill copies'
 grep -q '"version": "0.2.0-beta.1"' "$H/.guiho/jureuma/installed-artifacts.json" || fail 'upgrade did not install the manifest'
 [ -z "$(ls -A "$H/.guiho/.temp")" ] || fail 'upgrade left staging data'
@@ -202,10 +210,24 @@ ok 'jureuma upgrade --channel beta installs, activates and verifies 0.2.0-beta.1
 
 # The launcher falls back to the previous verified payload.
 mv "$H/.guiho/jureuma/versions/0.2.0-beta.1" "$work/moved-payload"
-[ "$("$H/.guiho/bin/jureuma" --version 2>/dev/null)" = 0.1.0 ] || fail 'launcher did not fall back to the previous payload'
+[ "$(env HOME="$H" "$H/.guiho/bin/jureuma" --version 2>/dev/null)" = 0.1.0 ] || fail 'launcher did not fall back to the previous payload'
 mv "$work/moved-payload" "$H/.guiho/jureuma/versions/0.2.0-beta.1"
 ok 'the launcher falls back to the previous payload when the active one is missing'
 (cd "$neutral" && run_install "$H" releases.json --version 0.1.0 >/dev/null)
+
+# JUREUMA_RELEASE_ASSET_DIR: a hermetic install from a local release directory
+# (no network): the released launcher and payload are taken from the directory
+# and still SHA-256 verified.
+A="$work/home-assets"; mkdir -p "$A"
+(cd "$neutral" && env HOME="$A" PATH="$clean_path" JUREUMA_RELEASE_ASSET_DIR="$srv/download/v0.1.0" JUREUMA_RELEASE_VERSION=0.1.0 sh "$root/devops/install.sh" >/dev/null)
+[ "$(active_of "$A")" = 0.1.0 ] || fail 'asset-dir install did not activate 0.1.0'
+[ "$(cksum < "$A/.guiho/bin/jureuma")" = "$(cksum < "$srv/download/v0.1.0/jureuma-launcher-$os-$arch")" ] || fail 'asset-dir install did not install the released launcher'
+[ "$(env HOME="$A" "$A/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'asset-dir launcher version'
+[ -x "$A/.guiho/jureuma/versions/0.1.0/jureuma" ] || fail 'asset-dir install did not install the payload'
+if (cd "$neutral" && env HOME="$A" PATH="$clean_path" JUREUMA_RELEASE_ASSET_DIR="$srv/download/v0.1.0" sh "$root/devops/install.sh" >/dev/null 2>&1); then
+  fail 'asset-dir install without an exact version succeeded'
+fi
+ok 'install.sh JUREUMA_RELEASE_ASSET_DIR installs the released launcher from a local release directory'
 
 # Project integration, juju alias, uninstall.sh.
 P="$work/project"; mkdir -p "$P"; git -C "$P" init -q
@@ -258,6 +280,7 @@ if command -v pwsh >/dev/null 2>&1; then
   ok 'install.ps1 -DryRun resolves latest stable and changes nothing'
   pw "$W" releases-good.json "$root/devops/install.ps1" -NoModifyPath >/dev/null
   [ "$(env HOME="$W" "$W/.guiho/bin/jureuma" --version)" = 0.1.0 ] || fail 'install.ps1 launcher'
+  [ "$(cksum < "$W/.guiho/bin/jureuma")" = "$(cksum < "$srv/download/v0.1.0/jureuma-launcher-$os-$arch")" ] || fail 'install.ps1 launcher is not the released launcher binary'
   pw "$W" releases.json "$root/devops/install.ps1" -Channel beta -NoModifyPath >/dev/null
   [ "$(active_of "$W")" = 0.2.0-beta.1 ] || fail 'install.ps1 channel'
   if pw "$W" releases.json "$root/devops/install.ps1" -Version 0.4.0 -NoModifyPath >/dev/null 2>&1; then fail 'install.ps1 installed a corrupted payload'; fi

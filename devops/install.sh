@@ -7,7 +7,7 @@
 #   curl -fsSL .../install.sh | sh -s -- --dry-run
 #
 # Installs the verified release payload into the immutable directory
-# ~/.guiho/jureuma/versions/<version>/, the stable launcher at
+# ~/.guiho/jureuma/versions/<version>/, the released stable launcher at
 # ~/.guiho/bin/jureuma, the active-version pointer ~/.guiho/jureuma/current.json,
 # the installed artifact manifest, the guiho-s-jureuma agent skill copies and
 # (inside a project) the jureuma block in AGENTS.md, and adds ~/.guiho/bin to
@@ -18,11 +18,16 @@
 # Environment overrides (testing and mirrors only):
 #   JUREUMA_RELEASES_URL       release catalog API (default: GitHub releases API)
 #   JUREUMA_DOWNLOAD_BASE_URL  asset base; assets are <base>/<tag>/<asset>
+#   JUREUMA_RELEASE_ASSET_DIR  read every release asset from this local
+#                              directory instead of downloading (requires an
+#                              exact version: --version or JUREUMA_RELEASE_VERSION)
+#   JUREUMA_RELEASE_VERSION    exact version to use with JUREUMA_RELEASE_ASSET_DIR
 set -eu
 
 REPO=CGuiho/jureuma
 RELEASES_URL=${JUREUMA_RELEASES_URL:-https://api.github.com/repos/$REPO/releases}
 DOWNLOAD_BASE=${JUREUMA_DOWNLOAD_BASE_URL:-https://github.com/$REPO/releases/download}
+ASSET_DIR=${JUREUMA_RELEASE_ASSET_DIR:-}
 SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
 AGENT_ASSETS='guiho-s-jureuma.zip jureuma-instruction.md guiho-p-jureuma.md guiho-p-jureuma-install.md guiho-p-jureuma-uninstall.md'
 SKILL_ID=guiho-s-jureuma
@@ -118,6 +123,18 @@ if [ "$os" = darwin ] && [ "$arch" = amd64 ] && [ "$(sysctl -n hw.optional.arm64
   arch=arm64
 fi
 ASSET="jureuma-$os-$arch"
+LAUNCHER_ASSET="jureuma-launcher-$os-$arch"
+
+# Local asset directory (testing, mirrors and air-gapped installs): when set,
+# every release asset is read from that directory instead of the network and
+# an exact version is required, so no release catalog is consulted.
+if [ -n "$ASSET_DIR" ]; then
+  [ -d "$ASSET_DIR" ] || die "JUREUMA_RELEASE_ASSET_DIR is not a directory: $ASSET_DIR"
+  if [ -z "$want_version" ]; then want_version=${JUREUMA_RELEASE_VERSION:-}; want_version=${want_version#v}; fi
+  [ -n "$want_version" ] || die 'an exact --version (or JUREUMA_RELEASE_VERSION) is required with JUREUMA_RELEASE_ASSET_DIR'
+  printf '%s\n' "$want_version" | grep -Eq "$SEMVER_RE" || die "not a valid SemVer version: $want_version"
+  want_channel=
+fi
 
 # 2. Release selection across every catalog page.
 fetch() { curl -fsSL --retry 2 --connect-timeout 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: jureuma-installer' "$@"; }
@@ -152,7 +169,7 @@ parse_releases() {
 # Select the release: exact version, else the highest SemVer of the channel.
 # Only releases that carry every required asset are candidates.
 select_release() {
-  awk -F '\t' -v want_version="$want_version" -v want_channel="$want_channel" -v required="$ASSET checksums.txt artifacts.json $AGENT_ASSETS" '
+  awk -F '\t' -v want_version="$want_version" -v want_channel="$want_channel" -v required="$ASSET $LAUNCHER_ASSET checksums.txt artifacts.json $AGENT_ASSETS" '
     function num_cmp(a, b) { if (length(a) != length(b)) return length(a) < length(b) ? -1 : 1; return a < b ? -1 : (a > b ? 1 : 0) }
     function isnum(x) { return x ~ /^[0-9]+$/ }
     function pre_cmp(a, b,   na, nb, i, x, y, c) {
@@ -197,30 +214,37 @@ select_release() {
 }
 
 say 'jureuma installer'
-say "Resolving the release catalog ($RELEASES_URL)..."
-catalog=
-page=1
-while [ "$page" -le 50 ]; do
-  case "$RELEASES_URL" in *\?*) sep='&' ;; *) sep='?' ;; esac
-  body=$(fetch "$RELEASES_URL${sep}per_page=100&page=$page") || die "the release catalog request failed (page $page); nothing was changed"
-  parsed=$(printf '%s' "$body" | parse_releases)
-  count=$(printf '%s\n' "$parsed" | sed -n 's/^#count //p')
-  catalog="$catalog
+if [ -n "$ASSET_DIR" ]; then
+  VERSION=$want_version
+  TAG="v$VERSION"
+  BASE_URL="$ASSET_DIR"
+  say "Using the local release assets in $ASSET_DIR..."
+else
+  say "Resolving the release catalog ($RELEASES_URL)..."
+  catalog=
+  page=1
+  while [ "$page" -le 50 ]; do
+    case "$RELEASES_URL" in *\?*) sep='&' ;; *) sep='?' ;; esac
+    body=$(fetch "$RELEASES_URL${sep}per_page=100&page=$page") || die "the release catalog request failed (page $page); nothing was changed"
+    parsed=$(printf '%s' "$body" | parse_releases)
+    count=$(printf '%s\n' "$parsed" | sed -n 's/^#count //p')
+    catalog="$catalog
 $(printf '%s\n' "$parsed" | grep -v '^#count ' || true)"
-  [ "${count:-0}" -ge 100 ] || break
-  page=$((page + 1))
-done
-selected=$(printf '%s\n' "$catalog" | select_release)
-if [ -z "$selected" ]; then
-  if [ -n "$want_version" ]; then
-    die "no published release $want_version with every required asset for $os/$arch; nothing was changed"
+    [ "${count:-0}" -ge 100 ] || break
+    page=$((page + 1))
+  done
+  selected=$(printf '%s\n' "$catalog" | select_release)
+  if [ -z "$selected" ]; then
+    if [ -n "$want_version" ]; then
+      die "no published release $want_version with every required asset for $os/$arch; nothing was changed"
+    fi
+    die "no published $want_channel release with every required asset for $os/$arch; nothing was changed"
   fi
-  die "no published $want_channel release with every required asset for $os/$arch; nothing was changed"
+  TAG=$(printf '%s' "$selected" | cut -f1)
+  VERSION=$(printf '%s' "$selected" | cut -f2)
+  printf '%s\n' "$TAG" | grep -Eq '^[0-9A-Za-z.+-]+$' || die 'the release tag contains unexpected characters'
+  BASE_URL="${DOWNLOAD_BASE%/}/$TAG"
 fi
-TAG=$(printf '%s' "$selected" | cut -f1)
-VERSION=$(printf '%s' "$selected" | cut -f2)
-printf '%s\n' "$TAG" | grep -Eq '^[0-9A-Za-z.+-]+$' || die 'the release tag contains unexpected characters'
-BASE_URL="${DOWNLOAD_BASE%/}/$TAG"
 
 current_active=
 if [ -f "$JHOME/current.json" ]; then
@@ -234,7 +258,7 @@ say "Platform:     $os/$arch"
 say "Asset:        $ASSET"
 say "Source URL:   $BASE_URL/$ASSET"
 say "Payload:      $VERSIONS/$VERSION/jureuma"
-say "Launcher:     $LAUNCHER"
+say "Launcher:     $LAUNCHER ($LAUNCHER_ASSET)"
 say "CLI home:     $JHOME"
 if [ -n "$current_active" ]; then say "Installed:    $current_active (reinstall/upgrade; configuration, keys, state and audit log are preserved)"; fi
 case ":${PATH:-}:" in
@@ -246,7 +270,7 @@ if [ "$dry_run" = true ]; then
   say 'Dry run: the plan would'
   say "  download and verify $ASSET, artifacts.json, checksums.txt and the agent artifacts"
   say "  install $VERSIONS/$VERSION/ (immutable) and point $JHOME/current.json at it"
-  say "  write the stable launcher $LAUNCHER"
+  say "  install the stable launcher $LAUNCHER ($LAUNCHER_ASSET)"
   say "  install the $SKILL_ID skill into the supported global agent-skill directories"
   if [ -f "$PWD/AGENTS.md" ] && { [ -e "$PWD/.git" ] || [ -f "$PWD/jureuma.yaml" ]; } || [ -f "$PWD/jureuma.yaml" ]; then
     say "  apply the jureuma block in $PWD/AGENTS.md"
@@ -315,9 +339,14 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
 
-# 7. Download.
+# 7. Download (or copy from JUREUMA_RELEASE_ASSET_DIR).
 download() {
   case "$1" in */*|..|.) die "unsafe asset name: $1" ;; esac
+  if [ -n "$ASSET_DIR" ]; then
+    [ -f "$ASSET_DIR/$1" ] || die "asset not found in JUREUMA_RELEASE_ASSET_DIR: $1"
+    cp -- "$ASSET_DIR/$1" "$STAGE/dl/$1" || die "cannot copy asset: $1"
+    return
+  fi
   fetch -o "$STAGE/dl/$1" "$BASE_URL/$1" || die "download failed: $1"
 }
 mkdir -p "$STAGE/dl"
@@ -344,13 +373,23 @@ verify artifacts.json
 MANIFEST="$STAGE/dl/artifacts.json"
 manifest_version=$(sed -n 's/^  "version": "\([^"]*\)",$/\1/p' "$MANIFEST")
 [ "$manifest_version" = "$VERSION" ] || die "artifacts.json declares version ${manifest_version:-none}, expected $VERSION"
-# Assets to install: this platform's payload and every non-binary artifact.
+# Assets to install: this platform's payload and stable launcher and every
+# platform-independent artifact. Other platforms' binaries stay in the release.
 install_assets=$(grep '^    {"id": ' "$MANIFEST" | while IFS= read -r line; do
   asset=$(printf '%s\n' "$line" | sed -n 's/.*"asset": "\([^"]*\)".*/\1/p')
   kind=$(printf '%s\n' "$line" | sed -n 's/.*"kind": "\([^"]*\)".*/\1/p')
-  if [ "$kind" != binary ] || [ "$asset" = "$ASSET" ]; then printf '%s\n' "$asset"; fi
+  case "$kind" in
+    binary)
+      if [ "$asset" = "$ASSET" ]; then printf '%s\n' "$asset"; fi ;;
+    launcher)
+      if [ "$asset" = "$LAUNCHER_ASSET" ]; then printf '%s\n' "$asset"; fi ;;
+    *)
+      printf '%s\n' "$asset" ;;
+  esac
 done)
 printf '%s\n' "$install_assets" | grep -qx "$ASSET" || die "artifacts.json does not declare $ASSET"
+printf '%s\n' "$install_assets" | grep -qx "$LAUNCHER_ASSET" || die "artifacts.json does not declare $LAUNCHER_ASSET"
+grep -F "\"asset\": \"$LAUNCHER_ASSET\"" "$MANIFEST" | grep -q '"kind": "launcher"' || die "artifacts.json does not declare $LAUNCHER_ASSET as the stable launcher"
 for a in $AGENT_ASSETS; do printf '%s\n' "$install_assets" | grep -qx "$a" || die "artifacts.json does not declare $a"; done
 for a in $install_assets; do
   download "$a"
@@ -398,45 +437,16 @@ mv -- "$CAND" "$VERSIONS/$VERSION"
 created_version=true
 PAYLOAD="$VERSIONS/$VERSION/jureuma"
 
-# 11. Stable launcher.
-cat > "$STAGE/launcher" <<'LAUNCHER_EOF'
-#!/bin/sh
-# jureuma stable launcher (managed by the jureuma installer; do not edit).
-# It runs the payload selected by ~/.guiho/jureuma/current.json with the
-# original arguments and standard streams, and returns its exact exit code.
-self=$0
-case "$self" in */*) ;; *) self=$(command -v -- "$self" 2>/dev/null || printf '%s' "$self") ;; esac
-bin_dir=$(CDPATH='' cd -- "$(dirname -- "$self")" 2>/dev/null && pwd) || bin_dir=
-home_dir=
-if [ -n "$bin_dir" ]; then home_dir="$(dirname -- "$bin_dir")/jureuma"; fi
-if [ -z "$home_dir" ] || [ ! -f "$home_dir/current.json" ]; then home_dir="${HOME:-}/.guiho/jureuma"; fi
-pointer=$(cat -- "$home_dir/current.json" 2>/dev/null) || pointer=
-semver='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?'
-if ! printf '%s\n' "$pointer" | grep -Eqx "\{\"protocol\":1,\"active\":\"$semver\",\"previous\":(null|\"$semver\")\}"; then
-  echo 'jureuma: no valid active installation (current.json); reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh' >&2
-  exit 1
-fi
-active=$(printf '%s\n' "$pointer" | sed 's/^{"protocol":1,"active":"\([^"]*\)".*/\1/')
-payload="$home_dir/versions/$active/jureuma"
-if [ ! -x "$payload" ]; then
-  # Fall back to the previous verified payload when the active one is gone.
-  previous=$(printf '%s\n' "$pointer" | sed -n 's/.*"previous":"\([^"]*\)".*/\1/p')
-  if [ -n "$previous" ] && [ -x "$home_dir/versions/$previous/jureuma" ]; then
-    echo "jureuma: warning: the active payload $active is missing; running the previous version $previous (reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh)" >&2
-    exec "$home_dir/versions/$previous/jureuma" "$@"
-  fi
-  echo "jureuma: the active payload $active is missing; reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh" >&2
-  exit 1
-fi
-exec "$payload" "$@"
-LAUNCHER_EOF
-chmod 0755 "$STAGE/launcher"
+# 11. Stable launcher: the released launcher binary for this target.
+chmod 0755 "$STAGE/dl/$LAUNCHER_ASSET"
 mkdir -p "$BIN"
 if [ -e "$LAUNCHER" ] || [ -L "$LAUNCHER" ]; then
   launcher_backup="$STAGE/backup-launcher"
   cp -p -- "$LAUNCHER" "$launcher_backup"
 fi
 launcher_written=true
+cp -- "$STAGE/dl/$LAUNCHER_ASSET" "$STAGE/launcher"
+chmod 0755 "$STAGE/launcher"
 mv -f -- "$STAGE/launcher" "$LAUNCHER"
 
 # 12. Installed artifact manifest (previous one drives retired-artifact removal).

@@ -9,20 +9,24 @@ Windows (PowerShell):
   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.ps1))) -Channel 'beta'
 
 Installs the verified release payload into the immutable directory
-~/.guiho/jureuma/versions/<version>/, the stable command ~/.guiho/bin/jureuma.exe,
-the active-version pointer ~/.guiho/jureuma/current.json, the installed artifact
-manifest, the guiho-s-jureuma agent skill copies and (inside a project) the
-jureuma block in AGENTS.md, and adds ~/.guiho/bin to the user PATH. Downloads
-and verification happen in ~/.guiho/.temp/jureuma-install-<id>/. Any failure
-rolls back to the previous installation. Configuration, keys, state and the
-audit log are never touched. The outcome matches devops/install.sh.
+~/.guiho/jureuma/versions/<version>/, the released stable launcher at
+~/.guiho/bin/jureuma.exe, the active-version pointer ~/.guiho/jureuma/current.json,
+the installed artifact manifest, the guiho-s-jureuma agent skill copies and
+(inside a project) the jureuma block in AGENTS.md, and adds ~/.guiho/bin to the
+user PATH. Downloads and verification happen in ~/.guiho/.temp/jureuma-install-<id>/.
+Any failure rolls back to the previous installation. Configuration, keys, state
+and the audit log are never touched. The outcome matches devops/install.sh.
 
 The script also runs under PowerShell 7 on macOS and Linux, where it installs
-the same layout as install.sh (including the POSIX launcher script).
+the same layout as install.sh (including the released stable launcher).
 
 Environment overrides (testing and mirrors only):
   JUREUMA_RELEASES_URL       release catalog API (default: GitHub releases API)
   JUREUMA_DOWNLOAD_BASE_URL  asset base; assets are <base>/<tag>/<asset>
+  JUREUMA_RELEASE_ASSET_DIR  read every release asset from this local directory
+                             instead of downloading (requires an exact version:
+                             -Version or JUREUMA_RELEASE_VERSION)
+  JUREUMA_RELEASE_VERSION    exact version to use with JUREUMA_RELEASE_ASSET_DIR
 #>
 param(
   [string]$Version = '',
@@ -148,52 +152,74 @@ if ($OnWindows) {
 }
 $Asset = "jureuma-$os-$arch"
 if ($OnWindows) { $Asset = "$Asset.exe" }
+$LauncherAsset = "jureuma-launcher-$os-$arch"
+if ($OnWindows) { $LauncherAsset = "$LauncherAsset.exe" }
+
+# Local asset directory (testing, mirrors and air-gapped installs): when set,
+# every release asset is read from that directory instead of the network and
+# an exact version is required, so no release catalog is consulted.
+$AssetDir = $env:JUREUMA_RELEASE_ASSET_DIR
+if ($AssetDir) {
+  if (-not (Test-Path -LiteralPath $AssetDir -PathType Container)) { Fail "JUREUMA_RELEASE_ASSET_DIR is not a directory: $AssetDir" }
+  if (-not $Version) { $Version = [string]$env:JUREUMA_RELEASE_VERSION }
+  if ($Version) { $Version = $Version -replace '^v', '' }
+  if (-not $Version) { Fail 'an exact -Version (or JUREUMA_RELEASE_VERSION) is required with JUREUMA_RELEASE_ASSET_DIR' }
+  if ($Version -notmatch $SemverPattern) { Fail "not a valid SemVer version: $Version" }
+  $Channel = ''
+}
 
 # --- Release selection across every catalog page -----------------------------
 $ReleasesUrl = if ($env:JUREUMA_RELEASES_URL) { $env:JUREUMA_RELEASES_URL } else { "https://api.github.com/repos/$Repo/releases" }
 $DownloadBase = if ($env:JUREUMA_DOWNLOAD_BASE_URL) { $env:JUREUMA_DOWNLOAD_BASE_URL.TrimEnd('/') } else { "https://github.com/$Repo/releases/download" }
 $Headers = @{ 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'jureuma-installer' }
-$Required = @($Asset, 'checksums.txt', 'artifacts.json') + $AgentAssets
+$Required = @($Asset, $LauncherAsset, 'checksums.txt', 'artifacts.json') + $AgentAssets
 
 Write-Output 'jureuma installer'
-Write-Output "Resolving the release catalog ($ReleasesUrl)..."
-$best = $null; $bestTag = $null
-for ($page = 1; $page -le 50; $page++) {
-  $sep = if ($ReleasesUrl.Contains('?')) { '&' } else { '?' }
-  try {
-    $raw = Invoke-WebRequest -Uri "$ReleasesUrl${sep}per_page=100&page=$page" -Headers $Headers -UseBasicParsing
-    $releases = @($raw.Content | ConvertFrom-Json)
-  } catch {
-    Fail "the release catalog request failed (page $page); nothing was changed"
-  }
-  if ($releases.Count -eq 1 -and $releases[0] -is [array]) { $releases = @($releases[0]) }
-  foreach ($r in $releases) {
-    if ($null -eq $r -or -not ($r.PSObject.Properties.Name -contains 'tag_name')) { continue }
-    if ($r.PSObject.Properties.Name -contains 'draft' -and $r.draft -eq $true) { continue }
-    $v = ([string]$r.tag_name) -replace '^v', ''
-    if ($v -notmatch $SemverPattern) { continue }
-    $names = @()
-    if ($r.PSObject.Properties.Name -contains 'assets') { $names = @($r.assets | ForEach-Object { [string]$_.name }) }
-    $complete = $true
-    foreach ($q in $Required) { if ($names -notcontains $q) { $complete = $false; break } }
-    if (-not $complete) { continue }
-    if ($Version) {
-      if ((Get-Core $v) -eq (Get-Core $Version)) { $best = $v; $bestTag = [string]$r.tag_name }
-      continue
+if ($AssetDir) {
+  $TargetVersion = $Version
+  $Tag = "v$TargetVersion"
+  $BaseUrl = $AssetDir
+  Write-Output "Using the local release assets in $AssetDir..."
+} else {
+  Write-Output "Resolving the release catalog ($ReleasesUrl)..."
+  $best = $null; $bestTag = $null
+  for ($page = 1; $page -le 50; $page++) {
+    $sep = if ($ReleasesUrl.Contains('?')) { '&' } else { '?' }
+    try {
+      $raw = Invoke-WebRequest -Uri "$ReleasesUrl${sep}per_page=100&page=$page" -Headers $Headers -UseBasicParsing
+      $releases = @($raw.Content | ConvertFrom-Json)
+    } catch {
+      Fail "the release catalog request failed (page $page); nothing was changed"
     }
-    if ((Get-Channel $v) -ne $Channel) { continue }
-    if ($null -eq $best -or (Compare-Semver $v $best) -gt 0) { $best = $v; $bestTag = [string]$r.tag_name }
+    if ($releases.Count -eq 1 -and $releases[0] -is [array]) { $releases = @($releases[0]) }
+    foreach ($r in $releases) {
+      if ($null -eq $r -or -not ($r.PSObject.Properties.Name -contains 'tag_name')) { continue }
+      if ($r.PSObject.Properties.Name -contains 'draft' -and $r.draft -eq $true) { continue }
+      $v = ([string]$r.tag_name) -replace '^v', ''
+      if ($v -notmatch $SemverPattern) { continue }
+      $names = @()
+      if ($r.PSObject.Properties.Name -contains 'assets') { $names = @($r.assets | ForEach-Object { [string]$_.name }) }
+      $complete = $true
+      foreach ($q in $Required) { if ($names -notcontains $q) { $complete = $false; break } }
+      if (-not $complete) { continue }
+      if ($Version) {
+        if ((Get-Core $v) -eq (Get-Core $Version)) { $best = $v; $bestTag = [string]$r.tag_name }
+        continue
+      }
+      if ((Get-Channel $v) -ne $Channel) { continue }
+      if ($null -eq $best -or (Compare-Semver $v $best) -gt 0) { $best = $v; $bestTag = [string]$r.tag_name }
+    }
+    if ($releases.Count -lt 100) { break }
   }
-  if ($releases.Count -lt 100) { break }
+  if ($null -eq $best) {
+    if ($Version) { Fail "no published release $Version with every required asset for $os/$arch; nothing was changed" }
+    Fail "no published $Channel release with every required asset for $os/$arch; nothing was changed"
+  }
+  $TargetVersion = $best
+  $Tag = $bestTag
+  if ($Tag -notmatch '^[0-9A-Za-z.+-]+$') { Fail 'the release tag contains unexpected characters' }
+  $BaseUrl = "$DownloadBase/$Tag"
 }
-if ($null -eq $best) {
-  if ($Version) { Fail "no published release $Version with every required asset for $os/$arch; nothing was changed" }
-  Fail "no published $Channel release with every required asset for $os/$arch; nothing was changed"
-}
-$TargetVersion = $best
-$Tag = $bestTag
-if ($Tag -notmatch '^[0-9A-Za-z.+-]+$') { Fail 'the release tag contains unexpected characters' }
-$BaseUrl = "$DownloadBase/$Tag"
 
 $CurrentPath = Join-Path $JHome 'current.json'
 $CurrentActive = ''
@@ -212,7 +238,7 @@ Write-Output "Platform:     $os/$arch"
 Write-Output "Asset:        $Asset"
 Write-Output "Source URL:   $BaseUrl/$Asset"
 Write-Output "Payload:      $(Join-Path (Join-Path $VersionsDir $TargetVersion) $ExeName)"
-Write-Output "Launcher:     $Launcher"
+Write-Output "Launcher:     $Launcher ($LauncherAsset)"
 Write-Output "CLI home:     $JHome"
 if ($CurrentActive) { Write-Output "Installed:    $CurrentActive (reinstall/upgrade; configuration, keys, state and audit log are preserved)" }
 
@@ -238,7 +264,7 @@ if ($DryRun) {
   Write-Output 'Dry run: the plan would'
   Write-Output "  download and verify $Asset, artifacts.json, checksums.txt and the agent artifacts"
   Write-Output "  install $(Join-Path $VersionsDir $TargetVersion) (immutable) and point $CurrentPath at it"
-  Write-Output "  write the stable command $Launcher"
+  Write-Output "  install the stable launcher $Launcher ($LauncherAsset)"
   Write-Output "  install the $SkillId skill into the supported global agent-skill directories"
   if ($ApplyInstruction) { Write-Output "  apply the jureuma block in $(Join-Path $ProjectRoot 'AGENTS.md')" }
   if (-not $PathPresent -and -not $NoModifyPath) { Write-Output "  add $BinDir to the user PATH" }
@@ -309,6 +335,12 @@ try {
   # --- Download and verify -----------------------------------------------------
   function Get-Asset([string]$Name) {
     if ($Name -match '[\\/]' -or $Name -eq '.' -or $Name -eq '..') { Fail "unsafe asset name: $Name" }
+    if ($AssetDir) {
+      $src = Join-Path $AssetDir $Name
+      if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Fail "asset not found in JUREUMA_RELEASE_ASSET_DIR: $Name" }
+      Copy-Item -LiteralPath $src -Destination (Join-Path $Dl $Name)
+      return
+    }
     try { Invoke-WebRequest -Uri "$BaseUrl/$Name" -OutFile (Join-Path $Dl $Name) -Headers @{ 'User-Agent' = 'jureuma-installer' } -UseBasicParsing }
     catch { Fail "download failed: $Name" }
   }
@@ -332,9 +364,15 @@ try {
   Assert-Checksum 'artifacts.json'
   $Manifest = [IO.File]::ReadAllText((Join-Path $Dl 'artifacts.json')) | ConvertFrom-Json
   if ([string]$Manifest.version -ne $TargetVersion) { Fail "artifacts.json declares version $($Manifest.version), expected $TargetVersion" }
-  $ToInstall = @($Manifest.artifacts | Where-Object { $_.kind -ne 'binary' -or $_.asset -eq $Asset })
+  # Assets to install: this platform's payload and stable launcher and every
+  # platform-independent artifact. Other platforms' binaries stay in the release.
+  $ToInstall = @($Manifest.artifacts | Where-Object {
+      ($_.kind -ne 'binary' -and $_.kind -ne 'launcher') -or [string]$_.asset -eq $Asset -or [string]$_.asset -eq $LauncherAsset
+    })
   $names = @($ToInstall | ForEach-Object { [string]$_.asset })
-  foreach ($q in @($Asset) + $AgentAssets) { if ($names -notcontains $q) { Fail "artifacts.json does not declare $q" } }
+  foreach ($q in @($Asset, $LauncherAsset) + $AgentAssets) { if ($names -notcontains $q) { Fail "artifacts.json does not declare $q" } }
+  $launcherEntry = @($Manifest.artifacts | Where-Object { [string]$_.asset -eq $LauncherAsset })
+  if ($launcherEntry.Count -ne 1 -or [string]$launcherEntry[0].kind -ne 'launcher') { Fail "artifacts.json does not declare $LauncherAsset as the stable launcher" }
   foreach ($a in $ToInstall) {
     Get-Asset ([string]$a.asset)
     Assert-Checksum ([string]$a.asset)
@@ -391,51 +429,17 @@ try {
   $T.CreatedVersion = $true
   $Payload = Join-Path $VersionDir $ExeName
 
-  # Stable command in ~/.guiho/bin.
+  # Stable launcher: the released launcher binary for this target.
   New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
   if (Test-Path -LiteralPath $Launcher) {
     $T.LauncherBackup = Join-Path $Stage 'backup-launcher'
     Move-Item -LiteralPath $Launcher -Destination $T.LauncherBackup
   }
   $T.LauncherWritten = $true
-  if ($OnWindows) {
-    # No native launcher exists yet: the command is a verified copy of the active payload.
-    Copy-Item -LiteralPath $Payload -Destination $Launcher -Force
-  } else {
-    $launcherText = @'
-#!/bin/sh
-# jureuma stable launcher (managed by the jureuma installer; do not edit).
-# It runs the payload selected by ~/.guiho/jureuma/current.json with the
-# original arguments and standard streams, and returns its exact exit code.
-self=$0
-case "$self" in */*) ;; *) self=$(command -v -- "$self" 2>/dev/null || printf '%s' "$self") ;; esac
-bin_dir=$(CDPATH='' cd -- "$(dirname -- "$self")" 2>/dev/null && pwd) || bin_dir=
-home_dir=
-if [ -n "$bin_dir" ]; then home_dir="$(dirname -- "$bin_dir")/jureuma"; fi
-if [ -z "$home_dir" ] || [ ! -f "$home_dir/current.json" ]; then home_dir="${HOME:-}/.guiho/jureuma"; fi
-pointer=$(cat -- "$home_dir/current.json" 2>/dev/null) || pointer=
-semver='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?'
-if ! printf '%s\n' "$pointer" | grep -Eqx "\{\"protocol\":1,\"active\":\"$semver\",\"previous\":(null|\"$semver\")\}"; then
-  echo 'jureuma: no valid active installation (current.json); reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh' >&2
-  exit 1
-fi
-active=$(printf '%s\n' "$pointer" | sed 's/^{"protocol":1,"active":"\([^"]*\)".*/\1/')
-payload="$home_dir/versions/$active/jureuma"
-if [ ! -x "$payload" ]; then
-  # Fall back to the previous verified payload when the active one is gone.
-  previous=$(printf '%s\n' "$pointer" | sed -n 's/.*"previous":"\([^"]*\)".*/\1/p')
-  if [ -n "$previous" ] && [ -x "$home_dir/versions/$previous/jureuma" ]; then
-    echo "jureuma: warning: the active payload $active is missing; running the previous version $previous (reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh)" >&2
-    exec "$home_dir/versions/$previous/jureuma" "$@"
-  fi
-  echo "jureuma: the active payload $active is missing; reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh" >&2
-  exit 1
-fi
-exec "$payload" "$@"
-'@
-    [IO.File]::WriteAllText($Launcher, $launcherText.Replace("`r`n", "`n"), $Utf8NoBom)
-    & chmod 0755 -- $Launcher
-  }
+  $LauncherStage = Join-Path $Stage 'launcher'
+  Copy-Item -LiteralPath (Join-Path $Dl $LauncherAsset) -Destination $LauncherStage
+  if (-not $OnWindows) { & chmod 0755 -- $LauncherStage }
+  Move-Item -LiteralPath $LauncherStage -Destination $Launcher -Force
 
   # Installed artifact manifest.
   $previousManifest = $null
