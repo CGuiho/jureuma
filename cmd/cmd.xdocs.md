@@ -4,6 +4,7 @@ description: "Container for the Go main packages (executables) built from this m
 parent: jureuma
 children:
   - jureuma-cmd-jureuma
+  - jureuma-cmd-jureuma-launcher
 files: {}
 documents: {}
 tags:
@@ -21,3 +22,4 @@ Container for the Go main packages (executables) built from this module.
 ## Children
 
 - `jureuma-cmd-jureuma`
+- `jureuma-cmd-jureuma-launcher`
