@@ -5,6 +5,7 @@ parent: jureuma-internal
 children: []
 files:
   "xerr.go": "Exit-code error types."
+  "xerr_test.go": "Tests for the exit-code taxonomy, error classification and wrapping."
 documents: {}
 tags:
   - "go"
@@ -23,3 +24,4 @@ Errors carrying jureuma exit codes (0-5, 125) and the [JUREUMA:<KIND>] label pri
 ## Files
 
 - `xerr.go`: Exit-code error types.
+- `xerr_test.go`: Tests for the exit-code taxonomy, error classification and wrapping.
