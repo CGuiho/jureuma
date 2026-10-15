@@ -9,8 +9,8 @@
 #   mirror version plan 0.1.0
 #
 # Version-bearing files that Mirror's adapters cannot write (Go has no
-# package.json) are kept in sync by `runx run jureuma-version-sync -- <version>`
-# and checked by `runx run jureuma-version-check -- <version>`:
+# package.json) are kept in sync by `runx run version-sync -- <version>`
+# and checked by `runx run version-check -- <version>`:
 #
 #   internal/config/examples/jureuma.yaml         pinned project schema URL
 #   internal/config/examples/jureuma.global.yaml  pinned global schema URL
@@ -37,13 +37,13 @@ agents:
 hooks:
   "before:plan":
     instructions:
-      - "Run `runx run jureuma-go-fmt-check`, `runx run jureuma-go-vet-cross` and `runx run jureuma-go-test`; stop if any fails."
-      - "Run `runx run jureuma-docs-check` and `mirror config check`; stop if either fails."
+      - "Run `runx run go-fmt-check`, `runx run go-vet-cross` and `runx run go-test`; stop if any fails."
+      - "Run `runx run docs-check` and `mirror config check`; stop if either fails."
   "before:apply":
     instructions:
-      - "Run `runx run jureuma-version-sync -- <next-version>` so the pinned schema URLs in internal/config/examples match the planned version, then `runx run jureuma-go-test`."
+      - "Run `runx run version-sync -- <next-version>` so the pinned schema URLs in internal/config/examples match the planned version, then `runx run go-test`."
       - "Update CHANGELOG.md for <next-version> and commit the release preparation before `mirror version apply`."
       - "Apply only with explicit user authorization for the version, commit, tag and push effects."
   "after:apply":
     instructions:
-      - "Build the release with `runx run jureuma-release-prepare` from the new tag and verify it with `runx run jureuma-release-verify`. Publishing (`jureuma-release-publish`) needs separate explicit authorization."
+      - "Build the release with `runx run release-prepare` from the new tag and verify it with `runx run release-verify`. Publishing (`release-publish`) needs separate explicit authorization."

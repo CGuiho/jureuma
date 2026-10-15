@@ -27,12 +27,12 @@ Behaviour is specified in [`docs/2026-10-13-jureuma-design.md`](docs/2026-10-13-
 ### Everyday commands (all in `runx.yaml`)
 
 ```text
-runx run jureuma-go-fmt-check      runx run jureuma-go-vet-cross      runx run jureuma-go-test
-runx run jureuma-test-e2e          runx run jureuma-test-smoke        runx run jureuma-test-installers
-runx run jureuma-build             runx run jureuma-release-prepare   runx run jureuma-ci-check
+runx run go-fmt-check      runx run go-vet-cross      runx run go-test
+runx run test-e2e          runx run test-smoke        runx run test-installers
+runx run build             runx run release-prepare   runx run ci-check
 ```
 
-Releases: `mirror version plan <target>` (Git tags `v<semver>`; the first release is 0.1.0), then `runx run jureuma-version-sync -- <version>`. Apply, publish (`jureuma-release-publish`, `jureuma-schema-publish`), commit, tag and push only with explicit user authorization.
+Releases: `mirror version plan <target>` (Git tags `v<semver>`; the first release is 0.1.0), then `runx run version-sync -- <version>`. Apply, publish (`release-publish`, `schema-publish`), commit, tag and push only with explicit user authorization.
 
 ## Supported Format: JSONC
 
