@@ -174,6 +174,26 @@ dogfooding question stays open above.
   `version-sync` (every artifact and example already pins v0.1.0; no changes
   needed). The final validation battery runs on this tree.
 
+## Release (record)
+
+- **Validation battery on the frozen tree:** `runx run ci-check` exit 0,
+  `runx run test-e2e` exit 0, `runx run test-installers` exit 0 (24 checks).
+- **Mirror:** `mirror config check` ok; `mirror version apply 0.1.0 --yes` →
+  `applied: true`; tag `v0.1.0` at `473d422` pushed.
+- **Artifacts:** `release-prepare` and `release-verify` exit 0 —
+  `release-verify: 0.1.0 ok (22 files)`; the released set carries 23 assets
+  because `checksums.txt` cannot hash itself; SHA-256 spot-checks match both
+  `checksums.txt` and `artifacts.json`.
+- **Publish:** `release-publish` exit 0 →
+  <https://github.com/CGuiho/jureuma/releases/tag/v0.1.0> (not a draft, not a
+  prerelease), 23 assets read back via `gh api`.
+- **Task state:** all five items read back from the Project as `Testing` with
+  component `jureuma`; completion and archival wait for the human verdict per
+  the review discipline.
+- **Records written:** `docs/reviews/implementation/release-0.1.0-review.md`,
+  `docs/validation/release-0.1.0-validation.md`,
+  `docs/reviews/handoff/2026-10-16-release-0.1.0.md`.
+
 ## Open questions for CG (not blocking)
 
 - Should this repository carry its own jureuma managed block on purpose
