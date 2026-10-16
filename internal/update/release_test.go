@@ -142,6 +142,12 @@ func artJSON(id, kind, asset, installedPath string) string {
 		id, kind, asset, dummySHA, installedPath)
 }
 
+// artJSONPlat builds one artifacts.json entry for a specific target.
+func artJSONPlat(id, kind, asset, os, arch, installedPath string) string {
+	return fmt.Sprintf(`{"id":%q,"kind":%q,"asset":%q,"os":%q,"arch":%q,"sha256":%q,"installedPath":%q,"projections":[]}`,
+		id, kind, asset, os, arch, dummySHA, installedPath)
+}
+
 // manJSON builds one artifacts.json document.
 func manJSON(name, version string, arts ...string) string {
 	return fmt.Sprintf(`{"schema":1,"name":%q,"version":%q,"tag":"v%s","artifacts":[%s]}`,
@@ -182,15 +188,24 @@ func TestParseManifest(t *testing.T) {
 		{"absolute installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "/versions/1.2.3/a.bin")), true},
 		{"backslash installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", `versions/1.2.3/a\b`)), true},
 		{"other version installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "versions/other/a.bin")), true},
-		// GAP (W2 brief expects rejection): ParseManifest does not validate the
-		// manifest protocol ("schema") version and does not reject duplicate
-		// installed paths. release.go belongs to another work unit, so these
-		// cases document current behaviour and the gap is reported to the
-		// parent instead of changing release.go here.
-		{"protocol/schema version not validated today", strings.Replace(valid, `"schema":1`, `"schema":2`, 1), false},
-		{"duplicate installed paths not rejected today", manJSON("jureuma", "1.2.3",
+		// The parent's review closed the W2-reported gap: release.go now
+		// validates the manifest protocol ("schema") version and rejects
+		// artifacts that could be installed together onto the same path.
+		// Only artifacts.json format version 1 is understood.
+		{"schema version 2 rejected", strings.Replace(valid, `"schema":1`, `"schema":2`, 1), true},
+		{"schema version 0 rejected", strings.Replace(valid, `"schema":1`, `"schema":0`, 1), true},
+		{"missing schema version rejected", strings.Replace(valid, `"schema":1,`, "", 1), true},
+		{"duplicate installed paths rejected", manJSON("jureuma", "1.2.3",
 			artJSON("a", "binary", "a.bin", "versions/1.2.3/a.bin"),
-			artJSON("b", "skill", "b.zip", "versions/1.2.3/a.bin")), false},
+			artJSON("b", "skill", "b.zip", "versions/1.2.3/a.bin")), true},
+		{"platform target overlapping an any target rejected", manJSON("jureuma", "1.2.3",
+			artJSONPlat("a", "binary", "jureuma-linux-amd64", "linux", "amd64", "versions/1.2.3/a.bin"),
+			artJSON("b", "prompt", "b.md", "versions/1.2.3/a.bin")), true},
+		{"same installed path across distinct platforms allowed", manJSON("jureuma", "1.2.3",
+			artJSONPlat("a", "binary", "jureuma-linux-amd64", "linux", "amd64", "versions/1.2.3/jureuma"),
+			artJSONPlat("b", "binary", "jureuma-linux-arm64", "linux", "arm64", "versions/1.2.3/jureuma"),
+			artJSONPlat("c", "launcher", "jureuma-launcher-linux-amd64", "linux", "amd64", "$HOME/.guiho/bin/jureuma"),
+			artJSONPlat("d", "launcher", "jureuma-launcher-linux-arm64", "linux", "arm64", "$HOME/.guiho/bin/jureuma")), false},
 	}
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {

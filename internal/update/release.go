@@ -144,10 +144,12 @@ var launcherPaths = map[string]bool{
 	"$HOME/.guiho/bin/jureuma.exe": true,
 }
 
-// ParseManifest parses and checks artifacts.json: every asset name is plain,
-// every non-launcher installed path is a clean relative path below
-// versions/<version>/, and every launcher installed path is the shared
-// command path for its platform.
+// ParseManifest parses and checks artifacts.json: the document must be format
+// version 1, describe jureuma and carry a valid version; every asset name is
+// plain; every non-launcher installed path is a clean relative path below
+// versions/<version>/; every launcher installed path is the shared command
+// path for its platform; and no two artifacts that can be installed together
+// (the same path with overlapping platforms) are allowed.
 func ParseManifest(data []byte) (*Manifest, error) {
 	var m Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -156,10 +158,17 @@ func ParseManifest(data []byte) (*Manifest, error) {
 	if m.Name != "jureuma" {
 		return nil, errors.New("artifacts.json does not describe jureuma")
 	}
+	// Only artifacts.json format version 1 is understood; a document from a
+	// different protocol version must be refused rather than misread.
+	if m.Schema != 1 {
+		return nil, errors.New("artifacts.json has an unsupported schema version")
+	}
 	if _, ok := Parse(m.Version); !ok {
 		return nil, errors.New("artifacts.json has an invalid version")
 	}
 	prefix := "versions/" + m.Version + "/"
+	type target struct{ path, os, arch string }
+	var seen []target
 	for _, a := range m.Artifacts {
 		if !ValidAssetName(a.Asset) {
 			return nil, errors.New("artifacts.json names an unsafe asset")
@@ -169,13 +178,23 @@ func ParseManifest(data []byte) (*Manifest, error) {
 			if !launcherPaths[p] {
 				return nil, errors.New("artifacts.json has an unsafe launcher installed path")
 			}
-			continue
-		}
-		if strings.Contains(p, `\`) || path.Clean(p) != p || !strings.HasPrefix(p, prefix) || len(p) == len(prefix) {
+		} else if strings.Contains(p, `\`) || path.Clean(p) != p || !strings.HasPrefix(p, prefix) || len(p) == len(prefix) {
 			return nil, errors.New("artifacts.json has an unsafe installed path")
 		}
+		for _, s := range seen {
+			if s.path == p && overlapsTarget(s.os, a.OS) && overlapsTarget(s.arch, a.Arch) {
+				return nil, errors.New("artifacts.json has duplicate installed paths")
+			}
+		}
+		seen = append(seen, target{p, a.OS, a.Arch})
 	}
 	return &m, nil
+}
+
+// overlapsTarget reports whether two artifact targets can be installed
+// together: "any" matches every platform.
+func overlapsTarget(a, b string) bool {
+	return a == b || a == "any" || b == "any"
 }
 
 // ForPlatform returns the artifacts that belong to goos/goarch: that
