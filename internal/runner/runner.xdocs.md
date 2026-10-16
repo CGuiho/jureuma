@@ -1,6 +1,6 @@
 ---
 subject: jureuma-runner
-description: "Child-process injection for run: environment building (json, flatten, file formats), private-key stripping, memfd or temp-file documents, output redaction, signal forwarding and exit-code pass-through."
+description: "Child-process injection for run: environment building (json, flatten, file formats), private-key stripping, memfd or temp-file documents, output redaction, signal forwarding and exit-code pass-through; plus the run-instance registry and OS process inspection that terminate previous-payload processes before an upgrade activation."
 parent: jureuma-internal
 children: []
 files:
@@ -15,7 +15,14 @@ files:
   "memfdnr_linux_arm.go": "memfd_create syscall number (arm)."
   "memfdnr_linux_generic.go": "memfd_create syscall number (generic Linux architectures)."
   "memfdnr_linux_other.go": "Unknown architectures use the file fallback."
+  "proc.go": "Old-payload process selection and termination (verified executable paths, never the CLI's own children)."
+  "proc_unix.go": "Unix SIGTERM/SIGKILL termination."
+  "proc_linux.go": "/proc process inspection on Linux."
+  "proc_ps.go": "ps-based process inspection on macOS and the BSDs."
+  "proc_windows.go": "PowerShell/CIM process inspection and taskkill on Windows."
   "runner_test.go": "Runner tests."
+  "proc_test.go": "Process selection tests."
+  "proc_linux_test.go": "Linux /proc inspection and termination tests."
 documents: {}
 tags:
   - "go"
@@ -31,7 +38,7 @@ status: stable
 
 # jureuma-runner
 
-Child-process injection for run: environment building (json, flatten, file formats), private-key stripping, memfd or temp-file documents, output redaction, signal forwarding and exit-code pass-through.
+Child-process injection for run: environment building (json, flatten, file formats), private-key stripping, memfd or temp-file documents, output redaction, signal forwarding and exit-code pass-through; plus the run-instance registry and OS process inspection that terminate previous-payload processes before an upgrade activation.
 
 ## Files
 
@@ -46,4 +53,11 @@ Child-process injection for run: environment building (json, flatten, file forma
 - `memfdnr_linux_arm.go`: memfd_create syscall number (arm).
 - `memfdnr_linux_generic.go`: memfd_create syscall number (generic Linux architectures).
 - `memfdnr_linux_other.go`: Unknown architectures use the file fallback.
+- `proc.go`: Old-payload process selection and termination (verified executable paths, never the CLI's own children).
+- `proc_unix.go`: Unix SIGTERM/SIGKILL termination.
+- `proc_linux.go`: /proc process inspection on Linux.
+- `proc_ps.go`: ps-based process inspection on macOS and the BSDs.
+- `proc_windows.go`: PowerShell/CIM process inspection and taskkill on Windows.
 - `runner_test.go`: Runner tests.
+- `proc_test.go`: Process selection tests.
+- `proc_linux_test.go`: Linux /proc inspection and termination tests.
