@@ -26,7 +26,7 @@
   - [ ] [Publish per-target launcher artifacts and install the released launcher](https://github.com/CGuiho/jureuma/issues/5) — in progress
   - [ ] [Complete contract test coverage for doc/xerr/update/paths and full release-catalog pagination](https://github.com/CGuiho/jureuma/issues/6) — in progress
   - [ ] [Bring bundled agent artifacts to Convention 0002 metadata shape](https://github.com/CGuiho/jureuma/issues/7) — in progress
-  - [ ] [Upgrade transaction journal with later-invocation repair and verified old-payload instance termination](https://github.com/CGuiho/jureuma/issues/8) — todo (dispatch after issue #5 lands)
+  - [ ] [Upgrade transaction journal with later-invocation repair and verified old-payload instance termination](https://github.com/CGuiho/jureuma/issues/8) — in progress
 
 Every item above is a real GitHub issue in `CGuiho/jureuma`, attached to the
 bound Project with the `jureuma` component. The Project is authoritative for

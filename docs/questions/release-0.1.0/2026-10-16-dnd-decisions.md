@@ -69,7 +69,7 @@ work survives any session loss.
 | W1 | [#5](https://github.com/CGuiho/jureuma/issues/5) | Released per-target launcher artifacts; installers download the launcher; Windows stable launcher (Convention 0001 release-artifact set and installer step 4) | session `ses_ebe307ee2ffeOKyDhcDx7Lmh7y` |
 | W2 | [#6](https://github.com/CGuiho/jureuma/issues/6) | Contract test coverage for `doc`, `xerr`, `update`, `paths`; full release-catalog pagination | session `ses_ebe307edeffey5xJMjfgIGgjIb` |
 | W3 | [#7](https://github.com/CGuiho/jureuma/issues/7) | Convention 0002 metadata on the bundled agent artifacts | session `ses_ebe307ea8ffea713RdeHld2eGo` |
-| W4 | [#8](https://github.com/CGuiho/jureuma/issues/8) | Upgrade transaction journal with repair; verified old-payload instance termination (Convention 0001, lines 962 and 1002) | queued behind W1 |
+| W4 | [#8](https://github.com/CGuiho/jureuma/issues/8) | Upgrade transaction journal with repair; verified old-payload instance termination (Convention 0001, lines 962 and 1002) | session `ses_ebdf4e448ffeiMNcNtrjnxJAPS` |
 
 One claimed gap was retracted after cross-check: the gap analysis said
 `jureuma upgrade` had no automated coverage, but `devops/e2e-installers.sh`
@@ -118,6 +118,36 @@ dogfooding question stays open above.
   bare uids (8895a7f); all 15 selectors verified to resolve first.
 - The design document's stale status line ("nothing here is implemented") and
   its Q7 "(repo not created yet)" note were corrected (c90d635).
+
+## Unit review and dispatch (record)
+
+- **W1–W3 were reviewed through their actual commits, not summaries**
+  (2026-10-16, later): the launcher sources (`cmd/jureuma-launcher/**`), the
+  release manifest and upgrade-transaction changes (`internal/update`,
+  `internal/cli`), the installer hunks (`install.sh`, `install.ps1`), the
+  packaging changes (`build.sh`, `cross-build.sh`, `release-prepare.sh`,
+  `release-verify.sh`, `runx.yaml`), the artifact metadata and stripping
+  (`internal/agentres`), `version-sync.sh`, the e2e additions, and the
+  design-note update. All accepted.
+- **Central acceptance:** `runx run ci-check` exits 0 on the 12 unit commits
+  (captured exit code); `runx run test-installers` passes 24/24, including
+  the released-launcher checks and the hermeticity guard.
+- **In-loop review fixes:** `e0efbdd` closes the W2-reported gap —
+  `ParseManifest` now refuses an unsupported artifacts.json `schema` version
+  and two artifacts that can be installed together onto the same path
+  (overlapping platforms; the same path across distinct platforms stays
+  legal, as the real manifest requires for payloads and launchers);
+  `9d988c4` refreshes the `juju-enable` help (the alias copies the launcher,
+  so ordinary upgrades do not invalidate it) and the W4 brief.
+- **W4 dispatched** once W1 had landed: issue #8 flipped to In Progress on
+  the Project (read back), session `ses_ebdf4e448ffeiMNcNtrjnxJAPS`, brief
+  `docs/plans/release-0.1.0/execution/handoffs/w4-upgrade-hardening.md`
+  (refreshed with the post-W1 state, ownership, and the one design-doc
+  bullet it must update).
+- **Known limitation (recorded for the handoff):** `pwsh` is absent on this
+  host, so the `install.ps1`/`uninstall.ps1` changes were hand-reviewed but
+  not executed here, and Windows runtime behavior (launcher, upgrade
+  transaction) is covered by `GOOS=windows` vet plus code review only.
 
 ## Open questions for CG (not blocking)
 
