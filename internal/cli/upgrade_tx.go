@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 
@@ -75,7 +74,9 @@ func (c currentPointer) marshal() []byte {
 	return []byte(`{"protocol":1,"active":"` + c.Active + `","previous":` + prev + "}\n")
 }
 
-// upgradeTx holds the state needed to roll back.
+// upgradeTx holds the state of one upgrade transaction. The rollback state
+// lives in the write-ahead journal on disk, not in memory, so an interrupted
+// transaction can be repaired completely by a later invocation.
 type upgradeTx struct {
 	cmd                *cobra.Command
 	home, bin, stage   string
@@ -83,17 +84,9 @@ type upgradeTx struct {
 	asset, payloadName string
 	launcher           string
 
-	createdVersion  bool
-	versionBackup   string
-	currentBackup   []byte
-	currentWritten  bool
-	manifestBackup  []byte
-	manifestWritten bool
-	skillBackups    map[string]string // target -> backup path
-	skillsWritten   []string
-	agentsTarget    string
-	agentsBackup    []byte
-	agentsHad       bool
+	j         *upgradeJournal
+	keepStage bool     // a rollback left staged backups behind
+	retired   []string // skill IDs this release removes
 }
 
 // runUpgrade performs the transaction for rel. force allows terminating live
@@ -124,6 +117,12 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 		return xerr.Failure("another jureuma upgrade is running")
 	}
 	defer unlock()
+	// With the lock held no transaction can be live, so whatever journal
+	// exists was interrupted and must be repaired before this transaction
+	// may overwrite it.
+	if err := repairUpgradeLocked(home, cmd.ErrOrStderr()); err != nil {
+		return xerr.Failure("the interrupted upgrade transaction could not be repaired; run the reinstall command below")
+	}
 
 	if err := os.MkdirAll(tempRoot, 0o755); err != nil {
 		return xerr.Failure("cannot create %s", tempRoot)
@@ -136,16 +135,45 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 		os.RemoveAll(stage)
 		return xerr.Failure("the staging directory is outside ~/.guiho/.temp")
 	}
-	defer os.RemoveAll(stage)
 
 	tx := &upgradeTx{
 		cmd: cmd, home: home, bin: bin, stage: stage,
 		version: rel.Version, tag: rel.Tag,
-		asset:        update.PayloadAsset(runtime.GOOS, runtime.GOARCH),
-		payloadName:  exeName("jureuma"),
-		launcher:     launcher,
-		skillBackups: map[string]string{},
+		asset:       update.PayloadAsset(runtime.GOOS, runtime.GOARCH),
+		payloadName: exeName("jureuma"),
+		launcher:    launcher,
 	}
+	tx.j = newUpgradeJournal(rel.Version, "", stage, filepath.Join(home, "versions", ".candidate-"+filepath.Base(stage)))
+	defer func() {
+		if !tx.keepStage {
+			os.RemoveAll(stage)
+		}
+	}()
+
+	// The version being superseded: the launcher records it as previous, and
+	// every other process running its payload must be terminated before
+	// activation.
+	next := currentPointer{Active: tx.version}
+	prev := cur.Active
+	if prev == tx.version {
+		prev = cur.Previous
+	}
+	if prev != "" && fileExists(filepath.Join(home, "versions", prev, tx.payloadName)) {
+		next.Previous = prev
+	}
+	tx.j.Previous = prev
+
+	// From here on, every failure rolls back through the journal.
+	committed := false
+	defer func() {
+		if !committed {
+			tx.failRollback()
+		}
+	}()
+	if err := tx.saveJournal(); err != nil {
+		return err
+	}
+
 	man, files, err := tx.download()
 	if err != nil {
 		return err
@@ -153,19 +181,13 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 	if err := tx.checkCandidate(filepath.Join(stage, "dl", tx.asset)); err != nil {
 		return err
 	}
-
-	// From here on, every failure rolls back.
-	committed := false
-	defer func() {
-		if !committed {
-			tx.rollback()
-		}
-	}()
+	if err := tx.planArtifacts(man); err != nil {
+		return err
+	}
 	if err := tx.buildVersion(man, files); err != nil {
 		return err
 	}
-	removedSkills, err := tx.replaceSkills(man)
-	if err != nil {
+	if err := tx.replaceSkills(); err != nil {
 		return err
 	}
 	if err := tx.writeManifest(files["artifacts.json"]); err != nil {
@@ -183,22 +205,32 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 			}
 		}
 	}
-
-	next := currentPointer{Active: tx.version}
-	prev := cur.Active
-	if prev == tx.version {
-		prev = cur.Previous
+	// Every other process owned by the current user whose verified
+	// executable path is the previous payload is terminated before
+	// activation; a survivor fails the upgrade without activating.
+	if cur.Active != "" {
+		oldPayload := filepath.Join(home, "versions", cur.Active, tx.payloadName)
+		if err := runner.TerminateOldPayload(home, oldPayload); err != nil {
+			return xerr.Failure("%v; the new release was not activated", err)
+		}
 	}
-	if prev != "" && fileExists(filepath.Join(home, "versions", prev, tx.payloadName)) {
-		next.Previous = prev
+
+	if err := tx.planActivation(); err != nil {
+		return err
 	}
 	if err := tx.activate(next); err != nil {
+		return err
+	}
+	if err := tx.savePhase(phaseVerification); err != nil {
 		return err
 	}
 	if err := tx.verify(); err != nil {
 		return err
 	}
 	if err := tx.applyInstruction(); err != nil {
+		return err
+	}
+	if err := tx.finish(); err != nil {
 		return err
 	}
 	committed = true
@@ -223,14 +255,14 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 	if next.Previous != "" {
 		outf(cmd, "  rollback:  %s (inactive)\n", next.Previous)
 	}
-	for _, t := range tx.skillsWritten {
+	for _, t := range tx.j.SkillWrites {
 		outf(cmd, "  skill:     %s\n", t)
 	}
-	for _, id := range removedSkills {
+	for _, id := range tx.retired {
 		outf(cmd, "  removed retired skill %s\n", id)
 	}
-	if tx.agentsTarget != "" {
-		outf(cmd, "  AGENTS.md: %s (jureuma block)\n", tx.agentsTarget)
+	if tx.j.AgentsTarget != "" {
+		outf(cmd, "  AGENTS.md: %s (jureuma block)\n", tx.j.AgentsTarget)
 	}
 	outf(cmd, "verified: %s --version reports %s\n", launcher, tx.version)
 	outf(cmd, "next: run jureuma init, then jureuma --version\n")
@@ -354,15 +386,16 @@ func (tx *upgradeTx) checkCandidate(payload string) error {
 	return nil
 }
 
-// buildVersion builds versions/<v>/ beside its final place and renames it in.
-// Launcher artifacts are not installed here: the stable launcher lives in the
-// shared ~/.guiho/bin directory and ordinary upgrades never replace it.
+// buildVersion builds versions/<v>/ beside its final place and renames it in,
+// following the write-ahead plan in the journal. Launcher artifacts are not
+// installed here: the stable launcher lives in the shared ~/.guiho/bin
+// directory and ordinary upgrades never replace it.
 func (tx *upgradeTx) buildVersion(man *update.Manifest, files map[string]string) error {
 	versions := filepath.Join(tx.home, "versions")
 	if err := os.MkdirAll(versions, 0o755); err != nil {
 		return xerr.Failure("cannot create %s", versions)
 	}
-	cand := filepath.Join(versions, ".candidate-"+filepath.Base(tx.stage))
+	cand := tx.j.Candidate
 	defer os.RemoveAll(cand)
 	prefix := "versions/" + tx.version + "/"
 	for _, art := range man.ForPlatform(runtime.GOOS, runtime.GOARCH) {
@@ -394,17 +427,14 @@ func (tx *upgradeTx) buildVersion(man *update.Manifest, files map[string]string)
 		return xerr.Failure("artifacts.json does not install the payload")
 	}
 	final := filepath.Join(versions, tx.version)
-	if fileExists(final) {
-		tx.versionBackup = filepath.Join(tx.stage, "backup-version")
-		if err := os.Rename(final, tx.versionBackup); err != nil {
-			tx.versionBackup = ""
+	if tx.j.VersionBackup != "" {
+		if err := os.Rename(final, tx.j.VersionBackup); err != nil {
 			return xerr.Failure("cannot replace %s", final)
 		}
 	}
 	if err := os.Rename(cand, final); err != nil {
 		return xerr.Failure("cannot install %s", final)
 	}
-	tx.createdVersion = true
 	return nil
 }
 
@@ -510,13 +540,27 @@ func validSkillID(id string) bool {
 	return id != "" && id != "." && id != ".." && !strings.HasPrefix(id, ".") && !strings.ContainsAny(id, `/\:`)
 }
 
-// replaceSkills replaces the managed skill projections with the release's
-// canonical copies and removes skills the previous release had but this one
-// does not. Every replaced or removed directory is moved into staging first.
-func (tx *upgradeTx) replaceSkills(man *update.Manifest) ([]string, error) {
+// planArtifacts records the write-ahead plan for every artifact change the
+// transaction is about to make (immutable version directory, skill
+// projections, installed-artifacts.json) and stages the backups its rollback
+// needs. It runs before the first change outside the transaction's staging,
+// so an interruption can never leave an unrecorded change behind.
+func (tx *upgradeTx) planArtifacts(man *update.Manifest) error {
+	j := tx.j
+	j.Phase = phaseArtifactReplace
+	final := filepath.Join(tx.home, "versions", tx.version)
+	if _, err := os.Lstat(final); err == nil {
+		j.VersionBackup = filepath.Join(tx.stage, "backup-version")
+	}
+	// versions/<v> did not exist when this plan was written (or is restored
+	// from VersionBackup), so whatever is there after a rollback point is the
+	// transaction's own build. The upgrade lock serializes every jureuma-side
+	// writer of that directory.
+	j.CreatesVersion = true
+
 	dests, err := skillDests()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	var prev *update.Manifest
 	if data, err := os.ReadFile(filepath.Join(tx.home, installedFile)); err == nil {
@@ -527,35 +571,57 @@ func (tx *upgradeTx) replaceSkills(man *update.Manifest) ([]string, error) {
 	for _, id := range ids {
 		keep[id] = true
 	}
-	var retired []string
 	for _, id := range skillIDs(prev) {
 		if !keep[id] {
-			retired = append(retired, id)
+			tx.retired = append(tx.retired, id)
 		}
 	}
 	n := 0
 	for _, root := range dests {
-		for _, id := range append(append([]string{}, ids...), retired...) {
+		for _, id := range append(append([]string{}, ids...), tx.retired...) {
 			target := filepath.Join(root, id)
 			if _, err := os.Lstat(target); err == nil {
 				n++
-				backup := filepath.Join(tx.stage, fmt.Sprintf("backup-skill-%d", n))
-				if err := os.Rename(target, backup); err != nil {
-					return nil, xerr.Failure("cannot replace %s", target)
-				}
-				tx.skillBackups[target] = backup
+				j.SkillBackups[target] = filepath.Join(tx.stage, fmt.Sprintf("backup-skill-%d", n))
 			}
 		}
 		for _, id := range ids {
-			target := filepath.Join(root, id)
-			src := filepath.Join(tx.home, "versions", tx.version, "artifacts", "skills", id)
-			tx.skillsWritten = append(tx.skillsWritten, target)
-			if err := copyTree(src, target); err != nil {
-				return nil, xerr.Failure("cannot install %s", target)
+			j.SkillWrites = append(j.SkillWrites, filepath.Join(root, id))
+		}
+	}
+
+	// The manifest backup is staged before the journal records it: a
+	// recorded backup always exists, so its restore never loses the file.
+	if data, err := os.ReadFile(filepath.Join(tx.home, installedFile)); err == nil {
+		bak := filepath.Join(tx.stage, "backup-manifest.json")
+		if err := os.WriteFile(bak, data, 0o600); err != nil {
+			return xerr.Failure("cannot stage the installed-artifacts.json backup")
+		}
+		j.ManifestBackup = bak
+	}
+	j.WritesManifest = true
+	return tx.saveJournal()
+}
+
+// replaceSkills replaces the managed skill projections with the release's
+// canonical copies and removes skills the previous release had but this one
+// does not. Every replaced or removed directory is moved into staging first,
+// exactly as the journal's write-ahead plan records it.
+func (tx *upgradeTx) replaceSkills() error {
+	for _, target := range sortedKeys(tx.j.SkillBackups) {
+		if _, err := os.Lstat(target); err == nil {
+			if err := os.Rename(target, tx.j.SkillBackups[target]); err != nil {
+				return xerr.Failure("cannot replace %s", target)
 			}
 		}
 	}
-	return retired, nil
+	for _, target := range tx.j.SkillWrites {
+		src := filepath.Join(tx.home, "versions", tx.version, "artifacts", "skills", filepath.Base(target))
+		if err := copyTree(src, target); err != nil {
+			return xerr.Failure("cannot install %s", target)
+		}
+	}
+	return nil
 }
 
 func copyTree(src, dst string) error {
@@ -578,20 +644,34 @@ func copyTree(src, dst string) error {
 	})
 }
 
+// writeManifest installs the release's artifacts.json. Its rollback backup is
+// already staged and recorded by planArtifacts.
 func (tx *upgradeTx) writeManifest(src string) error {
 	dst := filepath.Join(tx.home, installedFile)
-	if data, err := os.ReadFile(dst); err == nil {
-		tx.manifestBackup = data
-	}
 	data, err := os.ReadFile(src)
 	if err != nil {
 		return xerr.Failure("cannot read artifacts.json")
 	}
-	tx.manifestWritten = true
 	if err := paths.AtomicWrite(dst, data, 0o644); err != nil {
 		return xerr.Failure("cannot write %s", dst)
 	}
 	return nil
+}
+
+// planActivation stages the current.json backup and records the write-ahead
+// plan before the atomic pointer swap.
+func (tx *upgradeTx) planActivation() error {
+	j := tx.j
+	j.Phase = phaseActivation
+	if data, err := os.ReadFile(filepath.Join(tx.home, currentFile)); err == nil {
+		bak := filepath.Join(tx.stage, "backup-current.json")
+		if err := os.WriteFile(bak, data, 0o600); err != nil {
+			return xerr.Failure("cannot stage the current.json backup")
+		}
+		j.CurrentBackup = bak
+	}
+	j.WritesCurrent = true
+	return tx.saveJournal()
 }
 
 // activate writes current.json atomically so the stable launcher selects the
@@ -600,10 +680,6 @@ func (tx *upgradeTx) writeManifest(src string) error {
 // replace the running launcher.
 func (tx *upgradeTx) activate(next currentPointer) error {
 	p := filepath.Join(tx.home, currentFile)
-	if data, err := os.ReadFile(p); err == nil {
-		tx.currentBackup = data
-	}
-	tx.currentWritten = true
 	if err := paths.AtomicWrite(p, next.marshal(), 0o644); err != nil {
 		return xerr.Failure("cannot write %s", p)
 	}
@@ -627,7 +703,8 @@ func (tx *upgradeTx) verify() error {
 }
 
 // applyInstruction refreshes the AGENTS.md block with the new payload when
-// run from a project root (the same rule as install.sh).
+// run from a project root (the same rule as install.sh). Its rollback backup
+// is staged and recorded before the child command writes anything.
 func (tx *upgradeTx) applyInstruction() error {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -637,9 +714,16 @@ func (tx *upgradeTx) applyInstruction() error {
 	if !fileExists(filepath.Join(wd, "jureuma.yaml")) && !(fileExists(agents) && fileExists(filepath.Join(wd, ".git"))) {
 		return nil
 	}
-	tx.agentsTarget = agents
+	tx.j.AgentsTarget = agents
 	if data, err := os.ReadFile(agents); err == nil {
-		tx.agentsBackup, tx.agentsHad = data, true
+		bak := filepath.Join(tx.stage, "backup-agents.md")
+		if err := os.WriteFile(bak, data, 0o600); err != nil {
+			return xerr.Failure("cannot stage the AGENTS.md backup")
+		}
+		tx.j.AgentsBackup, tx.j.AgentsHad = bak, true
+	}
+	if err := tx.saveJournal(); err != nil {
+		return err
 	}
 	if _, err := runQuiet(wd, tx.launcher, "agent", "instruction", "apply"); err != nil {
 		return xerr.Failure("could not apply the jureuma block to %s", agents)
@@ -647,51 +731,53 @@ func (tx *upgradeTx) applyInstruction() error {
 	return nil
 }
 
-// rollback restores everything the transaction changed, newest first.
-func (tx *upgradeTx) rollback() {
-	errf(tx.cmd, "rolling back to the previous installation...\n")
-	if tx.agentsTarget != "" {
-		if tx.agentsHad {
-			_ = paths.AtomicWrite(tx.agentsTarget, tx.agentsBackup, 0o644)
-		} else {
-			_ = os.Remove(tx.agentsTarget)
-		}
+// savePhase records the next transaction phase in the journal.
+func (tx *upgradeTx) savePhase(phase string) error {
+	tx.j.Phase = phase
+	return tx.saveJournal()
+}
+
+// saveJournal persists the write-ahead transaction record.
+func (tx *upgradeTx) saveJournal() error {
+	if err := tx.j.save(tx.home); err != nil {
+		return xerr.Failure("cannot write the upgrade transaction journal")
 	}
-	if tx.currentWritten {
-		p := filepath.Join(tx.home, currentFile)
-		if tx.currentBackup != nil {
-			_ = paths.AtomicWrite(p, tx.currentBackup, 0o644)
-		} else {
-			_ = os.Remove(p)
-		}
+	return nil
+}
+
+// failRollback completes the rollback of a failed transaction through the
+// journal and removes the journal when the rollback finished. When staged
+// backups could not be restored they are kept: they are the only copies, and
+// the next invocation's repair retries the rollback from them.
+func (tx *upgradeTx) failRollback() {
+	if journalChanged(tx.j) {
+		errf(tx.cmd, "rolling back to the previous installation...\n")
 	}
-	if tx.manifestWritten {
-		p := filepath.Join(tx.home, installedFile)
-		if tx.manifestBackup != nil {
-			_ = paths.AtomicWrite(p, tx.manifestBackup, 0o644)
-		} else {
-			_ = os.Remove(p)
-		}
+	tx.j.Phase = phaseRollback
+	_ = tx.j.save(tx.home)
+	kept, err := rollbackJournal(tx.home, tx.j)
+	if len(kept) > 0 {
+		tx.keepStage = true
+		errf(tx.cmd, "jureuma: staged rollback data kept in %s\n", tx.j.Stage)
 	}
-	for _, t := range tx.skillsWritten {
-		_ = os.RemoveAll(t)
+	if err != nil {
+		errf(tx.cmd, "jureuma: the rollback is incomplete: %v\n", err)
+		return // the journal stays; the next invocation repairs
 	}
-	targets := make([]string, 0, len(tx.skillBackups))
-	for t := range tx.skillBackups {
-		targets = append(targets, t)
+	_ = os.Remove(journalPath(tx.home))
+}
+
+// finish marks the transaction complete and removes its journal. A journal
+// that cannot be completed and removed fails the transaction: a later
+// invocation must never mistake a finished upgrade for an interrupted one.
+func (tx *upgradeTx) finish() error {
+	if err := tx.savePhase(phaseCompletion); err != nil {
+		return err
 	}
-	sort.Strings(targets)
-	for _, t := range targets {
-		_ = os.RemoveAll(t)
-		_ = os.Rename(tx.skillBackups[t], t)
+	if err := os.Remove(journalPath(tx.home)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return xerr.Failure("cannot remove %s", journalPath(tx.home))
 	}
-	final := filepath.Join(tx.home, "versions", tx.version)
-	if tx.createdVersion {
-		_ = os.RemoveAll(final)
-	}
-	if tx.versionBackup != "" {
-		_ = os.Rename(tx.versionBackup, final)
-	}
+	return nil
 }
 
 // ---- hidden self-test ----

@@ -184,6 +184,9 @@ Exit codes: 0 ok, 1 failure, 2 usage, 3 protected operation refused, 4 validatio
 			}
 			if home, err := paths.Home(); err == nil {
 				runner.SweepStale(home)
+				// A later invocation repairs an interrupted upgrade
+				// transaction before dispatching an ordinary command.
+				repairUpgrade(home, cmd.ErrOrStderr())
 			}
 		},
 	}

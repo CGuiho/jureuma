@@ -22,7 +22,9 @@ files:
   "detach_unix.go": "Detached background update worker on Unix (Setsid)."
   "detach_windows.go": "Detached background update worker on Windows (DETACHED_PROCESS)."
   "cli_test.go": "In-process CLI tests, including the marker-value leak test."
-  "upgrade_tx.go": "Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, rollback) and the hidden __self-test command."
+  "upgrade_tx.go": "Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command."
+  "upgrade_journal.go": "Upgrade transaction journal (phases, write-ahead rollback plan) and interrupted-transaction repair."
+  "upgrade_journal_test.go": "Journal and repair tests."
   "selfdelete_unix.go": "No-op running-image release for uninstall on Unix."
   "selfdelete_windows.go": "Moves the running executable aside so uninstall can remove it on Windows."
 documents: {}
@@ -67,6 +69,8 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `detach_unix.go`: Detached background update worker on Unix (Setsid).
 - `detach_windows.go`: Detached background update worker on Windows (DETACHED_PROCESS).
 - `cli_test.go`: In-process CLI tests, including the marker-value leak test.
-- `upgrade_tx.go`: Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, rollback) and the hidden __self-test command.
+- `upgrade_tx.go`: Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command.
+- `upgrade_journal.go`: Upgrade transaction journal (phases, write-ahead rollback plan) and interrupted-transaction repair.
+- `upgrade_journal_test.go`: Journal and repair tests.
 - `selfdelete_unix.go`: No-op running-image release for uninstall on Unix.
 - `selfdelete_windows.go`: Moves the running executable aside so uninstall can remove it on Windows.
