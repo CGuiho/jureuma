@@ -7,9 +7,21 @@
 - **Model:** `xiaomi/mimo-v2.6-pro` — provider-default thinking, no variant.
 - **Working directory:** `/root/swe/jureuma` — work on `main`; never create
   branches; never push; never tag.
-- **Dependency:** holds until W1 (issue #5, launcher artifacts) lands, because
-  both units touch the upgrade transaction area. The parent dispatches this
-  session only after W1's commit is on `main`.
+- **Dependency satisfied:** W1 (issue #5, launcher artifacts) landed on `main`
+  (`1e0a201`…`53b8363`) and passed the parent's review; the central `ci-check`
+  exits 0 and `test-installers` passes 24/24. Activation in `runUpgrade` is
+  now only the atomic `current.json` swap (`activate()` in
+  `internal/cli/upgrade_tx.go`); the launcher is a released binary that
+  ordinary upgrades never replace. The instance-termination block sits just
+  before `activate` (search `runner.Instances(home)`); keep `--force`
+  semantics. A verified old-payload process executes
+  `versions/<previous>/jureuma[.exe]` (symlink-resolved).
+- **Ownership:** your files are `internal/cli/upgrade_tx.go`,
+  `internal/cli/cli.go`, `internal/runner/**`, any new journal files, the
+  tests for these packages, and the one design-doc bullet named in
+  requirement 5. Do not modify `internal/update/**`,
+  `internal/agentres/**` or `devops/**` (landed units; the parent owns
+  in-loop fixes). `devops/e2e-installers.sh` checks 12–15 must stay green.
 
 ## Mission
 
@@ -59,6 +71,13 @@ cannot be terminated, fail without activating the new release."
    guarded by build/platform where needed).
 4. Do not regress: `--force` semantics, rollback, `__self-test`, recovery
    message first-and-last behavior.
+5. Documentation: update the `docs/2026-10-13-jureuma-design.md` "Upgrade
+   transaction scope" bullet — its "it keeps no transaction journal, so an
+   interrupted upgrade is repaired by re-running `jureuma upgrade` or the
+   reinstall command rather than automatically on the next invocation"
+   sentence becomes false once the journal lands. Replace it with the journal
+   and repair behavior as implemented; keep the rest of the bullet and the
+   surrounding decisions intact (this is the only design-doc change allowed).
 
 ## Verification
 

@@ -123,7 +123,8 @@ func (a *app) cmdEnableJuju() *cobra.Command {
 		Long: `Installs ~/.guiho/bin/juju (juju.exe on Windows), a copy of the jureuma launcher (or of this
 executable when no launcher is installed), so "juju <args>" behaves exactly like
 "jureuma <args>". Refuses to overwrite a juju it did not install, and warns when another juju
-appears earlier on PATH. Re-run it after upgrading to refresh the copy.`,
+appears earlier on PATH. The copy tracks the launcher, not the payload, so ordinary upgrades
+do not invalidate it; re-run it after an installer replaces the launcher to refresh the copy.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, err := paths.Home()
