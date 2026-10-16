@@ -149,6 +149,31 @@ dogfooding question stays open above.
   not executed here, and Windows runtime behavior (launcher, upgrade
   transaction) is covered by `GOOS=windows` vet plus code review only.
 
+## W4 review and release preparation (record)
+
+- **W4 reviewed through its commits** (`504487b`, `2578d16`, `9ed5910`): the
+  journal distinguishes exactly the convention phases (`staging`,
+  `artifact-replacement`, `activation`, `verification`, `rollback`,
+  `completion`), is written ahead of every change, strictly validated (a
+  tampered or unparseable journal is never acted on and never deleted), and is
+  repaired in `PersistentPreRun` (which `__self-test` skips) and again under
+  the upgrade lock before a new transaction may overwrite it. Instance
+  termination inspects real processes (Linux `/proc`, `ps` for macOS/BSD,
+  PowerShell/CIM + `taskkill` for Windows), never matches by filename, never
+  targets the calling process or descendants of it or of registered `run`
+  instances, excludes the current user's other processes' children, and fails
+  closed only for a fully verified old-payload survivor; a process whose path
+  or owner cannot be verified is never terminated. Accepted.
+- **W4 residue closed in-loop** (`16ad31a`): the two stale design-note bullets
+  ("terminates only registered `run` instances" and "no other process is
+  inspected or terminated") now describe the shipped behavior.
+- **Known limitation (recorded):** there is no Windows host or `pwsh` here, so
+  the Windows termination path and `install.ps1`/`uninstall.ps1` are covered
+  by `GOOS=windows` vet plus code review only.
+- **Release preparation committed** (`be15cd0`): the 0.1.0 CHANGELOG entry and
+  `version-sync` (every artifact and example already pins v0.1.0; no changes
+  needed). The final validation battery runs on this tree.
+
 ## Open questions for CG (not blocking)
 
 - Should this repository carry its own jureuma managed block on purpose
