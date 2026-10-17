@@ -91,11 +91,19 @@ commit owned units and never push.
 Confirmed by the orchestrator from the UltraCode packet v1 (safest-reversible
 defaults; stated to CG at dispatch time):
 
-- **Format 2.** New headers are written as `format: 2` on both files;
-  `format: 1` and headerless files are legacy: reads keep working, mutations
-  refuse with an explicit `run jureuma init to repair` pointer. Old jureuma
-  readers already reject unknown `$jureuma` fields; the explicit version
-  makes the break legible instead of a shape surprise.
+- **Format 2.** New headers are written as `format: 2` on both files. Legacy
+  is old jureuma **state**, never header absence: a `$jureuma` block with
+  `format: 1`, or a present-but-malformed block, on either side. Reads keep
+  working; mutations through such files refuse with an explicit
+  `run jureuma init to repair` pointer (enforced in the pair mutating entry
+  points, so untouched command callers inherit it). A headerless plaintext
+  stays fully mutable (encrypt, mirror and both-present flows — the
+  untouched suite pins this and W3 keeps it green); the repair pointer for
+  missing plaintext identity belongs to the single-file identity paths,
+  `check` and `init` repair. (Amended by UltraCode packet v2.1; see the W2
+  brief's A4 block.) Old jureuma readers already reject unknown `$jureuma`
+  fields; the explicit version makes the break legible instead of a shape
+  surprise.
 - **Identity-only plaintext header.** The unencrypted header carries
   `format`, `publicKey`, `keyId`, `home` (the `~/.guiho/jureuma/` global
   directory reference); `sync`/`pending` stay encrypted-side only, so the
@@ -110,12 +118,15 @@ defaults; stated to CG at dispatch time):
   when missing; `schema infer` includes the optional `$schema` string
   property in generated schemas.
 - **Encrypted schema copy (2026-10-17).** The encrypted header carries
-  `$jureuma.schema` as `{ path, c }`: the readable schema path plus the
-  schema document encrypted to the pair key, so a key holder restores the
-  schema from the committed file alone (a keyless sibling build embeds it
-  too — encryption needs only the public key). Additive: the readable local
-  schema file stays as-is; `schema.path` mismatch across files and drift
-  between the embedded copy and the local file are warnings.
+  `$jureuma.schema`: the readable schema path plus the schema document
+  encrypted to the pair key, written as `{ path, c }` when the embedded copy
+  is present (the historical plain-string path form stays readable in any
+  generation and remains the written form when no copy exists — packet
+  v2.1), so a key holder restores the schema from the committed file alone
+  (a keyless sibling build embeds it too — encryption needs only the public
+  key). Additive: the readable local schema file stays as-is; `schema.path`
+  mismatch across files and drift between the embedded copy and the local
+  file are warnings.
 - **Both-present consistency.** `publicKey`/`keyId` must match across files
   and against the stored key where present (mismatch = exit 5, today's
   keyId↔publicKey rule); `home` mismatch is a warning only.

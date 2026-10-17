@@ -138,3 +138,13 @@ GitHub Project, release machinery, version pins, other projects.
   `key export`).
 - DND: never stop to ask a human. Undecided matters: safest reversible choice,
   recorded under `docs/questions/key-identity-headers/`.
+
+## Watch-items (UltraCode packet v2.1, 2026-10-17 — carry into dispatch)
+
+- `decrypt` and `init` starter writes must flip to the full pair API **and**
+  flip `test/e2e/lifecycle_test.go:167-176` (the body-only `stripWS`
+  assertion) in the same unit.
+- `init` repair must be byte-idempotent on already-format-2 files and keyless
+  for legacy upgrades (`lifecycle_test.go:87-95`, `:113-118`).
+- `key rotate` (untouched, `cmd_key.go`) must keep passing with the
+  object-shaped `schema` when embedded copies exist.

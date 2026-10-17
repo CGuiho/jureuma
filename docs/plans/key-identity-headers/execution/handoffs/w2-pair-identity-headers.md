@@ -161,7 +161,74 @@ contradict it.
   (additive only; W1's answers stay as written). This ledger is the unit's one
   permitted `docs/questions/**` edit.
 - **A3 — wording.** `ParseEncrypted`'s `this jureuma reads format 1` message
-  moves to the accepted model: format 2 is written; format 1/headerless reads
-  keep working with the `run jureuma init to repair` mutation pointer; unknown
+  moves to the accepted model: format 2 is written; format 1 reads keep
+  working with the repair mutation pointer on present-but-legacy headers
+  (a headerless plaintext is never a refusal trigger — see A4b); unknown
   future formats keep the explicit rejection. The `MetaKey` comment becomes
   "reserved top-level key of both pair files".
+
+### A4 — suite-locked compatibility (UltraCode packet v2.1, 2026-10-17)
+
+Validated against the untouched test suite at `69c1bea`. This block **refines
+and, where noted, supersedes** Implementation requirements 2, 3 and 5 of this
+brief; the untouched suite is decisive wherever they disagree.
+
+- **A4a — schema-shape compatibility.** `$jureuma.schema` accepts a plain
+  string (path-only) on read in **any** format generation — path safety
+  (inside-project) checks are identical for both shapes. `Meta.Schema string`
+  and `NewEncrypted(pk, schemaRef)` stay exactly as they are (untouchable
+  callers at `cmd_init.go:408`, `cmd_key_list_test.go:192/211/229`); add an
+  additive field + setter for the embedded copy. Format-2 writes use
+  `{ path, c }` **when an embedded copy is present**; without one, the plain
+  string remains the written form and stays legal to read (required:
+  `review_test.go:111` hand-writes the string form into a format-2 file and
+  expects exit 2 on an outside-project path). Field name `schema` and the
+  `ConfiguredSchema` path-only precedence are unchanged.
+- **A4b — refusal scoping.** Legacy refusal keys on **format state, never on
+  plaintext header absence**: a `$jureuma` block with `format: 1`, or a
+  present-but-malformed `$jureuma` on either side → typed, value-free refusal
+  including `run jureuma init to repair` on mutating pair entry points;
+  `format` outside {1, 2} keeps today's explicit "unsupported format" read
+  rejection. A **headerless plaintext is never a refusal trigger** (encrypt,
+  mirror, both-present, keyless `set` included) — `main_test.go:310`,
+  `onefile_test.go:13-31/33-64` and `cli_test.go:79-146` mutate through
+  headerless plaintexts and must stay green, and W3 §7 keeps them green at
+  train end. The missing-plaintext-identity repair pointer is defined here as
+  a typed error but fires only in W3's single-file identity paths (building/
+  refreshing the sibling from a headerless plaintext) and in `check`/`init`
+  repair detection. Enforce inside the pair mutating entry points (A1), so
+  untouched CLI callers inherit without edits.
+- **A4c — old wrappers are byte-compatible, not merely non-injecting.**
+  `ReadPlain`/`WritePlain` keep **today's exact behavior**: `ReadPlain` keeps
+  rejecting a top-level `$jureuma` ("is reserved") and keeps passing `$schema`
+  through as an ordinary body key; `WritePlain` keeps rejecting body
+  `$jureuma` and writes exactly what it is given — no header/pointer
+  injection (`lifecycle_test.go:167-176`) and no deletion of anything already
+  in the document. The new header/`$schema`/embedded-schema model lives
+  exclusively in the full APIs; W3 wires its call sites and flips
+  expectations. **Do not strip reserved keys in the old readers and do not
+  pass `$jureuma` through as a body key**: a stripped read + body-only write
+  silently drops a human's `$schema` on every `set` mirror (data loss on the
+  exact files this train protects), and a passed-through `$jureuma` would be
+  fed into `EncryptDoc` and silently dropped by `MarshalEncrypted` (body
+  `$jureuma` is skipped at `files.go:205-208`). `.jsonc` writes compose
+  through the lossless engine everywhere.
+- **A4d — plan alignment.** The plan's "Format 2" decision bullet ("format: 1
+  and headerless files are legacy: … mutations refuse") is superseded by A4b:
+  refusal keys on format state; headerless plaintexts stay fully mutable; the
+  repair pointer for missing plaintext identity belongs to the single-file
+  identity paths, `check` and `init` repair. The primary amends
+  `docs/plans/key-identity-headers/plan.md` accordingly (plans are
+  worker-forbidden).
+- **A4e — suite-shape invariants (marshal/parse contract).** Field spellings
+  `format`, `publicKey`, `keyId`, `schema`, `sync` {`c`,`h`}, `pending` keep
+  their names and `doc.Marshal` rendering (incl. the `"keyId": "` spacing
+  `values_test.go:263` matches); `$jureuma` stays the first top-level key with
+  body keys in source order (`lifecycle_test.go:142-143`); `FormatVersion`
+  becomes 2 while parse accepts 1 (legacy) and 2, and `NewEncrypted` writes 2;
+  marshal is deterministic (second `init` diff-empty,
+  `lifecycle_test.go:87-95`; keyless `init` leaves the encrypted file
+  byte-identical, `:113-118` — constrains W3's repair to be a no-op on
+  already-format-2 files and keyless for legacy upgrades); `set /$jureuma/x`
+  stays refused. W2-ownable `internal/pair/pair_test.go` expectations (e.g.
+  `:218` "$jureuma must be reserved") update with the model.
