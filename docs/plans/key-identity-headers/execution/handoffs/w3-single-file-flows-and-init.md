@@ -14,6 +14,49 @@ has landed — this unit edits `internal/cli/cmd_init.go`,
 design document and `CHANGELOG.md`, all shared with it. Record the base commit
 when you start.
 
+## W2 landing (2026-10-17) — dispatch update
+
+Base commit for this unit is **`d6e7c0c`** (W2 accepted by the parent: full
+battery re-run green, diffs reviewed, ledger Q9–Q14). W2's surface is frozen;
+use it, do not re-implement it:
+
+- `pair.FormatVersion = 2`; parsing accepts `format: 1` (legacy) and `2`;
+  every write renders `2` (`Meta.Format`/`Header.Format` only record what was
+  read, so no path re-emits `format: 1`).
+- Both files carry `$jureuma` identity (`format`, `publicKey`, `keyId`,
+  `home`); the unencrypted file's header is exactly those four fields, plus
+  the top-level `$schema` pointer beside it. The encrypted block adds
+  `schema` (`string` or `{ path, c }`), `sync` and `pending`.
+- `pair.ReadPlainFile` / `WritePlainFile` are the full plaintext API
+  (`Header *Header` nil = headerless, `Schema string`, `Body` excludes both
+  reserved keys); `pair.RepairPlainFile` / `RepairEncrypted` are the `init`
+  repair writers. `ReadPlain`/`WritePlain` stay the legacy, byte-compatible
+  paths (A4c).
+- The legacy gate lives in `WritePlain`, `WritePlainFile` and
+  `WriteEncrypted`, keyed on **format state on either side of the pair**
+  (format 1 or present-but-malformed), never on plaintext header absence:
+  headerless plaintexts stay fully mutable. Refusals are exit 1 with
+  `errors.Is` sentinels and the exact `run jureuma init to repair` pointer;
+  key mismatches stay exit 5; unknown future formats are refused even by the
+  repair path.
+- `CheckIdentity(plain, enc)` = cross-file key match (exit 5) + `home` and
+  schema-path warnings; stored-key matching stays yours (`check`).
+- Schema copy: `e.SetSchemaCopy(text)` encrypts to the pair key,
+  `e.OpenSchemaCopy(keys)` decrypts with the envelope's key ID (works for a
+  copy left under a retired key); `{ path, c }` is written only when a copy
+  exists, otherwise the plain string path stays written.
+
+Two carry-over implementation notes:
+
+- `internal/cli/context.go:165` is the only direct plaintext parser in the
+  CLI; `set`/`unset` must flip to `ReadPlainFile` and carry `Header`/`Schema`
+  through `WritePlainFile`. `PlainFile{Header: nil}` on a file that has a
+  header would drop it — every flow must read first and preserve what it
+  read; add a test that `set`/`unset` keep the header and `$schema` pointer
+  byte-identical.
+- `internal/cli/stash.go` marshals via `MarshalEncrypted` (now format 2) and
+  `key rotate` already round-trips an object-shaped `schema`; keep both green.
+
 ## Mission
 
 Make the two single-file states first-class and wire the header and key work

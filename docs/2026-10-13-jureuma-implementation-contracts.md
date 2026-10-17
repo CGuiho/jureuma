@@ -290,8 +290,7 @@ func WritePlainFile(path string, f *PlainFile) error              // full write:
 func RepairPlainFile(path string, f *PlainFile) error             // jureuma init repair path: may replace format-1/malformed state
 func CheckIdentity(plain *PlainFile, enc *Encrypted) (warnings []string, err error) // cross-file key match (exit 5), home/schema warnings
 func ReadPlain(path string, jsonc bool) (*doc.Value, error)       // legacy reader: rejects $jureuma, passes $schema through
-func WritePlain(path string, v *doc.Value) error        // legacy writer: writes exactly what it is given
-func WritePlain(path string, v *doc.Value) error        // .json canonical; an existing .jsonc is merged with jsonc.Edit (comments preserved); refuses unless git-ignored (EnsureIgnored)
+func WritePlain(path string, v *doc.Value) error        // legacy writer: writes exactly what it is given; .json canonical, an existing .jsonc is merged with jsonc.Edit (comments preserved); refuses unless git-ignored (EnsureIgnored)
 func EnsureIgnored(root, path string) error              // .gitignore managed block + git check-ignore
 func TrackedByGit(root, path string) (bool, error)
 func EncryptDoc(pk crypt.PublicKey, plain *doc.Value, prev *Encrypted, sk *crypt.PrivateKey) (*doc.Value, error) // reuses unchanged ciphertexts when sk given
