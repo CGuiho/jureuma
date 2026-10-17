@@ -141,3 +141,27 @@ machinery, version pins, other projects.
   fixtures or error messages; errors report file, line, column and class only.
 - DND: never stop to ask a human. Undecided matters: safest reversible choice,
   recorded under `docs/questions/key-identity-headers/`.
+
+## Dispatch amendments (UltraCode packet v2, 2026-10-17)
+
+Added by the Mandume primary at dispatch time; they refine the brief and never
+contradict it.
+
+- **A1 — API compatibility (required).** `pair.ReadPlain`/`WritePlain` have
+  live callers in `internal/cli/**` (this unit must not edit them). Keep the
+  existing signatures compiling: add additive variants (a full read returning
+  header + `$schema` + body; a full write) and keep `ReadPlain`/`WritePlain`
+  as thin wrappers; implement legacy mutation-refusal inside the pair write
+  paths so untouched CLI callers inherit it; call-site wiring stays W3's. The
+  full battery must compile and pass without editing `internal/cli/**` or
+  `test/e2e/**`.
+- **A2 — ledger normalization.** Append the DND-required `confidence`, `action
+  taken` and `human-review: pending` fields to Q1–Q8 in
+  `docs/questions/key-identity-headers/2026-10-17-dnd-decisions.md`
+  (additive only; W1's answers stay as written). This ledger is the unit's one
+  permitted `docs/questions/**` edit.
+- **A3 — wording.** `ParseEncrypted`'s `this jureuma reads format 1` message
+  moves to the accepted model: format 2 is written; format 1/headerless reads
+  keep working with the `run jureuma init to repair` mutation pointer; unknown
+  future formats keep the explicit rejection. The `MetaKey` comment becomes
+  "reserved top-level key of both pair files".
