@@ -2,10 +2,14 @@ package pair
 
 import (
 	"errors"
+	"io/fs"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/CGuiho/jureuma/internal/crypt"
 	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/jureuma/internal/jsonc"
 	"github.com/CGuiho/jureuma/internal/paths"
 	"github.com/CGuiho/jureuma/internal/xerr"
 )
@@ -41,38 +45,35 @@ var (
 	ErrMissingPlainIdentity = errors.New("missing " + MetaKey + " identity")
 )
 
+// refusal is a typed pair refusal: an exit-1 error whose message is exactly
+// what its constructor built (file name, class and fixed phrases, never a
+// value) and whose class is detectable with errors.Is.
+type refusal struct{ inner *xerr.Error }
+
+func (r *refusal) Error() string { return r.inner.Msg }
+func (r *refusal) Unwrap() error { return r.inner }
+
+func refuse(msg string, class error) error {
+	return &refusal{&xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: msg, Err: class}}
+}
+
 // LegacyHeader returns the typed, value-free refusal for a pair file whose
 // $jureuma block is format 1 or malformed.
 func LegacyHeader(file string) error {
-	return &xerr.Error{
-		Code: xerr.CodeFailure,
-		Kind: xerr.KindFailure,
-		Msg:  file + ": legacy " + MetaKey + " header (format 1 or malformed); " + RepairHint,
-		Err:  ErrLegacyHeader,
-	}
+	return refuse(file+": legacy "+MetaKey+" header (format 1 or malformed); "+RepairHint, ErrLegacyHeader)
 }
 
 // UnsupportedFormat returns the explicit rejection for a $jureuma format
 // generation outside the ones this jureuma reads.
 func UnsupportedFormat(file string) error {
-	return &xerr.Error{
-		Code: xerr.CodeFailure,
-		Kind: xerr.KindFailure,
-		Msg:  file + ": unsupported " + MetaKey + "/format (this jureuma writes format 2 and reads formats 1 and 2)",
-		Err:  ErrUnsupportedFormat,
-	}
+	return refuse(file+": unsupported "+MetaKey+"/format (this jureuma writes format 2 and reads formats 1 and 2)", ErrUnsupportedFormat)
 }
 
 // MissingPlainIdentity returns the typed repair refusal for an unencrypted
 // file with no $jureuma identity. Single-file identity paths return it when
 // they cannot rebuild the sibling without the pair key.
 func MissingPlainIdentity(file string) error {
-	return &xerr.Error{
-		Code: xerr.CodeFailure,
-		Kind: xerr.KindFailure,
-		Msg:  file + ": no " + MetaKey + " identity; " + RepairHint,
-		Err:  ErrMissingPlainIdentity,
-	}
+	return refuse(file+": no "+MetaKey+" identity; "+RepairHint, ErrMissingPlainIdentity)
 }
 
 // Header is the pair identity both files carry under the reserved $jureuma
@@ -245,4 +246,90 @@ func CheckIdentity(plain *PlainFile, enc *Encrypted) (warnings []string, err err
 		warnings = append(warnings, "the two files reference different schemas")
 	}
 	return warnings, nil
+}
+
+// checkMutable refuses a mutation through the pair files named by paths when
+// the pair carries old jureuma state. The refusal keys on format state, never
+// on plaintext header absence: a $jureuma block with format 1, or a
+// present-but-malformed block, on either side is refused with the init repair
+// pointer, while a headerless plaintext stays fully mutable. A $jureuma
+// format outside the ones this jureuma reads is always refused, even by the
+// repair path: jureuma never overwrites a file it cannot read. repair lets
+// format 1 and malformed blocks through, because the jureuma init repair path
+// is what replaces them.
+func checkMutable(repair bool, paths ...string) error {
+	for _, path := range paths {
+		for _, p := range append([]string{path}, otherSide(path)...) {
+			if err := checkFileState(p, repair); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// checkFileState classifies the $jureuma state of one pair file's content.
+// Content jureuma cannot parse at all has no header it can see and keeps the
+// overwrite behaviour it always had.
+func checkFileState(path string, repair bool) error {
+	name := filepath.Base(path)
+	data, err := readLimited(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return readErr(name, err)
+	}
+	root, err := jsonc.Parse(data, false)
+	if err != nil || root.Kind != doc.Object {
+		return nil
+	}
+	mv := root.Get(MetaKey)
+	if mv == nil {
+		return nil
+	}
+	var perr error
+	if strings.Contains(name, EncryptedMarker) {
+		var m *Meta
+		m, perr = parseMeta(name, mv)
+		if perr == nil && m.Format != FormatVersion {
+			perr = LegacyHeader(name)
+		}
+	} else {
+		var h *Header
+		h, perr = parseHeader(name, mv)
+		if perr == nil && h.Format != FormatVersion {
+			perr = LegacyHeader(name)
+		}
+	}
+	switch {
+	case perr == nil:
+		return nil
+	case errors.Is(perr, ErrUnsupportedFormat) || xerr.CodeOf(perr) == xerr.CodeKey:
+		return perr
+	case repair:
+		return nil
+	default:
+		return LegacyHeader(name)
+	}
+}
+
+// otherSide returns the pair file paths on the other side of path, whether or
+// not they exist: the unencrypted siblings of an encrypted file, or the
+// encrypted sibling of an unencrypted file.
+func otherSide(path string) []string {
+	base := filepath.Base(path)
+	dir := filepath.Dir(path)
+	if stem := stemOf(path); stem != "" {
+		return []string{stem + UnencryptedMarker + "json", stem + UnencryptedMarker + "jsonc"}
+	}
+	i := strings.LastIndex(base, UnencryptedMarker)
+	if i < 0 {
+		return nil
+	}
+	rest := base[i+len(UnencryptedMarker):]
+	if strings.EqualFold(filepath.Ext(base), ".jsonc") {
+		rest = strings.TrimSuffix(rest, filepath.Ext(rest)) + "json"
+	}
+	return []string{filepath.Join(dir, base[:i]+EncryptedMarker+rest)}
 }

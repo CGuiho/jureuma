@@ -126,7 +126,7 @@ func parseMeta(name string, mv *doc.Value) (*Meta, error) {
 		return nil, LegacyHeader(name)
 	}
 	bad := func(field string) error {
-		return &xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: name + ": " + MetaKey + "/" + field + " is invalid (legacy or malformed); " + RepairHint, Err: ErrLegacyHeader}
+		return refuse(name+": "+MetaKey+"/"+field+" is invalid (legacy or malformed); "+RepairHint, ErrLegacyHeader)
 	}
 	e := &Meta{Sync: map[string]SyncEntry{}}
 	for _, k := range mv.Keys {
@@ -195,7 +195,7 @@ func parseMeta(name string, mv *doc.Value) (*Meta, error) {
 				e.Pending = append(e.Pending, x.S)
 			}
 		default:
-			return nil, &xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: name + ": unknown field " + MetaKey + "/" + k + "; " + RepairHint, Err: ErrLegacyHeader}
+			return nil, refuse(name+": unknown field "+MetaKey+"/"+k+"; "+RepairHint, ErrLegacyHeader)
 		}
 	}
 	if e.Format == 0 {
@@ -263,10 +263,33 @@ func MarshalEncrypted(e *Encrypted) []byte {
 }
 
 // WriteEncrypted writes e atomically ($jureuma first, sorted sync/pending).
+// It refuses to mutate a pair whose files carry old jureuma state; the typed
+// refusal points at jureuma init, and RepairEncrypted is the write path init
+// uses to replace such files.
 func WriteEncrypted(path string, e *Encrypted) error {
 	if err := CheckEncryptedName(path); err != nil {
 		return err
 	}
+	if err := checkMutable(false, path); err != nil {
+		return err
+	}
+	return writeEncrypted(path, e)
+}
+
+// RepairEncrypted writes e like WriteEncrypted but is the jureuma init repair
+// path: it may replace a pair file whose $jureuma block is format 1 or
+// malformed. An unknown future format is still refused.
+func RepairEncrypted(path string, e *Encrypted) error {
+	if err := CheckEncryptedName(path); err != nil {
+		return err
+	}
+	if err := checkMutable(true, path); err != nil {
+		return err
+	}
+	return writeEncrypted(path, e)
+}
+
+func writeEncrypted(path string, e *Encrypted) error {
 	data := MarshalEncrypted(e)
 	if len(data) > maxFileSize {
 		return tooLarge(path)
@@ -331,13 +354,15 @@ func ReadPlain(path string, jsonc_ bool) (*doc.Value, error) {
 
 // WritePlain writes an unencrypted file with mode 0600, exactly the document
 // it is given: no $jureuma header or $schema pointer is injected and nothing
-// in the document is stripped. A .json target is written as canonical JSON. A
-// .jsonc target with existing content is updated in place with the
-// comment-preserving editor (comments and formatting outside the edited spans
-// survive; unparseable or unrepresentable content is refused, never
-// rewritten); a missing .jsonc target is created as canonical JSON (valid
-// JSON is valid JSONC). It refuses targets that git would not ignore (after
-// adding the managed block) and targets tracked by git.
+// in the document is stripped. It refuses to mutate a pair whose files carry
+// old jureuma state (RepairPlainFile is the jureuma init repair path). A .json
+// target is written as canonical JSON. A .jsonc target with existing content
+// is updated in place with the comment-preserving editor (comments and
+// formatting outside the edited spans survive; unparseable or unrepresentable
+// content is refused, never rewritten); a missing .jsonc target is created as
+// canonical JSON (valid JSON is valid JSONC). It refuses targets that git
+// would not ignore (after adding the managed block) and targets tracked by
+// git.
 func WritePlain(path string, v *doc.Value) error {
 	name := filepath.Base(path)
 	if err := CheckUnencryptedName(path); err != nil {
@@ -411,13 +436,22 @@ func ReadPlainFile(path string, jsonc_ bool) (*PlainFile, error) {
 // $jureuma header (when set) first, then the $schema pointer (when set), then
 // the body. Body must not contain the reserved keys. Like WritePlain it
 // composes .jsonc targets through the comment-preserving editor and refuses
-// targets git would not ignore.
+// targets git would not ignore; it refuses to mutate a pair whose files carry
+// old jureuma state, and RepairPlainFile is the write path jureuma init uses
+// to replace such files.
 func WritePlainFile(path string, f *PlainFile) error {
 	return writePlainFile(path, f, false)
 }
 
+// RepairPlainFile writes f like WritePlainFile but is the jureuma init repair
+// path: it may replace a pair file whose $jureuma block is format 1 or
+// malformed. An unknown future format is still refused.
+func RepairPlainFile(path string, f *PlainFile) error {
+	return writePlainFile(path, f, true)
+}
+
 // writePlainFile validates the metadata and composes the document for
-// writePlainDoc. repair is reserved for the jureuma init repair path.
+// writePlainDoc. repair allows old jureuma state through (see checkMutable).
 func writePlainFile(path string, f *PlainFile, repair bool) error {
 	name := filepath.Base(path)
 	if err := CheckUnencryptedName(path); err != nil {
@@ -439,12 +473,13 @@ func writePlainFile(path string, f *PlainFile, repair bool) error {
 	return writePlainDoc(path, root, repair)
 }
 
-// writePlainDoc writes the composed document through the git ignore and
-// tracking rules and the file itself. repair is reserved for the jureuma init
-// repair path.
+// writePlainDoc writes the composed document through the $jureuma gate and
+// the git ignore and tracking rules, then the file itself.
 func writePlainDoc(path string, root *doc.Value, repair bool) error {
-	_ = repair
 	name := filepath.Base(path)
+	if err := checkMutable(repair, path); err != nil {
+		return err
+	}
 	dir, err := paths.ProjectRoot(filepath.Dir(path))
 	if err != nil {
 		return xerr.Failure("%s: cannot resolve the project root", name)

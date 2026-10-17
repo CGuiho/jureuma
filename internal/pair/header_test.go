@@ -284,3 +284,204 @@ func TestTypedRepairRefusals(t *testing.T) {
 		t.Fatal("every refusal must be detectable by type")
 	}
 }
+
+// legacyPlainHeader renders a hand-made format-1 $jureuma block for an
+// unencrypted file.
+func legacyPlainHeader(h *Header) string {
+	return `{"format": 1, "publicKey": "` + h.PublicKey + `", "keyId": "` + h.KeyID + `", "home": "` + h.Home + `"}`
+}
+
+// writeLegacyEncrypted writes a hand-made legacy encrypted file: the same
+// content this jureuma writes, with the $jureuma/format generation of old
+// jureuma.
+func writeLegacyEncrypted(t *testing.T, path string, e *Encrypted) {
+	t.Helper()
+	data := strings.Replace(string(MarshalEncrypted(e)), `"format": 2,`, `"format": 1,`, 1)
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// assertRepairRefusal checks the contract of every refusal: typed, value-free
+// and carrying the exact init repair pointer.
+func assertRepairRefusal(t *testing.T, err error) {
+	t.Helper()
+	if err == nil || !errors.Is(err, ErrLegacyHeader) {
+		t.Fatalf("want the typed legacy refusal, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "run jureuma init to repair") {
+		t.Fatalf("refusal must point at init: %q", err)
+	}
+	if strings.Contains(err.Error(), sentinel) {
+		t.Fatal("refusals must stay value-free")
+	}
+}
+
+func TestLegacyPairRefusesMutations(t *testing.T) {
+	if !gitAvailable() {
+		t.Skip("git not installed")
+	}
+	root := t.TempDir()
+	gitInit(t, root)
+	sk, h := testHeader(t)
+	encPath := filepath.Join(root, "config.encrypted.json")
+	plainPath := filepath.Join(root, "config.unencrypted.json")
+	writeLegacyEncrypted(t, encPath, NewEncrypted(sk.Public(), "./config.schema.json"))
+	legacyPlain := `{"$jureuma": ` + legacyPlainHeader(h) + `, "a": 1}`
+	if err := os.WriteFile(plainPath, []byte(legacyPlain), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Reads keep working and record the legacy generation.
+	enc, err := ReadEncrypted(encPath)
+	if err != nil || enc.Meta.Format != 1 {
+		t.Fatalf("format-1 read must keep working: %v %+v", err, enc.Meta)
+	}
+	f, err := ReadPlainFile(plainPath, false)
+	if err != nil || f.Header == nil || f.Header.Format != 1 {
+		t.Fatalf("legacy plaintext read: %v %+v", err, f.Header)
+	}
+
+	// Every mutating pair entry point refuses.
+	assertRepairRefusal(t, WriteEncrypted(encPath, NewEncrypted(sk.Public(), "./config.schema.json")))
+	assertRepairRefusal(t, WritePlainFile(plainPath, f))
+	assertRepairRefusal(t, WritePlain(plainPath, doc.NewObject()))
+
+	// The init repair path replaces both files with format 2.
+	if err := RepairEncrypted(encPath, NewEncrypted(sk.Public(), "./config.schema.json")); err != nil {
+		t.Fatal(err)
+	}
+	rep := &PlainFile{Header: h, Schema: "./config.schema.json", Body: mustParse(t, `{"a":1}`)}
+	if err := RepairPlainFile(plainPath, rep); err != nil {
+		t.Fatal(err)
+	}
+	enc2, err := ReadEncrypted(encPath)
+	if err != nil || enc2.Meta.Format != FormatVersion || enc2.Meta.Home != HomeRef {
+		t.Fatalf("repaired encrypted file: %v %+v", err, enc2.Meta)
+	}
+	f2, err := ReadPlainFile(plainPath, false)
+	if err != nil || f2.Header == nil || f2.Header.Format != FormatVersion || f2.Schema != "./config.schema.json" {
+		t.Fatalf("repaired plaintext: %v %+v %q", err, f2.Header, f2.Schema)
+	}
+
+	// After repair the ordinary mutation entry points work again.
+	if err := WriteEncrypted(encPath, enc2); err != nil {
+		t.Fatal(err)
+	}
+	if err := WritePlainFile(plainPath, f2); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLegacyJSONCPlainRefusesMutations(t *testing.T) {
+	if !gitAvailable() {
+		t.Skip("git not installed")
+	}
+	root := t.TempDir()
+	gitInit(t, root)
+	sk, h := testHeader(t)
+	encPath := filepath.Join(root, "config.encrypted.json")
+	plainPath := filepath.Join(root, "config.unencrypted.jsonc")
+	writeLegacyEncrypted(t, encPath, NewEncrypted(sk.Public(), "./config.schema.json"))
+	legacy := "// legacy note\n{\n  \"$jureuma\": " + legacyPlainHeader(h) + ", // the old header\n  \"a\": 1,\n}\n"
+	if err := os.WriteFile(plainPath, []byte(legacy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f, err := ReadPlainFile(plainPath, true)
+	if err != nil || f.Header == nil || f.Header.Format != 1 {
+		t.Fatalf("legacy .jsonc read: %v %+v", err, f.Header)
+	}
+	assertRepairRefusal(t, WritePlainFile(plainPath, f))
+	assertRepairRefusal(t, WritePlain(plainPath, mustParse(t, `{"a":2}`)))
+
+	// The repair goes through the lossless writer: the comments survive.
+	if err := RepairPlainFile(plainPath, &PlainFile{Header: h, Schema: "./config.schema.json", Body: mustParse(t, `{"a":1}`)}); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(plainPath)
+	for _, want := range []string{"// legacy note", "// the old header", `"a": 1`} {
+		if !strings.Contains(string(data), want) {
+			t.Fatalf("repair must preserve comments and formatting:\n%s", data)
+		}
+	}
+	got, err := ReadPlainFile(plainPath, true)
+	if err != nil || got.Header == nil || got.Header.Format != FormatVersion {
+		t.Fatalf("repaired .jsonc: %v %+v", err, got.Header)
+	}
+}
+
+func TestHeaderlessPlaintextStaysMutable(t *testing.T) {
+	if !gitAvailable() {
+		t.Skip("git not installed")
+	}
+	root := t.TempDir()
+	gitInit(t, root)
+	sk, h := testHeader(t)
+	encPath := filepath.Join(root, "config.encrypted.json")
+	plainPath := filepath.Join(root, "config.unencrypted.json")
+	enc := NewEncrypted(sk.Public(), "./config.schema.json")
+	if err := WriteEncrypted(encPath, enc); err != nil {
+		t.Fatal(err)
+	}
+	// A headerless plaintext is never a refusal trigger.
+	if err := WritePlain(plainPath, mustParse(t, `{"a":1}`)); err != nil {
+		t.Fatalf("headerless plaintext must stay mutable: %v", err)
+	}
+	if err := WritePlainFile(plainPath, &PlainFile{Body: mustParse(t, `{"a":2}`)}); err != nil {
+		t.Fatalf("headerless full write must stay mutable: %v", err)
+	}
+	if err := WriteEncrypted(encPath, enc); err != nil {
+		t.Fatalf("mutation beside a headerless plaintext must stay mutable: %v", err)
+	}
+	if err := RepairPlainFile(plainPath, &PlainFile{Header: h, Schema: "./config.schema.json", Body: mustParse(t, `{"a":3}`)}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ReadPlainFile(plainPath, false)
+	if err != nil || got.Header == nil || got.Header.Format != FormatVersion {
+		t.Fatalf("header insert through repair: %v %+v", err, got.Header)
+	}
+}
+
+func TestMalformedHeaderRefusesMutations(t *testing.T) {
+	if !gitAvailable() {
+		t.Skip("git not installed")
+	}
+	root := t.TempDir()
+	gitInit(t, root)
+	sk, _ := testHeader(t)
+	encPath := filepath.Join(root, "config.encrypted.json")
+	plainPath := filepath.Join(root, "config.unencrypted.json")
+	if err := WriteEncrypted(encPath, NewEncrypted(sk.Public(), "./config.schema.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(plainPath, []byte(`{"$jureuma": 1, "a": "`+sentinel+`"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	assertRepairRefusal(t, WritePlain(plainPath, mustParse(t, `{"a":1}`)))
+	// The refusal keys on either side: the encrypted file is clean, but its
+	// plaintext sibling carries the malformed block.
+	assertRepairRefusal(t, WriteEncrypted(encPath, NewEncrypted(sk.Public(), "./config.schema.json")))
+}
+
+func TestUnsupportedFormatIsNeverOverwritten(t *testing.T) {
+	if !gitAvailable() {
+		t.Skip("git not installed")
+	}
+	root := t.TempDir()
+	gitInit(t, root)
+	sk, _ := testHeader(t)
+	encPath := filepath.Join(root, "config.encrypted.json")
+	data := strings.Replace(string(MarshalEncrypted(NewEncrypted(sk.Public(), "./config.schema.json"))), `"format": 2,`, `"format": 3,`, 1)
+	if err := os.WriteFile(encPath, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, err := range []error{
+		func() error { _, e := ReadEncrypted(encPath); return e }(),
+		WriteEncrypted(encPath, NewEncrypted(sk.Public(), "./config.schema.json")),
+		RepairEncrypted(encPath, NewEncrypted(sk.Public(), "./config.schema.json")),
+	} {
+		if !errors.Is(err, ErrUnsupportedFormat) {
+			t.Fatalf("a future format must be rejected explicitly, got %v", err)
+		}
+	}
+}

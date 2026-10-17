@@ -37,6 +37,10 @@ the key ID"; 12 characters are unique in practice for one machine's key set
 and stay readable in one line. Display-only, so widening or narrowing later
 touches no stored data.
 
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
+
 ### Q2 — `key list` shows short key IDs only. How does a human get the full key ID?
 
 **Answer: `key show` and the file name carry it.** The brief mandates the line
@@ -47,6 +51,10 @@ key file name `~/.guiho/jureuma/keys/<keyId>.json`. Safest reading of the
 mandated format; if CG wants copy-pasteable IDs in the listing, adding a
 long-format option is additive.
 
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
+
 ### Q3 — What happens when a key is saved again with a different label?
 
 **Answer: the label is updated and `created` is preserved.** Silently ignoring
@@ -54,6 +62,10 @@ the new label would make `SaveLabeled` a lie; rewriting with a fresh timestamp
 would lose history. Labels are non-secret metadata, so an update is cheap and
 reversible. An identical key with an identical label leaves the file
 untouched, as before.
+
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
 
 ### Q4 — `key list` needs labels, but `List` used to "not read contents". What is the contract now?
 
@@ -64,17 +76,29 @@ list by name with placeholder metadata, so `key retire` state detection keeps
 working. The decode target struct simply has no `privateKey` field, so key
 material cannot materialise during listing.
 
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
+
 ### Q5 — What does `key list` print for an empty store?
 
 **Answer: nothing, exit 0.** One line per stored key is the whole output
 contract; an empty-state sentence would be indistinguishable from data for
 parsers and for agents reading metadata. `key list` stays machine-readable.
 
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
+
 ### Q6 — What do `key show` and `key list` display when a key has no label?
 
 **Answer: the placeholder `—`.** Covers legacy key files created before
 labels existed and env-only keys (`JUREUMA_PRIVATE_KEY*`) that have no file at
 all. The placeholder is display-only.
+
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
 
 ### Q7 — How does the stored-key picker decide it may prompt, and what may it read?
 
@@ -86,6 +110,10 @@ number, a full key ID or a short key ID; an empty line or EOF cancels
 returns the typed `ErrNoInteractiveSelection`, so callers must take an
 explicit `--key-id` / `--key-label` (W3 wires `init` to that rule).
 
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
+
 ### Q8 — Where does the default label come from, and what if git is absent?
 
 **Answer: the `origin` remote's repository name (`.git` suffix stripped,
@@ -94,3 +122,72 @@ directory name; an empty result means no label.** The git lookup reads local
 configuration only (`git remote get-url origin`), never the network, and never
 fails hard: no git, no remote, or any error falls through to the directory
 name. The lookup is injectable for tests.
+
+- **confidence:** high
+- **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
+- **human-review:** pending
+
+## W2 — `$jureuma` identity headers on both pair files
+
+### Q9 — Where does the legacy mutation refusal live, and how can `init` repair write over legacy files?
+
+**Answer: in every pair mutating entry point (`WritePlain`, `WritePlainFile`,
+`WriteEncrypted`), checked on both sides of the pair, with dedicated repair
+writers for `init`.** A4b says the refusal fires "on mutating pair entry
+points" and can be triggered "on either side", while W3's brief requires
+`init` repair to upgrade legacy files (keyless). Both hold only if the
+ordinary write paths are gated and one explicit repair path
+(`RepairPlainFile`, `RepairEncrypted`) may replace format-1 or malformed
+blocks. The repair path still refuses an unknown future format, so jureuma
+never overwrites a file it cannot read.
+
+### Q10 — What does the refusal key on when the file cannot be parsed at all?
+
+**Answer: nothing — such content keeps today's overwrite behaviour.** The
+trigger is a *visible* `$jureuma` block (format 1 or present-but-malformed);
+content with no parseable document has no header jureuma can see, and the old
+`.jsonc` path already refuses unparseable text through the lossless writer.
+Conservative for A4b's exact wording ("a `$jureuma` block with `format: 1`,
+or a present-but-malformed `$jureuma`").
+
+### Q11 — What are the exit codes and the types of the refusals?
+
+**Answer: exit 1 (`xerr.CodeFailure`) with sentinels `ErrLegacyHeader`,
+`ErrUnsupportedFormat` and `ErrMissingPlainIdentity`; key mismatches stay
+exit 5.** The legacy refusal is a file-state failure, not a usage error and
+not a key error; the existing keyId↔publicKey rule keeps its exit 5 even when
+the mismatch is first seen by a mutating entry point. Every legacy refusal
+message carries the exact `run jureuma init to repair` pointer and no value.
+
+### Q12 — Does the marshaled `format` follow the parsed generation?
+
+**Answer: no — every write renders `FormatVersion` (2), and `Header.Format` /
+`Meta.Format` only record the generation that was read.** That makes the
+marshal deterministic, keeps "this jureuma writes format 2" true on every
+path (including `MarshalEncrypted` callers such as the decrypt stash), and
+means no repair or mirror can accidentally re-emit `format: 1`.
+
+### Q13 — Where do `home` and the embedded schema copy live?
+
+**Answer: `home` is an identity field of both `$jureuma` blocks
+(`~/.guiho/jureuma/` as `HomeRef`), and the embedded copy is
+`$jureuma.schema = { path, c }` with `c` an `internal/crypt` envelope bound
+to `/$jureuma/schema/c`.** The plaintext keeps the schema pointer at the
+top-level `$schema` key instead. `Meta.Schema` stays the readable path, the
+plain-string `$jureuma.schema` stays readable in any generation and stays the
+written form without a copy, and `Meta.SchemaCopy` is the additive field with
+`SetSchemaCopy`/`OpenSchemaCopy` as its setter and opener.
+
+### Q14 — How is cross-file consistency enforced?
+
+**Answer: `CheckIdentity` — publicKey/keyId disagreement is exit 5 (the
+existing mismatch rule), `home` and schema-path differences are warnings
+only.** Matching against the *stored* key stays with `check` (W3), which
+already owns keystore lookups.
+
+- **confidence:** high (Q9–Q14 follow the brief's A4 block and the untouched
+  suite; each choice is exercised by `internal/pair/header_test.go`)
+- **action taken:** implemented in W2 (`internal/pair/header.go`, the pair
+  write paths, `header_test.go`); Q9–Q12 change no behaviour the untouched
+  suite pins.
+- **human-review:** pending

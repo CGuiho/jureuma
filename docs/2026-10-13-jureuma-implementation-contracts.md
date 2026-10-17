@@ -279,13 +279,15 @@ func LegacyHeader(file string) error         // typed refusal: $jureuma is forma
 func UnsupportedFormat(file string) error    // typed rejection: unknown future generation
 func MissingPlainIdentity(file string) error // typed repair pointer for a headerless plaintext
 func ReadEncrypted(path string) (*Encrypted, error)   // accepts $jureuma.schema as string or {path,c}
-func WriteEncrypted(path string, e *Encrypted) error   // $jureuma first, sorted sync/pending, atomic
+func WriteEncrypted(path string, e *Encrypted) error   // $jureuma first, sorted sync/pending, atomic; refuses old pair state
+func RepairEncrypted(path string, e *Encrypted) error  // jureuma init repair path: may replace format-1/malformed state
 func (m Meta) Identity() Header                       // identity part of the meta block
 func (e *Encrypted) SetSchemaCopy(schemaText []byte) error        // encrypt the schema to the pair key
 func (e *Encrypted) OpenSchemaCopy(keys KeyLookup) ([]byte, error) // decrypt the embedded copy
 type PlainFile struct { Header *Header; Schema string; Body *doc.Value } // Header nil = headerless; Body excludes $jureuma and $schema
 func ReadPlainFile(path string, jsonc bool) (*PlainFile, error)   // full read: header + $schema + body
-func WritePlainFile(path string, f *PlainFile) error              // full write: header + $schema + body
+func WritePlainFile(path string, f *PlainFile) error              // full write: header + $schema + body; refuses old pair state
+func RepairPlainFile(path string, f *PlainFile) error             // jureuma init repair path: may replace format-1/malformed state
 func CheckIdentity(plain *PlainFile, enc *Encrypted) (warnings []string, err error) // cross-file key match (exit 5), home/schema warnings
 func ReadPlain(path string, jsonc bool) (*doc.Value, error)       // legacy reader: rejects $jureuma, passes $schema through
 func WritePlain(path string, v *doc.Value) error        // legacy writer: writes exactly what it is given
