@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"io/fs"
 	"os"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/CGuiho/jureuma/internal/config"
 	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
 	"github.com/CGuiho/jureuma/internal/gate"
 	"github.com/CGuiho/jureuma/internal/keystore"
 	"github.com/CGuiho/jureuma/internal/pair"
@@ -157,12 +157,91 @@ func fileExists(p string) bool {
 	return err == nil
 }
 
-// readPlainIfExists returns nil when the unencrypted file is missing.
-func readPlainIfExists(p *pair.Pair) (*doc.Value, error) {
+// readPlainIfExists returns nil when the unencrypted file is missing. The
+// full pair reader is the only plaintext parser in the CLI: it keeps the
+// $jureuma identity header and the top-level $schema pointer apart from the
+// body, so no flow can turn reserved metadata into a value or drop it on
+// write.
+func readPlainIfExists(p *pair.Pair) (*pair.PlainFile, error) {
 	if !fileExists(p.UnencryptedPath) {
 		return nil, nil
 	}
-	return pair.ReadPlain(p.UnencryptedPath, p.UnencryptedIsJSONC)
+	return pair.ReadPlainFile(p.UnencryptedPath, p.UnencryptedIsJSONC)
+}
+
+// checkIdentity runs the cross-file identity check (one pair belongs to one
+// key) and prints its warnings. Either side may be absent or carry no
+// plaintext header; the check is then vacuous.
+func checkIdentity(cmd *cobra.Command, plain *pair.PlainFile, enc *pair.Encrypted) error {
+	warnings, err := pair.CheckIdentity(plain, enc)
+	if err != nil {
+		return err
+	}
+	for _, w := range warnings {
+		errf(cmd, "warning: %s\n", w)
+	}
+	return nil
+}
+
+// schemaCopyState reports the state of the schema copy embedded in the
+// encrypted file: "none" when no copy is stored, "match" or "differs" when a
+// key holder compared it with the local schema file, and "unchecked" when no
+// available key can open it. It never prints schema content.
+func schemaCopyState(e *env, p *pair.Pair, enc *pair.Encrypted, sk *crypt.PrivateKey) string {
+	if enc == nil || enc.Meta.SchemaCopy == "" {
+		return "none"
+	}
+	if sk == nil {
+		return "unchecked"
+	}
+	text, err := enc.OpenSchemaCopy(pair.StoreKeys(sk, e.store))
+	if err != nil {
+		return "unchecked"
+	}
+	defer clear(text)
+	local, err := os.ReadFile(p.SchemaPath)
+	if err != nil {
+		return "unchecked"
+	}
+	if bytes.Equal(local, text) {
+		return "match"
+	}
+	return "differs"
+}
+
+// setSchemaCopy embeds the local schema document in the encrypted metadata
+// (as $jureuma.schema { path, c }). When a copy is already stored and want is
+// true, it is replaced only when a key holder can prove it differs from the
+// local file, or when the stored copy is encrypted under a key other than the
+// file's (a retired key), so unchanged writes stay byte-identical while
+// retired-key copies migrate.
+func setSchemaCopy(e *env, enc *pair.Encrypted, p *pair.Pair, want bool) error {
+	if !fileExists(p.SchemaPath) {
+		return nil
+	}
+	if enc.Meta.SchemaCopy != "" && !want {
+		return nil
+	}
+	text, err := os.ReadFile(p.SchemaPath)
+	if err != nil {
+		return xerr.Failure("%s: cannot read file", p.Rel(p.SchemaPath))
+	}
+	if enc.Meta.SchemaCopy != "" && want {
+		if id, ok := crypt.CiphertextKeyID(enc.Meta.SchemaCopy); ok && id != enc.Meta.KeyID {
+			// Under another key (usually retired): re-encrypt it.
+		} else if sk, _, err := e.findKey(enc.Meta.KeyID); err == nil && sk != nil {
+			if cur, err := enc.OpenSchemaCopy(pair.StoreKeys(sk, e.store)); err == nil {
+				same := bytes.Equal(cur, text)
+				clear(cur)
+				if same {
+					return nil
+				}
+			}
+		} else {
+			return nil
+		}
+	}
+	return enc.SetSchemaCopy(text)
 }
 
 func issuesErr(cmd *cobra.Command, file string, issues []schema.Issue) error {

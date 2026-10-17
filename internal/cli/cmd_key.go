@@ -230,6 +230,17 @@ revoke values already in git history: rotate the underlying secrets after a key 
 				}
 			}
 			next.Meta.Pending = pair.SortedUnique(pending)
+			// The embedded schema copy is a ciphertext like every value: it
+			// follows the pair key.
+			if next.Meta.SchemaCopy != "" {
+				if text, err := enc.OpenSchemaCopy(pair.StoreKeys(&oldSK, e.store)); err == nil {
+					serr := next.SetSchemaCopy(text)
+					clear(text)
+					if serr != nil {
+						return serr
+					}
+				}
+			}
 			if err := pair.WriteEncrypted(p.EncryptedPath, next); err != nil {
 				return err
 			}
@@ -271,7 +282,8 @@ func otherPairsUsing(e *env, p *pair.Pair, keyID string) []string {
 			continue
 		}
 		if enc, err := pair.ReadEncrypted(q.EncryptedPath); err == nil {
-			if enc.Meta.KeyID == keyID || pair.CiphertextKeyIDs(enc.Body)[keyID] > 0 {
+			copyKey, _ := crypt.CiphertextKeyID(enc.Meta.SchemaCopy)
+			if enc.Meta.KeyID == keyID || copyKey == keyID || pair.CiphertextKeyIDs(enc.Body)[keyID] > 0 {
 				out = append(out, q.Name)
 			}
 		}
@@ -303,6 +315,9 @@ func projectKeyUsage(root, keyID string) map[string]int {
 			return nil
 		}
 		n := pair.CiphertextKeyIDs(enc.Body)[keyID]
+		if id, ok := crypt.CiphertextKeyID(enc.Meta.SchemaCopy); ok && id == keyID {
+			n++
+		}
 		if enc.Meta.KeyID == keyID && n == 0 {
 			n = 1
 		}
