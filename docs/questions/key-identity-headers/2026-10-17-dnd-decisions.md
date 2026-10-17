@@ -552,3 +552,25 @@ recommendation for a later unit is a `keyID != ""` guard before `findKey`.
   unchanged code paths).
 - **action taken:** none; ledgered for human review.
 - **human-review:** pending
+
+### Q36 — "Empty or malformed values are validation errors (exit 4 on load)".
+Only the `key:` field, or every configuration validation error?
+
+**Answer: every schema and semantic validation error of a configuration
+document now carries exit 4 (a typed `xerr` validation error), while files
+that cannot be read, are too large, or do not parse as YAML keep failing as
+general failures (exit 1).** The brief classifies the malformed binding as "a
+validation error (exit 4 on load)" and jureuma's exit taxonomy maps
+`4` to "validation failed"; giving only the `key:` field that code while a
+malformed `run.format` or pair name kept exiting 1 would make the taxonomy
+arbitrary. Blast radius checked against the untouched suite: no test pinned
+exit 1 for a configuration-load validation error (the pinned exit-1 cases are
+pair/git-state refusals, untouched), and `run` keeps mapping every
+jureuma-side failure to 125.
+
+- **confidence:** medium-high (consistent with the taxonomy and the brief;
+  the alternative — key-only classification — was rejected as inconsistent).
+- **action taken:** `fieldErr` and `validateSchema` return typed exit-4
+  errors in `internal/config`; `loadEnv` and `init` preserve the carried code
+  instead of forcing exit 1. Pinned by `TestConfigErrorsAreValidationErrors`.
+- **human-review:** pending
