@@ -10,6 +10,7 @@ import (
 
 	"github.com/CGuiho/jureuma/internal/crypt"
 	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/jureuma/internal/keystore"
 	"github.com/CGuiho/jureuma/internal/pair"
 	"github.com/CGuiho/jureuma/internal/paths"
 	"github.com/CGuiho/jureuma/internal/runner"
@@ -256,9 +257,14 @@ $jureuma header. Never modifies anything and never prints values.`,
 			} else if plainFile.Header != nil {
 				keyID = plainFile.Header.KeyID
 			}
-			sk, _, err := e.findKey(keyID)
-			if err != nil {
-				return err
+			// With no recorded identity there is no key to look up: the
+			// state itself is reported below, and an empty key ID is never a
+			// key error.
+			var sk *crypt.PrivateKey
+			if keyID != "" {
+				if sk, _, err = e.findKey(keyID); err != nil {
+					return err
+				}
 			}
 			if enc != nil && sk != nil && sk.Public().String() != enc.Meta.PublicKey {
 				return xerr.Key("the private key does not match $jureuma.publicKey")
@@ -536,10 +542,16 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 	} else if pf != nil && pf.Header != nil {
 		keyID = pf.Header.KeyID
 	}
-	sk, src, err := e.findKey(keyID)
-	if err != nil {
-		ch.fail(xerr.CodeKey, "%s: %v", label, err)
-		return
+	// With no recorded identity there is no key to look up: the missing
+	// identity is already reported above (its repair pointer is the
+	// failure), and an empty key ID must never become a key error.
+	var sk *crypt.PrivateKey
+	var src keystore.Source
+	if keyID != "" {
+		if sk, src, err = e.findKey(keyID); err != nil {
+			ch.fail(xerr.CodeKey, "%s: %v", label, err)
+			return
+		}
 	}
 	schNote, schWarns := schemaNote(e, p, pf, enc, sk)
 	for _, w := range schWarns {

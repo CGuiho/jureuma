@@ -175,14 +175,23 @@ func (a *app) cmdKeyRotate() *cobra.Command {
 		Long: `Generates a new key pair (saved to ~/.guiho/jureuma/keys/), decrypts every value with the
 old key (and retired keys for older ciphertexts), re-encrypts it to the new key, writes the
 encrypted file atomically, and then moves the old key to keys/retired/. When jureuma.yaml
-binds a key (key:), the binding is updated to the new key ID with the same one-line splice.
-Rotation does not revoke values already in git history: rotate the underlying secrets after
-a key leak.`,
+binds a key (key:), rotation is project-wide: every configured pair that records the bound
+key is rotated to ONE new key (a pair recording another key refuses before anything is
+written), every recorded identity follows it, and the binding is updated once with the same
+one-line splice. Rotation does not revoke values already in git history: rotate the
+underlying secrets after a key leak.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := loadEnv()
 			if err != nil {
 				return err
+			}
+			// A bound project rotates as a whole: one new key for every
+			// configured pair, one binding update, one retirement. The
+			// single-pair path below is for projects without a binding (and
+			// for a bound project that declares no pairs).
+			if e.proj.Key != "" && len(e.proj.Pairs) > 0 {
+				return rotateProject(cmd, e, &pf)
 			}
 			p, err := e.resolve(&pf)
 			if err != nil {
@@ -287,6 +296,250 @@ a key leak.`,
 	}
 	addPairFlags(c, &pf)
 	return c
+}
+
+// rotationPair is one pair prepared for project-wide rotation. Every file is
+// read, verified and rebuilt in memory before the first write.
+type rotationPair struct {
+	p         *pair.Pair
+	enc       *pair.Encrypted // nil when the pair has no encrypted file
+	plain     *pair.PlainFile // nil when the pair has no unencrypted file
+	oldSK     crypt.PrivateKey
+	values    *doc.Value // the decrypted values (enc pairs only)
+	next      *pair.Encrypted
+	nextPlain *pair.PlainFile // nil: the unencrypted file is left untouched
+	leaves    int
+}
+
+// rotateProject rotates every configured pair that records the key bound in
+// jureuma.yaml to ONE new key: one generated key, every value re-encrypted to
+// it (retired keys still open older ciphertexts), each pair's sync/pending
+// rebuilt with the same rules as single-pair rotation, each embedded schema
+// copy migrated, every recorded identity followed to the new key, the
+// jureuma.yaml binding updated once, and the old key retired when no pair
+// still uses it. Pairs with no recorded identity are skipped with a note.
+//
+// Rotation is all-or-nothing for everything a pair can refuse: unreadable
+// files, legacy jureuma state, a missing key and a pair that records another
+// key all fail before anything is written (a mismatched pair is exit 5 naming
+// the pair and both key IDs — never a silent re-encrypt).
+func rotateProject(cmd *cobra.Command, e *env, pf *pairFlags) error {
+	bound := e.proj.Key
+	// The rotation set: every configured pair, plus the explicitly selected
+	// one when it is not among them (an explicit selection is never ignored).
+	seen := map[string]bool{}
+	var set []*pair.Pair
+	add := func(q *pair.Pair) {
+		if !seen[q.EncryptedPath] {
+			seen[q.EncryptedPath] = true
+			set = append(set, q)
+		}
+	}
+	if pf.explicit() {
+		q, err := e.resolve(pf)
+		if err != nil {
+			return err
+		}
+		add(q)
+	}
+	for _, pc := range e.proj.Pairs {
+		q, err := pair.Resolve(pair.Options{Root: e.root, Name: pc.Name, SchemaFile: pf.schema, Config: e.proj})
+		if err != nil {
+			return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err), "pair "+pc.Name, err)
+		}
+		add(q)
+	}
+	unlock, err := lockPairs(e, set)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	// Phase 1: verify and prepare every pair in memory; no writes happen
+	// until the whole set is ready.
+	var preps []*rotationPair
+	var skipped []string
+	for _, q := range set {
+		rp := &rotationPair{p: q}
+		if fileExists(q.EncryptedPath) {
+			if rp.enc, err = pair.ReadEncrypted(q.EncryptedPath); err != nil {
+				return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err), "pair "+q.Name+" cannot be rotated", err)
+			}
+		}
+		if rp.plain, err = readPlainIfExists(q); err != nil {
+			return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err), "pair "+q.Name+" cannot be rotated", err)
+		}
+		recorded := ""
+		if rp.enc != nil {
+			recorded = rp.enc.Meta.KeyID
+		} else if rp.plain != nil && rp.plain.Header != nil {
+			recorded = rp.plain.Header.KeyID
+		}
+		if recorded == "" {
+			skipped = append(skipped, q.Name)
+			continue
+		}
+		if recorded != bound {
+			return xerr.Key("pair %s records %s/keyId %s, but %s binds %s; nothing was rotated", q.Name, pair.MetaKey, recorded, config.ProjectFile, bound)
+		}
+		if rp.enc != nil && rp.enc.Meta.Format != pair.FormatVersion {
+			return pair.LegacyHeader(filepath.Base(q.EncryptedPath))
+		}
+		if rp.plain != nil && rp.plain.Header != nil && rp.plain.Header.Format != pair.FormatVersion {
+			return pair.LegacyHeader(filepath.Base(q.UnencryptedPath))
+		}
+		if rp.enc != nil {
+			if rp.oldSK, err = e.requireKey(rp.enc); err != nil {
+				return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err), "pair "+q.Name, err)
+			}
+			if rp.values, err = pair.DecryptDocKeys(pair.StoreKeys(&rp.oldSK, e.store), rp.enc.Body); err != nil {
+				return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err), "pair "+q.Name, err)
+			}
+		}
+		preps = append(preps, rp)
+	}
+	if len(preps) == 0 {
+		return xerr.Failure("no configured pair records the key bound in %s (%s); nothing to rotate", config.ProjectFile, bound)
+	}
+
+	// Phase 2: one new key for the whole project, every pair rebuilt for it.
+	newSK, err := crypt.GenerateKey()
+	if err != nil {
+		return xerr.Failure("cannot generate a key")
+	}
+	newPK := newSK.Public()
+	newID := crypt.KeyID(newPK)
+	for _, rp := range preps {
+		if rp.enc != nil {
+			body, err := pair.EncryptDoc(newPK, rp.values, nil, nil)
+			if err != nil {
+				return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err), "pair "+rp.p.Name, err)
+			}
+			next := &pair.Encrypted{Meta: rp.enc.Meta, Body: body}
+			next.Meta.PublicKey = newPK.String()
+			next.Meta.KeyID = newID
+			next.Meta.Sync = map[string]pair.SyncEntry{}
+			pending := append([]string{}, rp.enc.Meta.Pending...)
+			pl := pair.LeafMap(rp.values)
+			for _, l := range doc.Leaves(body) {
+				old, ok := rp.enc.Meta.Sync[l.Pointer]
+				canon := doc.Canonical(pl[l.Pointer])
+				if ok && crypt.PlainTag(rp.oldSK, canon) == old.H {
+					next.Meta.Sync[l.Pointer] = pair.SyncEntry{C: crypt.SyncTag(l.Value.S), H: crypt.PlainTag(newSK, canon)}
+				} else {
+					pending = append(pending, l.Pointer)
+				}
+			}
+			next.Meta.Pending = pair.SortedUnique(pending)
+			// The embedded schema copy is a ciphertext like every value: it
+			// follows the pair key.
+			if next.Meta.SchemaCopy != "" {
+				if text, err := rp.enc.OpenSchemaCopy(pair.StoreKeys(&rp.oldSK, e.store)); err == nil {
+					serr := next.SetSchemaCopy(text)
+					clear(text)
+					if serr != nil {
+						return xerr.WrapMsg(xerr.CodeOf(serr), xerr.KindOf(serr), "pair "+rp.p.Name, serr)
+					}
+				}
+			}
+			rp.next = next
+			rp.leaves = len(doc.Leaves(body))
+		}
+		// Every recorded identity follows the new key: a headered unencrypted
+		// file (the sibling, or a pair whose plaintext is its only file) is
+		// re-keyed, or the pair would immediately disagree with the binding.
+		if rp.plain != nil && rp.plain.Header != nil {
+			h := *rp.plain.Header
+			h.Format = pair.FormatVersion
+			h.PublicKey = newPK.String()
+			h.KeyID = newID
+			if h.Home == "" {
+				h.Home = pair.HomeRef
+			}
+			rp.nextPlain = &pair.PlainFile{Header: &h, Schema: rp.plain.Schema, Body: rp.plain.Body}
+		}
+	}
+	label := defaultKeyLabel(e.root, gitOriginURL)
+	if _, err := e.store.SaveLabeled(newSK, label); err != nil {
+		return xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+	}
+
+	// Phase 3: the writes — every pair file first, then the binding once.
+	written := 0
+	for _, rp := range preps {
+		if rp.next != nil {
+			if err := pair.WriteEncrypted(rp.p.EncryptedPath, rp.next); err != nil {
+				return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err),
+					fmt.Sprintf("pair %s could not be written after %d of %d %s were rotated; the %s key binding still names %s", rp.p.Name, written, len(preps), plural(len(preps), "pair", "pairs"), config.ProjectFile, bound), err)
+			}
+			written++
+		}
+		if rp.nextPlain != nil {
+			if err := pair.WritePlainFile(rp.p.UnencryptedPath, rp.nextPlain); err != nil {
+				return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err),
+					fmt.Sprintf("pair %s could not be written after %d of %d %s were rotated; the %s key binding still names %s", rp.p.Name, written, len(preps), plural(len(preps), "pair", "pairs"), config.ProjectFile, bound), err)
+			}
+		}
+	}
+	if _, err := config.BindProjectKey(e.root, newID); err != nil {
+		return xerr.WrapMsg(xerr.CodeFailure, xerr.KindFailure, fmt.Sprintf("the pairs were rotated to %s but the %s key binding still names %s", newID, config.ProjectFile, bound), err)
+	}
+
+	// Phase 4: retirement and the report.
+	retired := false
+	if sharedBy := otherPairsUsing(e, preps[0].p, bound); len(sharedBy) > 0 {
+		errf(cmd, "note: %s is still used by %s; it was not retired\n", bound, strings.Join(sharedBy, ", "))
+	} else if err := e.store.Retire(bound); err != nil {
+		if !errors.Is(err, keystore.ErrNoKey) {
+			errf(cmd, "warning: the old key was not retired: %v\n", err)
+		}
+	} else {
+		retired = true
+	}
+	for _, rp := range preps {
+		if rp.next != nil {
+			outf(cmd, "rotated %s: %s -> %s (%d %s re-encrypted)\n", rp.p.Rel(rp.p.EncryptedPath), bound, newID, rp.leaves, plural(rp.leaves, "value", "values"))
+		} else {
+			outf(cmd, "re-keyed %s: %s -> %s (%s identity only; no encrypted file)\n", rp.p.Rel(rp.p.UnencryptedPath), bound, newID, pair.MetaKey)
+		}
+	}
+	for _, name := range skipped {
+		errf(cmd, "note: pair %s records no key; skipped\n", name)
+	}
+	if label != "" {
+		outf(cmd, "the new key is labeled %s\n", label)
+	}
+	if retired {
+		outf(cmd, "the old key was moved to ~/.guiho/jureuma/keys/retired/\n")
+	}
+	outf(cmd, "updated the %s key binding: %s -> %s\n", config.ProjectFile, bound, newID)
+	outf(cmd, "project key rotated: %s -> %s (%d %s)\n", bound, newID, len(preps), plural(len(preps), "pair", "pairs"))
+	outf(cmd, "update CI: set %s (the old %s is no longer used by this project)\n", keystore.EnvName(newID), keystore.EnvName(bound))
+	outf(cmd, "reminder: rotation does not revoke values already in git history; rotate leaked secrets themselves\n")
+	return nil
+}
+
+// lockPairs takes every pair lock in a stable path order (so two concurrent
+// project rotations cannot deadlock) and releases them in reverse order.
+func lockPairs(e *env, set []*pair.Pair) (func(), error) {
+	ordered := append([]*pair.Pair(nil), set...)
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].EncryptedPath < ordered[j].EncryptedPath })
+	var unlocks []func()
+	for _, q := range ordered {
+		unlock, err := e.lock(q)
+		if err != nil {
+			for i := len(unlocks) - 1; i >= 0; i-- {
+				unlocks[i]()
+			}
+			return nil, err
+		}
+		unlocks = append(unlocks, unlock)
+	}
+	return func() {
+		for i := len(unlocks) - 1; i >= 0; i-- {
+			unlocks[i]()
+		}
+	}, nil
 }
 
 // otherPairsUsing lists configured pairs (other than p) whose file uses keyID.
