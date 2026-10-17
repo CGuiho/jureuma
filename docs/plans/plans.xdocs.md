@@ -6,6 +6,7 @@ children:
   - jureuma-docs-plans-release-0.1.0
   - jureuma-docs-plans-release-0.2.0
   - jureuma-docs-plans-run-envname-and-opencode-deny-rules
+  - jureuma-docs-plans-jsonc-support
 files: {}
 documents: {}
 tags:
@@ -17,6 +18,7 @@ keywords:
   - "release 0.2.0"
   - "run env name"
   - "opencode deny rules"
+  - "JSONC write support"
   - "worker handoffs"
 flags: []
 status: stable
