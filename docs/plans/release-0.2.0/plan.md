@@ -51,3 +51,13 @@ design notes, bundled skill, CHANGELOG).
   2026-10-17.
 - Issue #9 closed as completed on GitHub and set to Done on the bound Project
   after the orchestrator's re-verification of `60a1ee3` (2026-10-17).
+
+## Outcome
+
+Released 2026-10-17: `mirror version apply 0.2.0` tagged `v0.2.0` on
+`85f3e3a`, `runx run release-prepare` and `runx run release-verify` passed
+(all release checks green), and `runx run release-publish` published
+<https://github.com/CGuiho/jureuma/releases/tag/v0.2.0>. An independent
+download spot-check verified `checksums.txt`, `guiho-s-jureuma.zip`,
+`jureuma-darwin-arm64` and `jureuma.schema.json`; the release carries the
+same 23-asset layout as 0.1.0.

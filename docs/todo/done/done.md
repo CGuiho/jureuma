@@ -23,7 +23,7 @@
 - Updated: `2026-10-17`
 - Completed: `2026-10-17`
 - Archived: `2026-10-17`
-- Outcome: `inject` is an accepted alias of `run` with identical flags, injected document, redaction and exit codes; delivered on `main` as commit `60a1ee3` (ci-check and e2e green).
+- Outcome: `inject` is an accepted alias of `run` with identical flags, injected document, redaction and exit codes; delivered on `main` as commit `60a1ee3` (ci-check and e2e green) and released in 0.2.0 (tag `v0.2.0`, GitHub release published).
 - GitHub project item: [Issue #9](https://github.com/CGuiho/jureuma/issues/9)
 - GitHub component: `jureuma`
 - Related files:
