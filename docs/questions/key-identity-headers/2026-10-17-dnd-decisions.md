@@ -1,7 +1,7 @@
 ---
 name: 2026-10-17 DND Decisions
 purpose: Record every question the unattended (DND) workers answer themselves during the key-identity-headers train (issue #13).
-description: "DND question ledger for the key-identity-headers train: W1 key-list display format, label storage and relabeling, best-effort key-file metadata, picker behavior and label derivation."
+description: "DND question ledger for the key-identity-headers train: W1 key-list display format, label storage and relabeling, best-effort key-file metadata, picker behavior and label derivation — plus the issue #10 env-name-restore DND calls."
 created: 2026-10-17
 owner: jureuma-docs-questions-key-identity-headers
 flags: []
@@ -331,4 +331,70 @@ they read byte-identically and never add metadata.
   `cmd_key.go` migration of Q22, `test/e2e/lifecycle_test.go` plus three
   flipped assertions in `lifecycle_test.go`, `values_test.go` and
   `cli_test.go`); the Q20 pair-API need is recorded here, not implemented.
+- **human-review:** pending
+
+## Issue #10 follow-up — restore `JUREUMA_CONFIG` as the default run env name
+(W3 of the run-envname train, 2026-10-17)
+
+CG reversed the `JUREUMA_` experiment (2026-10-17): "Make the environment
+variable name this again. JUREUMA_CONFIG. Now I understand what it is, and it
+should be the name!" The following judgment calls were made unattended while
+flipping every surface back.
+
+### Q25 — Two xdocs descriptor keyword lists still name `JUREUMA_`. Are they
+"surfaces that name the default"?
+
+**Answer: yes — `jureuma.xdocs.md` and `internal/runner/runner.xdocs.md` carry
+`JUREUMA_` as a search keyword next to the run/injection description, so both
+were flipped to `JUREUMA_CONFIG`.** The keywords index the document variable
+that `run` injects, which is the default name; leaving them would keep the old
+default searchable while every documented surface says `JUREUMA_CONFIG`. The
+keyword is metadata only, so the choice is trivially reversible.
+
+- **confidence:** medium-high (a keyword could also be read as the
+  `JUREUMA_*` denylist namespace, but the default-name reading matches the
+  descriptors' run-focused context).
+- **action taken:** both keyword lists updated to `JUREUMA_CONFIG`; no other
+  descriptor changed (no file lists changed).
+- **human-review:** pending
+
+### Q26 — How is the `## Unreleased` CHANGELOG entry corrected?
+
+**Answer: the entry is reworded to the final behaviour (default
+`JUREUMA_CONFIG`, `JUREUMA_` denied like any other `JUREUMA_*` name), not
+deleted.** The brief says "correct it to the final behaviour", and the entry
+sits in the same unreleased train that briefly carried the `JUREUMA_` default;
+released sections are untouched.
+
+- **confidence:** high (explicit brief instruction).
+- **action taken:** the `### Changed` entry under `## Unreleased` now states
+  the restored default and the denylist exception rule.
+- **human-review:** pending
+
+### Q27 — How is the new refusal coverage asserted in `test/e2e`?
+
+**Answer: `--env-name JUREUMA_` is asserted as exit `125` with the
+`[JUREUMA:USAGE]` prefix (the runner's `runErr` kind), while a project
+`run.envName: JUREUMA_` is asserted as a refused load matching
+`/run/envName` in stderr — `config.fieldErr` never prints the rejected value,
+so the assertion keys on the field path instead.** `--env-name JUREUMA_CONFIG`
+and `run.envName: JUREUMA_CONFIG` are asserted accepted. Redaction,
+private-key-strip and exit-code assertions are unchanged.
+
+- **confidence:** high (both behaviours were reproduced by the manual proof
+  before the assertions were written).
+- **action taken:** added to `TestRunDefaultJSON` in `test/e2e/run_test.go`;
+  the config/runner unit tables were flipped in place.
+- **human-review:** pending
+
+### Q28 — Does `internal/keystore/keystore_test.go`'s `"JUREUMA_CONFIG": false`
+case change with the default?
+
+**Answer: no — it classifies private-key variable names (`IsPrivateKeyEnv`) and
+stays correct either way.** `JUREUMA_CONFIG` is not a private-key name in any
+world; the run-env-name default is a different concern. The case was left
+untouched on purpose.
+
+- **confidence:** high.
+- **action taken:** none for that test.
 - **human-review:** pending

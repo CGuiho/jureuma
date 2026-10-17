@@ -17,7 +17,7 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 
 ### Changed
 
-- `jureuma run` injects the document into `JUREUMA_` by default (with `--format json|file`) instead of `JUREUMA_CONFIG`: the CLI default, the denylist exception and every documented surface now agree on the name `auth-ui` already configures. `JUREUMA_CONFIG` is no longer excepted from the denylist and is refused as `--env-name` / `run.envName` like any other `JUREUMA_*` name.
+- `jureuma run` injects the document into `JUREUMA_CONFIG` by default (with `--format json|file`), the name `auth-ui` already configures: the CLI default, the denylist exception and every documented surface agree on it. `JUREUMA_CONFIG` is the run-env denylist's only exception; `JUREUMA_` and every other `JUREUMA_*` name are refused as `--env-name` / `run.envName`.
 - Both pair files carry the pair identity: the unencrypted file gains a `$jureuma` header (`format`, `publicKey`, `keyId`, `home`) and a top-level `$schema` pointer, written by `init` and `decrypt` and preserved byte-identically by every other write. `$jureuma` and `$schema` are reserved metadata: never a value, listing, injection or `set`/`unset` path. Files carrying old jureuma state refuse every mutation with `run jureuma init to repair`; reads keep working. `set` validates against the readable schema and warns explicitly when validation is skipped.
 
 ## 0.2.0 - 2026-10-17

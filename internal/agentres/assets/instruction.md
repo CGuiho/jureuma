@@ -13,7 +13,7 @@ tags:
 keywords:
   - jureuma
   - agent-safe configuration
-  - JUREUMA_
+  - JUREUMA_CONFIG
 metadata:
   version: "0.2.0"
 ---
@@ -30,7 +30,7 @@ Rules that always apply:
 - Never read, open, print, grep, diff, or copy any `*.unencrypted.*` file, or anything under `~/.guiho/jureuma/` (except `jureuma.global.yaml`, which holds policy only).
 - Understand configuration with `jureuma list` and `jureuma status`; validate with `jureuma check`.
 - Change a value with `printf '%s' "$VALUE" | jureuma set /json/pointer --value-stdin` (add `--json` for numbers, booleans, null, objects, arrays). Remove with `jureuma unset /json/pointer`. Never echo values back.
-- Run anything that needs configuration with `jureuma run -- <command>`. The child receives the whole document as JSON in `JUREUMA_` (change with `--format json|flatten|file` and `--env-name`). Never try to extract values from a `run` child (no printing, writing to files, or transforming them).
+- Run anything that needs configuration with `jureuma run -- <command>`. The child receives the whole document as JSON in `JUREUMA_CONFIG` (change with `--format json|flatten|file` and `--env-name`). Never try to extract values from a `run` child (no printing, writing to files, or transforming them).
 - `decrypt`, `get`, `key show --private`, and `key export` are for humans only. Never pass `--dangerously-bypass-protections` unless the human explicitly asked for it in this conversation.
 - If a value is missing or invalid, ask the human to set it. Never guess or invent secrets.
 - Exit `3` means the operation is human-only. Exit `4` is a schema validation failure, `5` a key or decryption problem. From `jureuma run`, exit `125` means jureuma failed, not the child.

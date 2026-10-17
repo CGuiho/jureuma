@@ -275,11 +275,11 @@ Redaction applies whether stdout is a terminal or redirected. It covers only the
 
 **Environment mapping:**
 
-By default the application receives the **whole decrypted document as one JSON-stringified environment variable**, `JUREUMA_` (name configurable with `--env-name` or `run.envName`). `--format` selects another mapping:
+By default the application receives the **whole decrypted document as one JSON-stringified environment variable**, `JUREUMA_CONFIG` (name configurable with `--env-name` or `run.envName`). `--format` selects another mapping:
 
 | `--format` | Result |
 | --- | --- |
-| `json` (default) | The full document, JSON-stringified, in `--env-name` (default `JUREUMA_`). |
+| `json` (default) | The full document, JSON-stringified, in `--env-name` (default `JUREUMA_CONFIG`). |
 | `flatten` | Every leaf becomes one variable (rules below); `--prefix <P>` prepends a prefix. |
 | `file` | `--env-name` holds a path to the full document (below). |
 
@@ -289,9 +289,9 @@ Flatten rules:
 
 - Name: decode pointer escapes (`~1` → `/`, `~0` → `~`), join segments with `_`, uppercase, map every character outside `[A-Z0-9_]` to `_`, prefix `_` if the result starts with a digit, then prepend `--prefix`. `/database/url` → `DATABASE_URL`; `/features/0` → `FEATURES_0`; `/apiKey` → `APIKEY`.
 - Collisions are checked **after** normalisation; any collision is an error (exit 125), reported in advance by `check` and `list`.
-- **Denylist:** flatten mode refuses to produce names that load or run code, change how a shell or tool runs commands, or belong to jureuma, unless they are mapped explicitly with `--env`: `LD_*`, `DYLD_*`, `GIT_*` (including `GIT_CONFIG_*`), `JAVA_*`, `NPM_CONFIG_*`, `BASH_FUNC_*`, `JUREUMA_*`, `NODE_OPTIONS`, `NODE_PATH`, `BASH_ENV`, `ENV`, `PROMPT_COMMAND`, `PS1`, `PS2`, `PS4`, `SHELLOPTS`, `BASHOPTS`, `IFS`, `CDPATH`, `PATH`, `SHELL`, `ZDOTDIR`, `PAGER`, `MANPAGER`, `EDITOR`, `VISUAL`, `BROWSER`, `LESSOPEN`, `LESSCLOSE`, `SSH_ASKPASS`, `SUDO_ASKPASS`, `PYTHONSTARTUP`, `PYTHONPATH`, `PYTHONHOME`, `PERL5OPT`, `PERL5LIB`, `PERLLIB`, `RUBYOPT`, `RUBYLIB`, `_JAVA_OPTIONS`, `JDK_JAVA_OPTIONS`, `RUSTC_WRAPPER` (compared case-insensitively). This stops a key added by `set` (anyone can, with the committed public key) from turning into code execution inside a process that holds every secret. The same denylist applies to `--env-name` and `run.envName` (except the default `JUREUMA_`) for every format, and `run.envName` is validated against it when `jureuma.yaml` is loaded, because a committed `run: {format: file, envName: BASH_ENV}` would make every bash child source the document.
+- **Denylist:** flatten mode refuses to produce names that load or run code, change how a shell or tool runs commands, or belong to jureuma, unless they are mapped explicitly with `--env`: `LD_*`, `DYLD_*`, `GIT_*` (including `GIT_CONFIG_*`), `JAVA_*`, `NPM_CONFIG_*`, `BASH_FUNC_*`, `JUREUMA_*`, `NODE_OPTIONS`, `NODE_PATH`, `BASH_ENV`, `ENV`, `PROMPT_COMMAND`, `PS1`, `PS2`, `PS4`, `SHELLOPTS`, `BASHOPTS`, `IFS`, `CDPATH`, `PATH`, `SHELL`, `ZDOTDIR`, `PAGER`, `MANPAGER`, `EDITOR`, `VISUAL`, `BROWSER`, `LESSOPEN`, `LESSCLOSE`, `SSH_ASKPASS`, `SUDO_ASKPASS`, `PYTHONSTARTUP`, `PYTHONPATH`, `PYTHONHOME`, `PERL5OPT`, `PERL5LIB`, `PERLLIB`, `RUBYOPT`, `RUBYLIB`, `_JAVA_OPTIONS`, `JDK_JAVA_OPTIONS`, `RUSTC_WRAPPER` (compared case-insensitively). This stops a key added by `set` (anyone can, with the committed public key) from turning into code execution inside a process that holds every secret. The same denylist applies to `--env-name` and `run.envName` (except the default `JUREUMA_CONFIG`) for every format, and `run.envName` is validated against it when `jureuma.yaml` is loaded, because a committed `run: {format: file, envName: BASH_ENV}` would make every bash child source the document.
 - Values: strings raw; numbers as their source text; `true`/`false`; `null` → variable not set; empty `{}` and `[]` → not set.
-- Existing environment variables win over flattened and `--env` values unless `--override` is given (same default as dotenvx). The `json` and `file` formats always set `--env-name`: an inherited `JUREUMA_` (from the shell or an outer `run`) never silently replaces this run's document.
+- Existing environment variables win over flattened and `--env` values unless `--override` is given (same default as dotenvx). The `json` and `file` formats always set `--env-name`: an inherited `JUREUMA_CONFIG` (from the shell or an outer `run`) never silently replaces this run's document.
 
 `--format file`: on Linux the document is passed through `memfd_create` as `/dev/fd/N`, so nothing touches disk. Elsewhere it is written to `$HOME/.guiho/jureuma/run/<id>/document.json` (mode `0600`, with a PID owner file) and deleted when the child exits. `run/` is classified as disposable; `jureuma` removes stale entries whose owner PID is gone on startup and on uninstall. On non-Linux systems a `SIGKILL` of `jureuma` can leave the file until the next sweep; this is documented.
 
@@ -490,7 +490,7 @@ pairs:
 run:
   prefix: ""
   format: json
-  envName: JUREUMA_
+  envName: JUREUMA_CONFIG
   override: false
 agent:
   evolution:

@@ -13,7 +13,7 @@ config.schema.json        JSON Schema (inferred, then refined by agents); commit
 The plaintext and the schema may also be `config.unencrypted.jsonc` and `config.schema.jsonc` (JSONC, comments allowed). jureuma reads **and writes** them: when it writes a `.jsonc` file it preserves the comments and formatting outside the exact bytes it changes, and refuses rather than destroys when it cannot.
 
 - Values are encrypted one by one with X25519 public-key encryption. Anyone with the committed public key can encrypt (`set`), and only the private key in `~/.guiho/jureuma/keys/` (or a `JUREUMA_PRIVATE_KEY` variable in CI) can decrypt.
-- `jureuma run -- <command>` (`inject` is an alias of `run`) decrypts in memory and passes the whole document to the child as JSON in `JUREUMA_`. `--format flatten` (one variable per value) and `--format file` (a path to the document) are the alternatives. The child's output is redacted.
+- `jureuma run -- <command>` (`inject` is an alias of `run`) decrypts in memory and passes the whole document to the child as JSON in `JUREUMA_CONFIG`. `--format flatten` (one variable per value) and `--format file` (a path to the document) are the alternatives. The child's output is redacted.
 - Only one side of a pair exists at a time: `encrypt` deletes the unencrypted file and `decrypt` deletes the encrypted file (keeping a ciphertext copy under `~/.guiho/jureuma/state/` so the next `encrypt` reuses the key). Pass `--keep-both` to keep both.
 - `decrypt`, `get`, `key show --private` and `key export` are human-only: they need an interactive terminal, no agent markers in the environment, and a typed confirmation word.
 - `juju` is an optional short alias.
@@ -111,7 +111,7 @@ jureuma list                       # pointers, flattened names, types; never val
 jureuma status                     # sync state per path
 printf '%s' "$NEW_TOKEN" | jureuma set /apiKey --value-stdin
 jureuma set /database/pool --json 20
-jureuma run -- node server.js      # the app reads JSON.parse(process.env.JUREUMA_); inject is an alias of run
+jureuma run -- node server.js      # the app reads JSON.parse(process.env.JUREUMA_CONFIG); inject is an alias of run
 jureuma run --format flatten -- ./start.sh   # DATABASE_URL, DATABASE_POOL, APIKEY, ...
 jureuma check                      # schema, gitignore, tracked plaintext, keys, env collisions, deny rules
 ```

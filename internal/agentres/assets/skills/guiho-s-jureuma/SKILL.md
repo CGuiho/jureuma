@@ -1,6 +1,6 @@
 ---
 name: guiho-s-jureuma
-description: Use whenever a project uses jureuma (or its juju alias) or needs configuration or secrets handled safely by an agent - installing, initializing, upgrading, or uninstalling jureuma; reading the shape of configuration with list/status/check; setting or unsetting values without seeing them; running commands with injected configuration (JUREUMA_); writing or refining config.schema.json(c) JSON Schemas; rotating keys; or reporting jureuma bugs and improvements.
+description: Use whenever a project uses jureuma (or its juju alias) or needs configuration or secrets handled safely by an agent - installing, initializing, upgrading, or uninstalling jureuma; reading the shape of configuration with list/status/check; setting or unsetting values without seeing them; running commands with injected configuration (JUREUMA_CONFIG); writing or refining config.schema.json(c) JSON Schemas; rotating keys; or reporting jureuma bugs and improvements.
 metadata:
   version: "0.2.0"
 ---
@@ -97,26 +97,26 @@ jureuma run -- python -m app
 jureuma run --name production -- ./server
 ```
 
-By default the child receives the **whole decrypted document, JSON-stringified, in `JUREUMA_`**:
+By default the child receives the **whole decrypted document, JSON-stringified, in `JUREUMA_CONFIG`**:
 
 ```js
-const config = JSON.parse(process.env.JUREUMA_); // Node / Bun
+const config = JSON.parse(process.env.JUREUMA_CONFIG); // Node / Bun
 ```
 
 ```python
-config = json.loads(os.environ["JUREUMA_"])  # Python
+config = json.loads(os.environ["JUREUMA_CONFIG"])  # Python
 ```
 
 ```go
 var cfg Config
-err := json.Unmarshal([]byte(os.Getenv("JUREUMA_")), &cfg) // Go
+err := json.Unmarshal([]byte(os.Getenv("JUREUMA_CONFIG")), &cfg) // Go
 ```
 
 Other mappings:
 
 | Flag | Effect |
 | --- | --- |
-| `--format json` (default) | Whole document as JSON in `--env-name` (default `JUREUMA_`). |
+| `--format json` (default) | Whole document as JSON in `--env-name` (default `JUREUMA_CONFIG`). |
 | `--format flatten` | One variable per leaf: `/database/url` becomes `DATABASE_URL`; `--prefix APP_` prepends a prefix. Names that collide, and names that load or run code or belong to jureuma (`LD_*`, `DYLD_*`, `GIT_*`, `JAVA_*`, `NODE_OPTIONS`, `PYTHONPATH`, `BASH_ENV`, `PAGER`, `EDITOR`, `PATH`, `JUREUMA_*`, ...), are refused; map one explicitly with `--env` only when the human asked for it. `null` and empty containers are not set. |
 | `--format file` | `--env-name` holds a path to the whole document (a memfd on Linux, a `0600` temp file elsewhere, deleted when the child exits). |
 | `--env-name NAME` | Variable name for `json` and `file` formats (always set, replacing an inherited value; denylisted names are refused). |
@@ -168,7 +168,7 @@ pairs:
     schema: ./config.schema.json
 run:
   format: json
-  envName: JUREUMA_
+  envName: JUREUMA_CONFIG
   prefix: ""
   override: false
 agent:

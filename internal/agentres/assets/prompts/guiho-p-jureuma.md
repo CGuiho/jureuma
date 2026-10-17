@@ -50,7 +50,7 @@ ever reading them.
    "Writing the schema" guide in the `guiho-s-jureuma` skill: precise types, constraints, the
    supported formats, a `description` on every property, and `"x-jureuma-secret": true` on every
    secret. Never put real values in `default`, `examples`, `const`, or `enum`.
-6. Wire the application: make it read the whole configuration from the `JUREUMA_`
+6. Wire the application: make it read the whole configuration from the `JUREUMA_CONFIG`
    environment variable (JSON), and start it through `jureuma run -- <command>` (`inject` is an
    alias of `run`) in scripts,
    task runners, and documentation. Use `--format flatten` (with `--prefix`) or `--format file`

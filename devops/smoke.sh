@@ -55,7 +55,7 @@ else
   printf 'not ok %d - set --value-stdin\n' "$n" >&2; tail -n 20 "$log" >&2; exit 1
 fi
 step 0 'set --json' "$bin" set /database/pool --json 20
-step 0 'run (json)' "$bin" run -- sh -c 'printf "%s\n" "$JUREUMA_"'
+step 0 'run (json)' "$bin" run -- sh -c 'printf "%s\n" "$JUREUMA_CONFIG"'
 step 0 'run (flatten)' "$bin" run --format flatten -- sh -c 'echo "$DATABASE_URL $APIKEY $DATABASE_POOL"'
 step 7 'run passes the child exit code' "$bin" run -- sh -c 'exit 7'
 step 3 'get is human-only' "$bin" get /apiKey

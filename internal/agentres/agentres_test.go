@@ -188,7 +188,7 @@ func TestEmbeddedArtifacts(t *testing.T) {
 		"jureuma upgrade check", "jureuma init", "jureuma --version",
 		"## Writing the schema", "jureuma schema infer", "x-jureuma-secret",
 		"--dangerously-bypass-protections", "*.unencrypted.*", "--value-stdin",
-		"JUREUMA_", "guiho-p-jureuma-install",
+		"JUREUMA_CONFIG", "guiho-p-jureuma-install",
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("SKILL.md missing %q", want)

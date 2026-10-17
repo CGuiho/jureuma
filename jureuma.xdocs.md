@@ -32,7 +32,7 @@ keywords:
   - "jureuma"
   - "juju"
   - "encrypt"
-  - "JUREUMA_"
+  - "JUREUMA_CONFIG"
   - "JSON Schema"
   - "GUIHO"
 flags: []
