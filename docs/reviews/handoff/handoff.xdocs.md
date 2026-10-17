@@ -6,6 +6,7 @@ children: []
 files: {}
 documents:
   "2026-10-16-release-0.1.0.md": "Human review packet for the published jureuma 0.1.0 release: what was built, how to test it, acceptance mapping, ledger digest and the decisions needed."
+  "2026-10-17-0.3.0-train.md": "Human review packet for the jureuma 0.3.0 train (issues #10-#14): what was built, exact test steps, acceptance mapping, ledger digest, deviations, self-review fixes, validation, TODO state and the decisions needed."
 tags:
   - "reviews"
   - "handoff"
@@ -25,3 +26,4 @@ question-ledger digest, deviations, fixes, validation, TODO state, decisions).
 ## Documents
 
 - [2026-10-16-release-0.1.0.md](2026-10-16-release-0.1.0.md): Human review packet for the published jureuma 0.1.0 release: what was built, how to test it, acceptance mapping, ledger digest and the decisions needed.
+- [2026-10-17-0.3.0-train.md](2026-10-17-0.3.0-train.md): Human review packet for the jureuma 0.3.0 train (issues #10-#14): what was built, exact test steps, acceptance mapping, ledger digest, deviations, self-review fixes, validation, TODO state and the decisions needed.
