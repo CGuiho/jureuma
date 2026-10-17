@@ -23,6 +23,14 @@ and the global directory. Headerless/legacy files are detected and point at
 unencrypted and encrypted files ... on both ... we must specify the public key
 and the key reference ... and the global directory."
 
+Additional directive (2026-10-17): "On the unencrypted file, we should always,
+always, always specify the path to the local schema. On the encrypted file, we
+should also specify a property which will be an encrypted schema." → the
+unencrypted document always carries the top-level `"$schema"` pointer (reserved
+metadata: never a value, listing, injection or encrypted body), and the
+encrypted header carries `$jureuma.schema` as `{ path, c }` — the readable path
+plus the schema document encrypted to the pair key.
+
 ## Current state (verify after the JSONC landing)
 
 - `internal/pair/files.go` — `ReadPlain(path, jsonc)`, `WritePlain`,
@@ -52,30 +60,45 @@ and the key reference ... and the global directory."
    struct `{format, publicKey, keyId, home}` for both sides. `home` is the
    global directory reference in conventional portable form
    (`~/.guiho/jureuma/`, as defined by `internal/paths`) — never a
-   machine-specific absolute path. Parse and marshal for the plaintext
-   header; keep encrypted-side parsing aligned with what #12 leaves.
+   machine-specific absolute path. The encrypted header additionally carries
+   `schema` as `{ path, c }` — the readable local schema path plus the schema
+   document encrypted to the pair key as a single envelope (reuse the
+   `internal/crypt` representation; the envelope plaintext is the schema
+   document text). Parse and marshal for the plaintext header; keep
+   encrypted-side parsing aligned with what #12 leaves.
 2. **Format 2.** Both headers are written as `format: 2`. Reading: `format: 1`
    or a missing plaintext header is legacy — reads keep working; every
    mutating path refuses with a typed, value-free error whose message includes
    `run jureuma init to repair`. Unknown future formats keep old jureuma's
-   explicit rejection behavior.
-3. **Plaintext body exclusion.** `$jureuma` is reserved and excluded from the
-   body everywhere the plaintext is read: `ReadPlain` returns the body without
-   it, so `list`, `get`, `run` injection, the `set` mirror and `schema infer`
-   see body-only data automatically. If any caller parses the plaintext
+   explicit rejection behavior. A format-2 plaintext is expected to carry the
+   `$schema` pointer; when it is missing, writes restore it and `check`
+   reports it — never a hard refusal.
+3. **Reserved plaintext keys.** Two keys are reserved metadata, excluded from
+   the body everywhere the plaintext is read: the `$jureuma` header and the
+   top-level `$schema` pointer (`"$schema": "./config.schema.json"` or
+   `.jsonc` — always present in format 2). `ReadPlain` returns the body
+   without them and exposes both for callers that need them, so `list`, `get`,
+   `run` injection, the `set` mirror and `schema infer` see body-only data
+   automatically. `WritePlain` writes header + `$schema` + body, preserving
+   all bytes outside changed spans. If any caller parses the plaintext
    directly instead of through `ReadPlain`, note it in your report for the
    parent — do not edit another unit's file.
 4. **Consistency.** When both files exist: `publicKey` and `keyId` must match
    each other and the stored key where present — mismatch = exit 5 (the
-   existing keyId↔publicKey rule); `home` mismatch is a warning only, never
-   fatal.
-5. **Writing.** New plaintext starters and header repairs write the header;
-   `WritePlain` on `.jsonc` composes with the lossless engine (header insert
-   or edit is a span edit). Every byte outside the changed spans is preserved.
-6. **Tests.** Parse/marshal round-trips; legacy detection (`format: 1` and
-   headerless) and the exact repair pointer; mismatch = exit 5 on load; `home`
-   warning; body exclusion for read and mirror paths; a `.jsonc` round-trip
-   where header insert/repair leaves comments and formatting intact.
+   existing keyId↔publicKey rule); `home` and `schema.path` mismatches across
+   files are warnings only, never fatal.
+5. **Writing.** New plaintext starters and repairs always write the header
+   and the `$schema` pointer; the encrypted side writes `schema` whenever the
+   caller supplies the schema text (and preserves an existing embedded copy
+   otherwise). `WritePlain` on `.jsonc` composes with the lossless engine
+   (insert or edit is a span edit). Every byte outside the changed spans is
+   preserved.
+6. **Tests.** Parse/marshal round-trips (incl. the `schema` envelope
+   decrypting back to the schema text); legacy detection (`format: 1` and
+   headerless) and the exact repair pointer; mismatch = exit 5 on load;
+   `home`/`schema.path` warnings; body exclusion of `$jureuma` and `$schema`
+   for read, mirror and injection paths; a `.jsonc` round-trip where header
+   and pointer insert/repair leave comments and formatting intact.
 7. **Docs.** Update the `internal/pair` section of the implementation
    contracts and `internal/pair/pair.xdocs.md` where metadata requires it.
 

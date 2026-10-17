@@ -1,6 +1,6 @@
 ---
 subject: jureuma-docs-plans-key-identity-headers
-description: "Execution plan of the key-identity train (issue #13): `$jureuma` headers on both pair files, single-file operation, key labels and selection, with worker handoff briefs under execution/handoffs/."
+description: "Execution plan of the key-identity train (issue #13): `$jureuma` headers on both pair files, the always-present `$schema` pointer and embedded encrypted schema, single-file operation, key labels and selection, with worker handoff briefs under execution/handoffs/."
 parent: jureuma-docs-plans
 children:
   - jureuma-docs-plans-key-identity-headers-execution

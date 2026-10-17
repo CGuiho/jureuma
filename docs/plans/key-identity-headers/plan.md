@@ -1,7 +1,7 @@
 ---
 name: Key Identity Headers and Single-File Pairs
 purpose: Record the train that puts the `$jureuma` identity header on both pair files, makes single-file operation first-class, and adds key labels with stored-key selection (issue #13).
-description: "Plan for the key-identity train: format-2 `$jureuma` headers on both files, single-file operation, `init` repair and key selection, labeled keys with a listing and a TTY-safe picker (issue #13)."
+description: "Plan for the key-identity train: format-2 `$jureuma` headers on both files with the always-present `$schema` pointer and the embedded encrypted schema, single-file operation, `init` repair and key selection, labeled keys with a listing and a TTY-safe picker (issue #13)."
 created: "2026-10-17"
 owner: jureuma-docs-plans-key-identity-headers
 flags: []
@@ -35,6 +35,18 @@ public-key prefix, and commands let the user pick from already stored keys.
 After implementation, the next minor release (0.3.0) ships this together
 with #10, #11 and #12.
 
+Additional directive (2026-10-17, referencing `/root/swe/auth-ui/config.unencrypted.json`
+and its jureuma-migration note): the unencrypted file must **always** specify
+the path to the local schema — "always, always, always" — and the encrypted
+file must also carry a property holding the schema in encrypted form, so each
+file stays self-describing. auth-ui grounds this: its schema declares the
+optional `$schema` string property ("Always specify it in the unencrypted file
+so editors validate and autocomplete") and its note says the unencrypted
+document always points at `./config.schema.json`. jureuma makes that pointer
+first-class (always written, repaired, preserved, checked) and turns the
+top-level `$schema` into reserved metadata — never a value, listing, injection
+or encrypted body entry.
+
 ## Units
 
 ### W1 — key labels, listing and selection (issue #13, part 1)
@@ -47,17 +59,19 @@ in-flight JSONC writer; dispatched immediately. Brief:
 ### W2 — `$jureuma` identity header on both files (issue #13, part 2)
 
 Format-2 identity block (`format`, `publicKey`, `keyId`, `home`) on the
-encrypted and unencrypted files; body exclusion of `$jureuma`; cross-file
-consistency checks; typed legacy-header repair pointer; header insert and
-repair through the JSONC lossless engine. Brief:
+encrypted and unencrypted files; the always-present `$schema` pointer and the
+`$jureuma.schema` encrypted copy; body exclusion of reserved keys; cross-file
+consistency checks; typed legacy-header repair pointer; header and pointer
+insert/repair through the JSONC lossless engine. Brief:
 `execution/handoffs/w2-pair-identity-headers.md`.
 
 ### W3 — single-file flows, `init` repair and `init` key selection (issue #13, parts 3–4)
 
 Only-unencrypted and only-encrypted operation as first-class states; keyless
-`set` building the encrypted sibling from the plaintext header; `init`
-header repair for legacy files; stored-key selection on `init`;
-status/check reporting across all states. Brief:
+`set` building the encrypted sibling from the plaintext header (embedding the
+encrypted schema copy); `init` header and `$schema` repair; stored-key
+selection on `init`; schema restore on `decrypt` and refresh on
+`schema infer`; status/check reporting across all states. Brief:
 `execution/handoffs/w3-single-file-flows-and-init.md`.
 
 ## Sequencing
@@ -86,7 +100,22 @@ defaults; stated to CG at dispatch time):
   `format`, `publicKey`, `keyId`, `home` (the `~/.guiho/jureuma/` global
   directory reference); `sync`/`pending` stay encrypted-side only, so the
   plaintext header is stable and a keyless `set` can rebuild the sibling
-  from it.
+  from it. The schema pointer lives beside the header as a real top-level
+  `$schema` property (editor convention, auth-ui precedent), never inside it.
+- **Always-present `$schema` pointer (2026-10-17).** The unencrypted document
+  always carries `"$schema"` pointing at the local schema
+  (`./config.schema.json` or `.jsonc`): `init` writes it, repair restores it,
+  every write preserves it, and it is reserved metadata — excluded from
+  values, listings, `run` injection and encrypted bodies; `check` reports it
+  when missing; `schema infer` includes the optional `$schema` string
+  property in generated schemas.
+- **Encrypted schema copy (2026-10-17).** The encrypted header carries
+  `$jureuma.schema` as `{ path, c }`: the readable schema path plus the
+  schema document encrypted to the pair key, so a key holder restores the
+  schema from the committed file alone (a keyless sibling build embeds it
+  too — encryption needs only the public key). Additive: the readable local
+  schema file stays as-is; `schema.path` mismatch across files and drift
+  between the embedded copy and the local file are warnings.
 - **Both-present consistency.** `publicKey`/`keyId` must match across files
   and against the stored key where present (mismatch = exit 5, today's
   keyId↔publicKey rule); `home` mismatch is a warning only.
