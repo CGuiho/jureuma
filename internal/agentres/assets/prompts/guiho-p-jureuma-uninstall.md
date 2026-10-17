@@ -3,7 +3,7 @@ name: guiho-p-jureuma-uninstall
 purpose: Uninstall jureuma through its ownership-safe lifecycle interface.
 description: Use when an agent must uninstall jureuma while preserving keys, configuration and data according to the user's choices.
 created: 2026-10-13
-version: "0.1.0"
+version: "0.2.0"
 owner: jureuma-prompts
 flags: []
 tags:
@@ -16,7 +16,7 @@ keywords:
   - preserve-data
   - keys
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 Uninstall jureuma, the GUIHO agent-safe configuration CLI (https://github.com/CGuiho/jureuma).

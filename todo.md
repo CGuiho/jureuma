@@ -13,16 +13,12 @@
 | Status | Count |
 | --- | ---: |
 | todo | 0 |
-| in progress | 1 |
+| in progress | 0 |
 | testing | 5 |
 | stopped | 0 |
 | completed | 0 |
 
 ## Tasks
-
-### Release 0.1.1
-
-- [ ] [Add `inject` as an alias of `run`](https://github.com/CGuiho/jureuma/issues/9) — in progress
 
 ### Release 0.1.0
 

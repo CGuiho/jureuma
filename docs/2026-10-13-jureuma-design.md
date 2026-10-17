@@ -15,6 +15,8 @@ keywords:
   - lifecycle
 ---
 
+#### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
+
 # Jureuma Design
 
 Status: **implemented** — revision 2 of this design (after a four-lens review: cryptography, agent safety, convention compliance, lifecycle) is implemented in full as of 2026-10-16; see `CHANGELOG.md` for the release state.

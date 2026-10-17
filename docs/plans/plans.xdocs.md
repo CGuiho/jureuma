@@ -4,7 +4,7 @@ description: "Implementation plans for jureuma work; each plan lives in its own 
 parent: jureuma-docs
 children:
   - jureuma-docs-plans-release-0.1.0
-  - jureuma-docs-plans-release-0.1.1
+  - jureuma-docs-plans-release-0.2.0
 files: {}
 documents: {}
 tags:
@@ -13,7 +13,7 @@ tags:
 keywords:
   - "implementation plans"
   - "release 0.1.0"
-  - "release 0.1.1"
+  - "release 0.2.0"
   - "worker handoffs"
 flags: []
 status: stable

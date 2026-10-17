@@ -1,8 +1,12 @@
+#### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
+
 # Changelog
 
 All notable changes to jureuma are recorded here. Versions are planned and applied with GUIHO Mirror (`mirror.yaml`); entries are written at release time.
 
 ## Unreleased
+
+## 0.2.0 - 2026-10-17
 
 ### Added
 

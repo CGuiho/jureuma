@@ -1,3 +1,5 @@
+#### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
+
 # Handoff — W1: `inject` as an alias of `run` (issue #9)
 
 Mode: dnd · Role: workhorse (engineer) · Harness: OpenCode native background
