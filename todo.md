@@ -22,7 +22,7 @@
 
 ### Run env name and OpenCode deny rules
 
-- [ ] [Default run env name: `JUREUMA_CONFIG` (restore after the `JUREUMA_` experiment)](https://github.com/CGuiho/jureuma/issues/10) — todo
+- [ ] [Default run env name: `JUREUMA_CONFIG` (restore after the `JUREUMA_` experiment)](https://github.com/CGuiho/jureuma/issues/10) — testing
 - [ ] [Add OpenCode deny rules to jureuma init alongside the Claude Code ones](https://github.com/CGuiho/jureuma/issues/11) — testing
 
 ### JSONC write support
