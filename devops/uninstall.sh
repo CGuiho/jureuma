@@ -143,6 +143,7 @@ add() { plan="$plan$1$TAB$2$TAB$3$TAB$4
 deny_state="$JHOME/state/deny-rules.json"
 if [ -f "$deny_state" ] && grep -q "\"$ROOT\"" "$deny_state" 2>/dev/null; then
   add P deny "$ROOT/.claude/settings.json" 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
+  add P deny "$ROOT/opencode.json" 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
 fi
 alias_state="$JHOME/state/alias.json"
 if [ -f "$alias_state" ]; then

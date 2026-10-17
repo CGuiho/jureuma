@@ -139,6 +139,9 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 	if data, err := os.ReadFile(filepath.Join(p.dir, ".claude", "settings.json")); err == nil {
 		files[".claude/settings.json"] = string(data)
 	}
+	if data, err := os.ReadFile(filepath.Join(p.dir, "opencode.json")); err == nil {
+		files["opencode.json"] = string(data)
+	}
 	for name, data := range files {
 		for _, f := range append(sentinelForms(), sk, strings.TrimPrefix(sk, "jureuma-sk-1:")) {
 			if strings.Contains(data, f) {
@@ -159,5 +162,49 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 	r := p.expect(0, "get", "/db/url", "--dangerously-bypass-protections")
 	if !strings.Contains(r.stdout, sentinelA) {
 		t.Fatalf("control: bypass get did not print the sentinel\n%s", r)
+	}
+}
+
+// The deny rules jureuma adds to Claude Code and OpenCode settings are removed
+// exactly by agent remove and uninstall, leaving the rest of each file intact.
+func TestDenyRulesRemovedByAgentRemoveAndUninstall(t *testing.T) {
+	p := newProject(t)
+	p.write("opencode.json", `{"$schema": "https://opencode.ai/config.json", "model": "provider/model-x", "permissions": [{"action": "shell", "resource": "git push *", "effect": "deny"}]}`+"\n")
+	p.expect(0, "init", "--agent-deny-rules", "yes", "--agent-evolution", "always-ask")
+	ocfg := p.read("opencode.json")
+	for _, want := range []string{"*.unencrypted.json", "*.unencrypted.jsonc", "$HOME/.guiho/jureuma/*", "git push *"} {
+		if !strings.Contains(ocfg, want) {
+			t.Fatalf("opencode.json missing %q:\n%s", want, ocfg)
+		}
+	}
+	if cs := p.read(".claude/settings.json"); !strings.Contains(cs, "Read(**/*.unencrypted.json)") {
+		t.Fatalf(".claude/settings.json missing the deny rules:\n%s", cs)
+	}
+
+	// agent remove deletes exactly the recorded rules.
+	p.expect(0, "agent", "instruction", "remove")
+	ocfg = p.read("opencode.json")
+	if strings.Contains(ocfg, "unencrypted") || strings.Contains(ocfg, ".guiho/jureuma") {
+		t.Fatalf("OpenCode deny rules survived agent remove:\n%s", ocfg)
+	}
+	if !strings.Contains(ocfg, "git push *") || !strings.Contains(ocfg, "provider/model-x") {
+		t.Fatalf("unrelated OpenCode settings lost:\n%s", ocfg)
+	}
+	if cs := p.read(".claude/settings.json"); strings.Contains(cs, "Read(") {
+		t.Fatalf("Claude deny rules survived agent remove:\n%s", cs)
+	}
+
+	// uninstall removes them too.
+	p.expect(0, "init", "--agent-deny-rules", "yes", "--agent-evolution", "always-ask")
+	p.expect(0, "uninstall", "--yes")
+	ocfg = p.read("opencode.json")
+	if strings.Contains(ocfg, "unencrypted") || strings.Contains(ocfg, ".guiho/jureuma") {
+		t.Fatalf("OpenCode deny rules survived uninstall:\n%s", ocfg)
+	}
+	if !strings.Contains(ocfg, "git push *") || !strings.Contains(ocfg, "provider/model-x") {
+		t.Fatalf("unrelated OpenCode settings lost:\n%s", ocfg)
+	}
+	if cs := p.read(".claude/settings.json"); strings.Contains(cs, "Read(") {
+		t.Fatalf("Claude deny rules survived uninstall:\n%s", cs)
 	}
 }

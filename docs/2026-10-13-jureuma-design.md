@@ -295,7 +295,7 @@ Flatten rules:
 - Without the bypass flag, no agent-reachable command displays plaintext or key material (Goal 2).
 - `set` never echoes the value. It reads the value from an argument, `--value-stdin`, or `--value-file`; the docs recommend stdin so the value stays out of shell history.
 - The agent instruction forbids reading, opening, printing, grepping, or copying any `*.unencrypted.*` file and any file under `$HOME/.guiho/jureuma/`.
-- `jureuma init` offers to add deny rules for `*.unencrypted.*` to supported agent tools' settings (for example Claude Code `permissions.deny`). Accepting is recommended. Rules are written as a marker-tagged entry and recorded in the project state, so `jureuma uninstall` and `jureuma agent instruction remove` delete exactly what `jureuma` added. `jureuma check` warns when they are absent. These rules usually cover file-read tools, not shell commands such as `cat`, which is why the instruction also forbids them.
+- `jureuma init` offers to add deny rules for `*.unencrypted.*` to supported agent tools' settings (Claude Code `permissions.deny` in `.claude/settings.json`, and OpenCode's ordered `permissions` rules in the project's `opencode.json`, created when absent). Accepting is recommended. Rules are written as a marker-tagged entry and recorded in the project state, so `jureuma uninstall` and `jureuma agent instruction remove` delete exactly what `jureuma` added. `jureuma check` warns when they are absent. These rules usually cover file-read tools, not shell commands such as `cat`, which is why the instruction also forbids them.
 
 ## File Lifecycle
 

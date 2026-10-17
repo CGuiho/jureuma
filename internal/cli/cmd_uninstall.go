@@ -60,11 +60,19 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 				plan = append(plan, planItem{remove, path, reason, do})
 			}
 			// Projections first (they need state that is removed later).
-			if st := readDenyState(home); len(st.Projects[root]) > 0 {
-				add(true, claudeSettingsPath(root), "agent-tool deny rules added by jureuma (only those entries)", func() error {
-					_, err := removeDenyRules(home, root)
-					return err
-				})
+			if st := readDenyState(home); len(st.Projects[root]) > 0 || len(st.OpenCode[root]) > 0 {
+				if len(st.Projects[root]) > 0 {
+					add(true, claudeSettingsPath(root), "agent-tool deny rules added by jureuma (only those entries)", func() error {
+						_, err := removeDenyRules(home, root)
+						return err
+					})
+				}
+				if len(st.OpenCode[root]) > 0 {
+					add(true, opencodeConfigPath(root), "agent-tool deny rules added by jureuma (only those entries)", func() error {
+						_, err := removeOpencodeDenyRules(home, root)
+						return err
+					})
+				}
 			}
 			if dst, recorded, owned := aliasOwned(home); owned {
 				add(true, dst, "juju alias", func() error {

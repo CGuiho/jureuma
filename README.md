@@ -95,7 +95,7 @@ curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/uninstal
 | `--dry-run` | `-DryRun` | print the REMOVE / PRESERVE plan only |
 | `--yes` | `-Yes` | confirm without a prompt (keys still need a human) |
 
-`jureuma uninstall` takes the same options. When the jureuma payload cannot run, the scripts fall back to a native plan that cannot edit `.claude/settings.json` safely: it lists the jureuma deny rules under PRESERVE so you can remove them by hand. The uninstaller never touches the jureuma block in `.gitignore` (plaintext files can outlive jureuma), your `*.encrypted.json`, `*.unencrypted.json` and `*.schema.json` files, the shared `~/.guiho`, `~/.guiho/bin` and `~/.guiho/.temp` directories, or `PATH`.
+`jureuma uninstall` takes the same options. When the jureuma payload cannot run, the scripts fall back to a native plan that cannot edit `.claude/settings.json` or `opencode.json` safely: it lists the jureuma deny rules under PRESERVE so you can remove them by hand. The uninstaller never touches the jureuma block in `.gitignore` (plaintext files can outlive jureuma), your `*.encrypted.json`, `*.unencrypted.json` and `*.schema.json` files, the shared `~/.guiho`, `~/.guiho/bin` and `~/.guiho/.temp` directories, or `PATH`.
 
 ## Quick start
 
@@ -122,7 +122,7 @@ On a machine without the private key (a fresh agent sandbox or CI), `set`, `unse
 - **Only humans** can run `decrypt`, `get`, `key show --private`, `key export` and the deletion of `keys/` during uninstall. These commands check for a terminal, check for agent markers (`CLAUDECODE`, `CODEX_SANDBOX`, `CURSOR_AGENT`, `GEMINI_CLI`, …), and ask for a random typed word. A refusal exits `3`.
 - `--dangerously-bypass-protections` exists for humans who explicitly ask for it. Every use is audited in `~/.guiho/jureuma/audit.log` (no values are written there). Setting `protections.allowBypass: false` in the global configuration turns the flag off. The flag is also refused when the protections block was edited by hand.
 - `run` always strips `JUREUMA_PRIVATE_KEY*` from the child environment. It redacts decrypted values and their base64, URL and JSON encodings from the child's output. Flatten mode refuses code-loading names such as `LD_*`, `NODE_OPTIONS` and `PYTHONPATH`.
-- `jureuma init` can add deny rules for `*.unencrypted.*` to agent tools such as Claude Code. The managed `AGENTS.md` block tells agents never to read plaintext files or anything under `~/.guiho/jureuma/`.
+- `jureuma init` can add deny rules for `*.unencrypted.*` to agent tools such as Claude Code and OpenCode. The managed `AGENTS.md` block tells agents never to read plaintext files or anything under `~/.guiho/jureuma/`.
 - Exit codes: `0` ok, `1` failure, `2` usage, `3` human-only, `4` validation, `5` key. `run` returns the child's code, or `125` with a `[JUREUMA:<KIND>]` prefix when jureuma itself failed.
 
 This protects against accidental disclosure to agents. It does not protect against a hostile process that runs as the same user. See the design document for the honest limits.

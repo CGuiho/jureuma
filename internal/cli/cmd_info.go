@@ -299,6 +299,11 @@ absent. Exit 5 for key problems, 4 for validation problems, 1 for anything else.
 			} else {
 				ch.warn("agent-tool deny rules for *.unencrypted.* are absent (jureuma init offers to add them)")
 			}
+			if opencodeDenyRulesPresent(e.root) {
+				ch.ok("OpenCode deny rules for *.unencrypted.* are present")
+			} else {
+				ch.warn("OpenCode deny rules for *.unencrypted.* are absent (jureuma init offers to add them)")
+			}
 			outf(cmd, "%d %s, %d %s\n", ch.fails, plural(ch.fails, "failure", "failures"), ch.warns, plural(ch.warns, "warning", "warnings"))
 			if ch.fails > 0 {
 				return &silentError{code: ch.failCode}

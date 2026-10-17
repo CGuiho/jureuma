@@ -6,6 +6,10 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 
 ## Unreleased
 
+### Added
+
+- `jureuma init` also protects OpenCode sessions in the project: with the agent-tool deny rules it appends read-deny rules for `*.unencrypted.json`, `*.unencrypted.jsonc` and `$HOME/.guiho/jureuma/*` to the project's `opencode.json` (or `opencode.jsonc`), OpenCode V2's ordered `permissions` array (last matching rule wins), creating the file with its `$schema` when absent. `--agent-deny-rules` governs both tools, `check` reports both, and `agent instruction remove` / `uninstall` remove exactly what jureuma recorded for each tool.
+
 ### Changed
 
 - `jureuma run` injects the document into `JUREUMA_` by default (with `--format json|file`) instead of `JUREUMA_CONFIG`: the CLI default, the denylist exception and every documented surface now agree on the name `auth-ui` already configures. `JUREUMA_CONFIG` is no longer excepted from the denylist and is refused as `--env-name` / `run.envName` like any other `JUREUMA_*` name.

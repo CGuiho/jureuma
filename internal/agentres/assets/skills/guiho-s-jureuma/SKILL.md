@@ -60,7 +60,7 @@ Run `jureuma init` in the project root after every install, reinstall, or upgrad
 - installs or refreshes the `guiho-s-jureuma` skill in the global agent-skill directories;
 - creates `AGENTS.md` if needed and applies or refreshes jureuma's managed instruction block (content outside the block is never touched);
 - ensures `~/.guiho/jureuma/jureuma.global.yaml` and the project `jureuma.yaml` exist and are valid, and asks for the `agent.evolution` policy;
-- for each pair: creates a key pair and an empty encrypted and unencrypted file when no encrypted file exists (it never replaces the key of an existing encrypted file), adds the `.gitignore` block for `*.unencrypted.json` / `*.unencrypted.jsonc`, creates a starter schema when missing, and offers agent-tool deny rules for `*.unencrypted.*` (recommend accepting).
+- for each pair: creates a key pair and an empty encrypted and unencrypted file when no encrypted file exists (it never replaces the key of an existing encrypted file), adds the `.gitignore` block for `*.unencrypted.json` / `*.unencrypted.jsonc`, creates a starter schema when missing, and offers agent-tool deny rules for `*.unencrypted.*` in Claude Code and OpenCode settings (recommend accepting).
 
 `private key not available (expected on agent and CI machines)` is informational, not a failure. `init` needs an interactive terminal when it must ask questions; when it fails for that reason, ask the human to run it.
 

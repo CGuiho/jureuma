@@ -325,6 +325,11 @@ func (a *app) cmdInstrRemove() *cobra.Command {
 				} else if n > 0 {
 					outf(cmd, "removed %d agent-tool deny %s from %s\n", n, plural(n, "rule", "rules"), claudeSettingsPath(root))
 				}
+				if n, err := removeOpencodeDenyRules(home, root); err != nil {
+					return err
+				} else if n > 0 {
+					outf(cmd, "removed %d agent-tool deny %s from %s\n", n, plural(n, "rule", "rules"), opencodeConfigPath(root))
+				}
 			}
 			return nil
 		},

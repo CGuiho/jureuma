@@ -77,6 +77,26 @@ func TestEndToEndNoValueLeaks(t *testing.T) {
 	}
 	h := newHarness(t)
 	h.expect(0, "", "init", "--agent-deny-rules", "yes")
+	// init writes the deny rules into both agent tools' settings.
+	if cs, err := os.ReadFile(filepath.Join(h.proj, ".claude", "settings.json")); err != nil || !strings.Contains(string(cs), "Read(**/*.unencrypted.json)") {
+		t.Fatalf(".claude/settings.json deny rules: %v\n%s", err, cs)
+	}
+	ocfg, err := os.ReadFile(filepath.Join(h.proj, "opencode.json"))
+	if err != nil {
+		t.Fatalf("init did not create opencode.json: %v", err)
+	}
+	for _, want := range []string{
+		`"$schema": "https://opencode.ai/config.json"`,
+		`"action": "read"`,
+		`"resource": "*.unencrypted.json"`,
+		`"resource": "*.unencrypted.jsonc"`,
+		`"resource": "$HOME/.guiho/jureuma/*"`,
+		`"effect": "deny"`,
+	} {
+		if !strings.Contains(string(ocfg), want) {
+			t.Fatalf("opencode.json missing %q:\n%s", want, ocfg)
+		}
+	}
 	h.write("config.unencrypted.json", `{"db":{"url":"`+sentinelA+`","pool":5},"debug":false}`)
 	h.expect(0, "", "schema", "infer")
 	h.expect(0, "", "encrypt", "--keep-both")

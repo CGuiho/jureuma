@@ -132,6 +132,7 @@ function Add-Item([bool]$Remove, [string]$Kind, [string]$Path, [string]$Reason) 
 $denyState = Join-Path (Join-Path $JHome 'state') 'deny-rules.json'
 if ((Test-Path -LiteralPath $denyState) -and ([IO.File]::ReadAllText($denyState).Contains(($Root | ConvertTo-Json)))) {
   Add-Item $false 'deny' (Join-Path (Join-Path $Root '.claude') 'settings.json') 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
+  Add-Item $false 'deny' (Join-Path $Root 'opencode.json') 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
 }
 $aliasState = Join-Path (Join-Path $JHome 'state') 'alias.json'
 if (Test-Path -LiteralPath $aliasState) {

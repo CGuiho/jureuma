@@ -34,8 +34,8 @@ ever reading them.
    configuration, asks for the agent-evolution policy (explain `disabled`, `always-ask`, and
    `always-proceed`; `always-proceed` lets the agent keep jureuma upgraded and report issues),
    creates the default `config` pair and its key when none exists, adds the `.gitignore` block,
-   and offers agent-tool deny rules for `*.unencrypted.*` (recommend accepting). If it needs a
-   terminal you cannot provide, ask the user to run it.
+   and offers agent-tool deny rules for `*.unencrypted.*` in Claude Code and OpenCode settings
+   (recommend accepting). If it needs a terminal you cannot provide, ask the user to run it.
 3. Load the `guiho-s-jureuma` skill and follow its agent-safe rules for the rest of the task:
    never read `*.unencrypted.*` files or anything under `~/.guiho/jureuma/`; never pass
    `--dangerously-bypass-protections` unless the user asked for it in this conversation;

@@ -101,7 +101,7 @@ always-ask otherwise), and for every configured pair:
   - without one: generates a key pair (~/.guiho/jureuma/keys/), an empty encrypted file and an
     empty, git-ignored unencrypted file;
   - ensures the .gitignore block and the schema (a permissive starter when missing);
-  - offers deny rules for *.unencrypted.* in the agent tools' settings.
+  - offers deny rules for *.unencrypted.* in the agent tools' settings (Claude Code, OpenCode).
 Fails unless the .gitignore block is present, no unencrypted file is tracked by git, every
 schema is present and supported, and every keyId matches its publicKey.`,
 		Args: cobra.NoArgs,
@@ -291,6 +291,24 @@ schema is present and supported, and every keyId matches its publicKey.`,
 						return err
 					}
 					r.step("added %d %s to %s", n, plural(n, "rule", "rules"), settings)
+				} else {
+					r.step("skipped   (rerun with --agent-deny-rules yes to add them)")
+				}
+			}
+			ocfg := opencodeConfigPath(root)
+			if opencodeDenyRulesPresent(root) {
+				r.step("present   %s", ocfg)
+			} else {
+				apply := denyRulesFlag == "yes"
+				if denyRulesFlag == "" && tty {
+					apply = askYesNo(cmd, "[project] Add deny rules for *.unencrypted.* and ~/.guiho/jureuma to "+ocfg+" (recommended)?", true)
+				}
+				if apply {
+					n, err := applyOpencodeDenyRules(home, root)
+					if err != nil {
+						return err
+					}
+					r.step("added %d %s to %s", n, plural(n, "rule", "rules"), ocfg)
 				} else {
 					r.step("skipped   (rerun with --agent-deny-rules yes to add them)")
 				}
