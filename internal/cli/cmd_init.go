@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -103,16 +104,19 @@ always-ask otherwise), and for every configured pair:
     in place, keeping every value, sync and pending state;
   - without one, with the identity recorded in the unencrypted file's $jureuma header: builds
     the encrypted sibling from that document under that key (no private key needed);
-  - without one and with no recorded identity: chooses the pair key — a stored key picked in
-    a terminal (or named with --key-id / --key-label), a new key otherwise — then creates an
-    empty encrypted file and an empty, git-ignored unencrypted file;
+  - without one and with no recorded identity: chooses the pair key — the key bound in
+    jureuma.yaml (key:), else a stored key picked in a terminal (or named with --key-id /
+    --key-label), a new key otherwise — then creates an empty encrypted file and an empty,
+    git-ignored unencrypted file; after creating or choosing a key, init ensures the
+    jureuma.yaml key binding names it (one line spliced in place; an existing binding is
+    never overwritten);
   - adds or repairs the unencrypted file's $jureuma identity header and $schema pointer,
     keeping its body exactly;
   - ensures the .gitignore block and the schema (a permissive starter when missing);
   - offers deny rules for *.unencrypted.* in the agent tools' settings (Claude Code, OpenCode).
 Init is idempotent: an already-repaired pair is left byte-identical. Fails unless the
 .gitignore block is present, no unencrypted file is tracked by git, every schema is present
-and supported, and every keyId matches its publicKey.`,
+and supported, and every keyId matches its publicKey and the jureuma.yaml key binding.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if evolution != "" && !config.ValidPolicy(evolution) {
@@ -180,7 +184,7 @@ and supported, and every keyId matches its publicKey.`,
 			outf(cmd, "configuration\n")
 			glob, gExisted, err := config.LoadGlobal(home)
 			if err != nil {
-				return xerr.Wrap(xerr.CodeFailure, xerr.KindFailure, err)
+				return xerr.Wrap(xerr.CodeOf(err), xerr.KindOf(err), err)
 			}
 			gChanged := !gExisted
 			if !gExisted {
@@ -250,14 +254,14 @@ and supported, and every keyId matches its publicKey.`,
 			// Project configuration.
 			proj, pExisted, err := config.LoadProject(root)
 			if err != nil {
-				return xerr.Wrap(xerr.CodeFailure, xerr.KindFailure, err)
+				return xerr.Wrap(xerr.CodeOf(err), xerr.KindOf(err), err)
 			}
 			projPath := filepath.Join(root, config.ProjectFile)
 			if !pExisted {
 				proj = config.DefaultProject()
 				proj.Agent = config.AgentConfig{} // inherit agent.evolution from the global file
 				if err := config.SaveProject(root, proj, a.configVersion()); err != nil {
-					return xerr.Wrap(xerr.CodeFailure, xerr.KindFailure, err)
+					return xerr.Wrap(xerr.CodeOf(err), xerr.KindOf(err), err)
 				}
 				r.step("created   %s", projPath)
 			} else {
@@ -269,6 +273,9 @@ and supported, and every keyId matches its publicKey.`,
 			// Domain steps.
 			e := &env{root: root, home: home, proj: proj, glob: glob}
 			e.store = keystore.New(home)
+			if err := checkInitKeyFlags(e, keyID, keyLabel); err != nil {
+				return err
+			}
 			pairs, err := e.pairs(&pairFlags{})
 			if err != nil {
 				return err
@@ -437,17 +444,18 @@ func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error
 			h = &h1
 			r.step("identity  %s (from %s)", h.KeyID, p.Rel(p.UnencryptedPath))
 		} else {
-			chosen, created, err := chooseInitKey(r, e, p, keyID, keyLabel)
+			h2, chosen, created, err := chooseInitKey(r, e, p, keyID, keyLabel)
 			if err != nil {
 				return err
 			}
-			sk = &chosen
-			pk := chosen.Public()
-			h = &pair.Header{Format: pair.FormatVersion, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Home: pair.HomeRef}
+			h, sk = h2, chosen
 			if created != "" {
 				r.step("generated %s", created)
 			}
 			r.step("identity  %s", h.KeyID)
+			if err := ensureKeyBinding(r, e, p, h.KeyID); err != nil {
+				return err
+			}
 		}
 		if h.Home == "" {
 			h.Home = pair.HomeRef
@@ -556,53 +564,43 @@ func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error
 	return nil
 }
 
-// chooseInitKey resolves the key for a pair with no recorded identity. An
-// explicit --key-id or --key-label names a stored key; a terminal offers the
-// stored keys through the picker plus a "create a new key" choice; without a
-// terminal a new key is created. New keys carry the default repository-name
-// label. The path of a created key is returned so init can report it.
-func chooseInitKey(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) (crypt.PrivateKey, string, error) {
-	entries, err := e.store.List()
-	if err != nil {
-		return crypt.PrivateKey{}, "", xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
-	}
+// chooseInitKey resolves the key for a pair with no recorded identity. When
+// jureuma.yaml binds a key, that key is used (resolved from the keystore; a
+// missing key is a key error naming it and pointing at jureuma key list).
+// Otherwise an explicit --key-id or --key-label names a stored key; a terminal
+// offers the stored keys through the picker plus a "create a new key" choice;
+// without a terminal a new key is created. New keys carry the default
+// repository-name label. The path of a created key is returned so init can
+// report it.
+func chooseInitKey(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) (*pair.Header, *crypt.PrivateKey, string, error) {
+	fail := func(err error) (*pair.Header, *crypt.PrivateKey, string, error) { return nil, nil, "", err }
 	if keyID != "" && keyLabel != "" {
-		return crypt.PrivateKey{}, "", xerr.Usage("--key-id and --key-label name one key; give only one of them")
+		return fail(xerr.Usage("--key-id and --key-label name one key; give only one of them"))
+	}
+	if bound := e.proj.Key; bound != "" && keyID == "" && keyLabel == "" {
+		h, sk, err := boundKeyHeader(e, bound)
+		if err != nil {
+			return fail(err)
+		}
+		return h, sk, "", nil
 	}
 	if keyID != "" || keyLabel != "" {
-		var match *keystore.Entry
-		matches := 0
-		for i := range entries {
-			en := &entries[i]
-			if keyID != "" {
-				if en.KeyID == keyID || shortKeyID(en.KeyID) == keyID {
-					match = en
-					break
-				}
-				continue
-			}
-			if oneLine(en.Label) == oneLine(keyLabel) {
-				matches++
-				match = en
-			}
-		}
-		if match == nil {
-			if keyID != "" {
-				return crypt.PrivateKey{}, "", xerr.Key("no stored key %s", keyID)
-			}
-			return crypt.PrivateKey{}, "", xerr.Key("no stored key carries the label %q", keyLabel)
-		}
-		if matches > 1 {
-			return crypt.PrivateKey{}, "", xerr.Usage("%d stored keys carry the label %q; select one with --key-id", matches, keyLabel)
-		}
-		sk, _, err := e.findKey(match.KeyID)
+		en, err := namedStoredKey(e, keyID, keyLabel)
 		if err != nil {
-			return crypt.PrivateKey{}, "", err
+			return fail(err)
+		}
+		sk, _, err := e.findKey(en.KeyID)
+		if err != nil {
+			return fail(err)
 		}
 		if sk == nil {
-			return crypt.PrivateKey{}, "", xerr.Key("private key %s is not available", match.KeyID)
+			return fail(xerr.Key("private key %s is not available", en.KeyID))
 		}
-		return *sk, "", nil
+		return headerOf(sk.Public()), sk, "", nil
+	}
+	entries, err := e.store.List()
+	if err != nil {
+		return fail(xerr.Wrap(xerr.CodeKey, xerr.KindKey, err))
 	}
 	const newKeyChoice = "create a new key"
 	if interactive() {
@@ -612,31 +610,174 @@ func chooseInitKey(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) 
 		case perr == nil && en.KeyID != "":
 			sk, _, err := e.findKey(en.KeyID)
 			if err != nil {
-				return crypt.PrivateKey{}, "", err
+				return fail(err)
 			}
 			if sk == nil {
-				return crypt.PrivateKey{}, "", xerr.Key("private key %s is not available", en.KeyID)
+				return fail(xerr.Key("private key %s is not available", en.KeyID))
 			}
-			return *sk, "", nil
+			return headerOf(sk.Public()), sk, "", nil
 		case perr == nil:
 			// "create a new key" — fall through to creation.
 		case errors.Is(perr, ErrNoKeySelected):
-			return crypt.PrivateKey{}, "", xerr.Failure("no key selected; nothing was written for %s", p.Name)
+			return fail(xerr.Failure("no key selected; nothing was written for %s", p.Name))
 		case errors.Is(perr, ErrNoStoredKeys):
 			// Nothing to choose from: a new key.
 		default:
-			return crypt.PrivateKey{}, "", perr
+			return fail(perr)
 		}
 	}
 	sk, err := crypt.GenerateKey()
 	if err != nil {
-		return crypt.PrivateKey{}, "", xerr.Failure("cannot generate a key")
+		return fail(xerr.Failure("cannot generate a key"))
 	}
 	path, err := e.store.SaveLabeled(sk, defaultKeyLabel(e.root, gitOriginURL))
 	if err != nil {
-		return crypt.PrivateKey{}, "", xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+		return fail(xerr.Wrap(xerr.CodeKey, xerr.KindKey, err))
 	}
-	return sk, path, nil
+	return headerOf(sk.Public()), &sk, path, nil
+}
+
+// namedStoredKey resolves --key-id / --key-label to the one stored key they
+// name. A full or short key ID selects directly; a label must be carried by
+// exactly one key.
+func namedStoredKey(e *env, keyID, keyLabel string) (*keystore.Entry, error) {
+	entries, err := e.store.List()
+	if err != nil {
+		return nil, xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+	}
+	if keyID != "" && keyLabel != "" {
+		return nil, xerr.Usage("--key-id and --key-label name one key; give only one of them")
+	}
+	var match *keystore.Entry
+	matches := 0
+	for i := range entries {
+		en := &entries[i]
+		if keyID != "" {
+			if en.KeyID == keyID || shortKeyID(en.KeyID) == keyID {
+				match = en
+				break
+			}
+			continue
+		}
+		if oneLine(en.Label) == oneLine(keyLabel) {
+			matches++
+			match = en
+		}
+	}
+	if match == nil {
+		if keyID != "" {
+			return nil, xerr.Key("no stored key %s", keyID)
+		}
+		return nil, xerr.Key("no stored key carries the label %q", keyLabel)
+	}
+	if matches > 1 {
+		return nil, xerr.Usage("%d stored keys carry the label %q; select one with --key-id", matches, keyLabel)
+	}
+	return match, nil
+}
+
+// boundKeyHeader resolves the key jureuma.yaml binds from the keystore: the
+// private key when it is available (so the pair keeps a sync baseline), else
+// the stored public key. A key the keystore does not hold at all is a key
+// error naming it and pointing at jureuma key list.
+func boundKeyHeader(e *env, bound string) (*pair.Header, *crypt.PrivateKey, error) {
+	sk, _, err := e.findKey(bound)
+	if err != nil {
+		return nil, nil, err
+	}
+	if sk != nil {
+		return headerOf(sk.Public()), sk, nil
+	}
+	entries, err := e.store.List()
+	if err != nil {
+		return nil, nil, xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+	}
+	for _, en := range entries {
+		if en.KeyID != bound {
+			continue
+		}
+		if pk, err := crypt.ParsePublicKey(en.PublicKey); err == nil {
+			return headerOf(pk), nil, nil
+		}
+		break
+	}
+	return nil, nil, xerr.Key("the key bound in %s (%s) is not in the keystore; run jureuma key list", config.ProjectFile, bound)
+}
+
+// headerOf builds the format-2 pair identity of a key.
+func headerOf(pk crypt.PublicKey) *pair.Header {
+	return &pair.Header{Format: pair.FormatVersion, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Home: pair.HomeRef}
+}
+
+// checkInitKeyFlags refuses --key-id / --key-label that contradict the key
+// jureuma.yaml binds: they name the project key or nothing (a usage error).
+// Flags that name no stored key stay key errors. With no binding the flags
+// keep their ordinary meaning.
+func checkInitKeyFlags(e *env, keyID, keyLabel string) error {
+	if e.proj == nil || e.proj.Key == "" || (keyID == "" && keyLabel == "") {
+		return nil
+	}
+	if keyID != "" && keyLabel != "" {
+		return xerr.Usage("--key-id and --key-label name one key; give only one of them")
+	}
+	if keyID != "" && crypt.ValidKeyID(keyID) && keyID != e.proj.Key {
+		return xerr.Usage("--key-id %s contradicts the key bound in %s (%s)", keyID, config.ProjectFile, e.proj.Key)
+	}
+	en, err := namedStoredKey(e, keyID, keyLabel)
+	if err != nil {
+		return err
+	}
+	if en.KeyID != e.proj.Key {
+		return xerr.Usage("--key-id/--key-label name key %s, but %s binds %s; give the bound key or drop the flags", en.KeyID, config.ProjectFile, e.proj.Key)
+	}
+	return nil
+}
+
+// ensureKeyBinding makes jureuma.yaml's key binding equal the key init just
+// created or chose for a pair with no recorded identity: an absent binding is
+// added, an equal binding is never rewritten, and a binding that differs is
+// never overwritten (exit 5). A new binding is written only when no other
+// configured pair records a different key — a binding those pairs would
+// immediately contradict is reported as a note instead, because the binding
+// and the pair identities must agree the moment it exists.
+func ensureKeyBinding(r *initReport, e *env, p *pair.Pair, keyID string) error {
+	switch {
+	case e.proj.Key == keyID:
+		return nil // already equal: no write
+	case e.proj.Key != "":
+		return xerr.Key("the key bound in %s (%s) is not the key of pair %s (%s); the binding is never overwritten", config.ProjectFile, e.proj.Key, p.Name, keyID)
+	}
+	if name, other := recordedKeyConflict(e, p, keyID); other != "" {
+		r.notes = append(r.notes, fmt.Sprintf("%s got no key binding: pair %s records %s while pair %s uses %s (one project, one key; converge with jureuma key rotate)", config.ProjectFile, name, other, p.Name, keyID))
+		return nil
+	}
+	changed, err := config.BindProjectKey(e.root, keyID)
+	if err != nil {
+		return err
+	}
+	e.proj.Key = keyID
+	if changed {
+		r.step("bound     %s (key: %s)", filepath.Join(e.root, config.ProjectFile), keyID)
+	}
+	return nil
+}
+
+// recordedKeyConflict returns the first other configured pair whose files
+// record a key different from keyID ("" when there is none).
+func recordedKeyConflict(e *env, self *pair.Pair, keyID string) (string, string) {
+	if e.proj == nil {
+		return "", ""
+	}
+	for _, pc := range e.proj.Pairs {
+		q, err := pair.Resolve(pair.Options{Root: e.root, Name: pc.Name, Config: e.proj})
+		if err != nil || q.EncryptedPath == self.EncryptedPath || q.UnencryptedPath == self.UnencryptedPath {
+			continue
+		}
+		if other := recordedKeyID(q); other != "" && other != keyID {
+			return q.Name, other
+		}
+	}
+	return "", ""
 }
 
 func verifyPair(r *initReport, e *env, p *pair.Pair) {

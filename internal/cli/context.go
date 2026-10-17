@@ -63,7 +63,7 @@ func loadEnv() (*env, error) {
 	}
 	proj, _, err := config.LoadProject(root)
 	if err != nil {
-		return nil, xerr.Wrap(xerr.CodeFailure, xerr.KindFailure, err)
+		return nil, xerr.Wrap(xerr.CodeOf(err), xerr.KindOf(err), err)
 	}
 	e := &env{root: root, home: home, proj: proj, store: keystore.New(home)}
 	e.glob, _, e.globErr = config.LoadGlobal(home)
@@ -78,7 +78,57 @@ func (e *env) effective() config.EffectiveConfig {
 }
 
 func (e *env) resolve(pf *pairFlags) (*pair.Pair, error) {
-	return pair.Resolve(pair.Options{Root: e.root, Name: pf.name, EncryptedFile: pf.enc, UnencryptedFile: pf.unenc, SchemaFile: pf.schema, Config: e.proj})
+	return e.resolvePair(pair.Options{Root: e.root, Name: pf.name, EncryptedFile: pf.enc, UnencryptedFile: pf.unenc, SchemaFile: pf.schema, Config: e.proj})
+}
+
+// resolvePair resolves one pair and enforces the project key binding. Every
+// command that resolves pairs goes through here (or through pairs, which uses
+// it), so the agreement check exists in exactly one place.
+func (e *env) resolvePair(o pair.Options) (*pair.Pair, error) {
+	p, err := pair.Resolve(o)
+	if err != nil {
+		return nil, err
+	}
+	return p, e.checkProjectKey(p)
+}
+
+// checkProjectKey enforces jureuma.yaml's key binding against the identity the
+// pair's files record — the encrypted file's $jureuma.keyId, or the
+// unencrypted file's when the encrypted file is missing. A disagreement is a
+// key error (exit 5) naming the binding and the file; it is never a silent
+// re-encrypt. A pair with no recorded identity (both files absent, or a
+// headerless plaintext) is not a disagreement.
+func (e *env) checkProjectKey(p *pair.Pair) error {
+	if e.proj == nil || e.proj.Key == "" {
+		return nil
+	}
+	recorded := recordedKeyID(p)
+	if recorded == "" || recorded == e.proj.Key {
+		return nil
+	}
+	file := p.Rel(p.EncryptedPath)
+	if !fileExists(p.EncryptedPath) {
+		file = p.Rel(p.UnencryptedPath)
+	}
+	return xerr.Key("%s: %s/keyId %s does not match the key bound in %s (%s)", file, pair.MetaKey, recorded, config.ProjectFile, e.proj.Key)
+}
+
+// recordedKeyID returns the key ID the pair's files record — the encrypted
+// file's $jureuma.keyId, or the unencrypted file's when the encrypted file is
+// missing ("" when neither records one). Files that cannot be read are
+// skipped: their own read reports the problem, which keeps init able to
+// repair them.
+func recordedKeyID(p *pair.Pair) string {
+	if fileExists(p.EncryptedPath) {
+		if enc, err := pair.ReadEncrypted(p.EncryptedPath); err == nil {
+			return enc.Meta.KeyID
+		}
+		return ""
+	}
+	if pf, err := readPlainIfExists(p); err == nil && pf != nil && pf.Header != nil {
+		return pf.Header.KeyID
+	}
+	return ""
 }
 
 // pairs returns the pairs a project-wide command (check) acts on.
@@ -92,7 +142,7 @@ func (e *env) pairs(pf *pairFlags) ([]*pair.Pair, error) {
 	}
 	var out []*pair.Pair
 	for _, pc := range e.proj.Pairs {
-		p, err := pair.Resolve(pair.Options{Root: e.root, Name: pc.Name, SchemaFile: pf.schema, Config: e.proj})
+		p, err := e.resolvePair(pair.Options{Root: e.root, Name: pc.Name, SchemaFile: pf.schema, Config: e.proj})
 		if err != nil {
 			return nil, err
 		}

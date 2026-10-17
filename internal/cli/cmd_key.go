@@ -2,11 +2,13 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/CGuiho/jureuma/internal/config"
 	"github.com/CGuiho/jureuma/internal/crypt"
 	"github.com/CGuiho/jureuma/internal/doc"
 	"github.com/CGuiho/jureuma/internal/keystore"
@@ -172,8 +174,10 @@ func (a *app) cmdKeyRotate() *cobra.Command {
 		Short: "generate a new key pair and re-encrypt every value to it",
 		Long: `Generates a new key pair (saved to ~/.guiho/jureuma/keys/), decrypts every value with the
 old key (and retired keys for older ciphertexts), re-encrypts it to the new key, writes the
-encrypted file atomically, and then moves the old key to keys/retired/. Rotation does not
-revoke values already in git history: rotate the underlying secrets after a key leak.`,
+encrypted file atomically, and then moves the old key to keys/retired/. When jureuma.yaml
+binds a key (key:), the binding is updated to the new key ID with the same one-line splice.
+Rotation does not revoke values already in git history: rotate the underlying secrets after
+a key leak.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := loadEnv()
@@ -263,6 +267,21 @@ revoke values already in git history: rotate the underlying secrets after a key 
 			}
 			outf(cmd, "update CI: set %s (the old %s is no longer used by this file)\n", keystore.EnvName(next.Meta.KeyID), keystore.EnvName(enc.Meta.KeyID))
 			outf(cmd, "reminder: rotation does not revoke values already in git history; rotate leaked secrets themselves\n")
+			// The jureuma.yaml key binding follows the pair: an existing
+			// binding is updated through the same one-line splice, an absent
+			// one stays absent. A binding that cannot be updated is never
+			// left silently stale: the rotation was reported above and the
+			// command now fails.
+			if e.proj.Key != "" {
+				changed, err := config.BindProjectKey(e.root, next.Meta.KeyID)
+				if err != nil {
+					return xerr.WrapMsg(xerr.CodeFailure, xerr.KindFailure, fmt.Sprintf("the rotation succeeded but the %s key binding still names %s", config.ProjectFile, e.proj.Key), err)
+				}
+				if changed {
+					outf(cmd, "updated the %s key binding: %s -> %s\n", config.ProjectFile, e.proj.Key, next.Meta.KeyID)
+					e.proj.Key = next.Meta.KeyID
+				}
+			}
 			return nil
 		},
 	}
