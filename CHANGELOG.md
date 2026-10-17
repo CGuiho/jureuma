@@ -26,6 +26,7 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 ### Patches
 
 - Fixed `status` and `check` turning a missing key ID into a key error. A pair that records no identity (a headerless plaintext alone) is now reported as a state by `status` — exit 0 with its missing-identity note — and keeps `check`'s exit-1 repair-pointer failure; neither report looks up an empty key ID any more.
+- Fixed `key rotate` leaving a headered plaintext sibling on the old key when the project binds no key: the two files then disagreed on the pair key and refused every later `set`, `check` and `status`. The sibling's `$jureuma` identity now follows the rotation exactly as in project-wide rotation (body, `$schema` pointer, comments and formatting kept; a headerless plaintext stays headerless), and a sibling that cannot be updated reports that the encrypted side was rotated but the plaintext identity was not.
 
 ## 0.2.0 - 2026-10-17
 

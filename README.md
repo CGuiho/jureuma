@@ -132,7 +132,7 @@ run:
   envName: JUREUMA_CONFIG
 ```
 
-`key` is a full key ID (`k_` followed by 32 lowercase hex characters) — never a label, so the binding can be verified without the keystore. When it is set, every pair's recorded `$jureuma.keyId` must match it: a disagreement fails with exit 5 and nothing is re-encrypted, while a pair that records no key yet is not a disagreement. `jureuma init` writes the binding after creating or choosing a key for a pair (exactly one line is spliced in, keeping every comment), and `jureuma key rotate` is project-wide: every configured pair that records the bound key is rotated to one new key (one generated key, one binding update, one retirement) and the binding follows it. See the [design document](docs/2026-10-13-jureuma-design.md) for the full configuration shape.
+`key` is a full key ID (`k_` followed by 32 lowercase hex characters) — never a label, so the binding can be verified without the keystore. When it is set, every pair's recorded `$jureuma.keyId` must match it: a disagreement fails with exit 5 and nothing is re-encrypted, while a pair that records no key yet is not a disagreement. `jureuma init` writes the binding after creating or choosing a key for a pair (exactly one line is spliced in, keeping every comment), and `jureuma key rotate` is project-wide: every configured pair that records the bound key is rotated to one new key (one generated key, one binding update, one retirement) and the binding follows it. Every recorded identity of a rotated pair follows the new key too — including a headered plaintext sibling — so the two files of a pair never disagree after a rotation. See the [design document](docs/2026-10-13-jureuma-design.md) for the full configuration shape.
 
 ## Agent-safety model
 

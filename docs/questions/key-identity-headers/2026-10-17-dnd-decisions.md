@@ -648,17 +648,32 @@ fail in the preparation phase, before the first write (and before the new key
 is even generated). A mid-write I/O failure stops at the failing pair and
 reports how many pairs were written and that the binding was not updated;
 perfect atomicity across several files is not achievable without a
-transaction.** The single-pair/no-binding path is untouched byte-for-byte,
-per the brief. **Residual, deliberately not fixed here:** that path still
-leaves a headered unencrypted sibling stale after rotating a both-present
-pair — the pre-existing edge this wave's Q38 analysis documents (`set`,
-`check` and `status` then exit 5 on the cross-file identity check; verified
-at base `5268be9`). The brief pinned the single-pair path's behaviour, so the
-fix wave did not touch it; the same identity refresh would fix it (one call),
-recommended as a follow-up.
+transaction.** ~~The single-pair/no-binding path is untouched byte-for-byte,
+per the brief; its stale-sibling residual is left for a follow-up.~~
 
-- **confidence:** high on the guarantee boundary; medium on leaving the
-  single-pair edge unfixed (explicit brief constraint vs. consistency).
-- **action taken:** the preparation/write split in `rotateProject`
-  (`internal/cli/cmd_key.go`); the single-pair code path is unchanged.
+**Update (third fix wave, 2026-10-17): the residual is FIXED — the parent
+review overrode the byte-compatibility instruction ("correctness wins over
+byte-compatibility of the broken case").** The reproduction was exact: an
+unbound project with both pair files present ended `key rotate` with the
+plaintext `$jureuma.keyId`/`publicKey` on the old key and the encrypted file
+on the new one, after which every `set`, `check` and `status` exited 5 ("the
+two files disagree on the pair key") with no way back from the CLI. The
+single-pair path now refreshes the recorded identity of a headered
+unencrypted sibling right after the encrypted file is written — exactly the
+mechanism project-wide rotation uses (`pair.WritePlainFile`: body, `$schema`
+pointer, comments and formatting kept, `.jsonc` spliced byte-for-byte, a
+headerless plaintext left byte-identical) — preflights the sibling the way
+project-wide rotation does (an unreadable or legacy pair refuses before any
+write, before the new key is generated), and reports a failed sibling write
+truthfully ("the encrypted side was rotated but the plaintext identity was
+not"), never claiming success. Output keeps every existing line and adds one
+truthful, value-free line when the sibling identity is re-keyed.
+
+- **confidence:** high on the guarantee boundary and on the fix (the
+  reproduction and its repair are pinned by
+  `TestKeyRotateRefreshesPlainSiblingIdentity` and
+  `TestKeyRotateKeepsHeaderlessSiblingHeaderless`).
+- **action taken:** the preparation/write split in `rotateProject` and the
+  sibling identity refresh with its preflight in the single-pair path
+  (`internal/cli/cmd_key.go`).
 - **human-review:** pending
