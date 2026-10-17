@@ -174,12 +174,13 @@ func (a *app) cmdKeyRotate() *cobra.Command {
 		Short: "generate a new key pair and re-encrypt every value to it",
 		Long: `Generates a new key pair (saved to ~/.guiho/jureuma/keys/), decrypts every value with the
 old key (and retired keys for older ciphertexts), re-encrypts it to the new key, writes the
-encrypted file atomically, and then moves the old key to keys/retired/. When jureuma.yaml
-binds a key (key:), rotation is project-wide: every configured pair that records the bound
-key is rotated to ONE new key (a pair recording another key refuses before anything is
-written), every recorded identity follows it, and the binding is updated once with the same
-one-line splice. Rotation does not revoke values already in git history: rotate the
-underlying secrets after a key leak.`,
+encrypted file atomically, and then moves the old key to keys/retired/. Every recorded
+identity of the pair follows the new key: a headered unencrypted sibling is re-keyed (body,
+$schema pointer, comments and formatting kept; a headerless plaintext stays headerless).
+When jureuma.yaml binds a key (key:), rotation is project-wide: every configured pair that
+records the bound key is rotated to ONE new key (a pair recording another key refuses before
+anything is written), and the binding is updated once with the same one-line splice. Rotation
+does not revoke values already in git history: rotate the underlying secrets after a key leak.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := loadEnv()
@@ -205,6 +206,19 @@ underlying secrets after a key leak.`,
 			enc, err := pair.ReadEncrypted(p.EncryptedPath)
 			if err != nil {
 				return err
+			}
+			// Preflight the sibling write before anything is written: a pair
+			// jureuma cannot read or repair refuses the rotation first, like
+			// project-wide rotation does.
+			plainFile, err := readPlainIfExists(p)
+			if err != nil {
+				return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err), fmt.Sprintf("pair %s cannot be rotated", p.Name), err)
+			}
+			if enc.Meta.Format != pair.FormatVersion {
+				return pair.LegacyHeader(filepath.Base(p.EncryptedPath))
+			}
+			if plainFile != nil && plainFile.Header != nil && plainFile.Header.Format != pair.FormatVersion {
+				return pair.LegacyHeader(filepath.Base(p.UnencryptedPath))
 			}
 			oldSK, err := e.requireKey(enc)
 			if err != nil {
@@ -257,6 +271,27 @@ underlying secrets after a key leak.`,
 			if err := pair.WriteEncrypted(p.EncryptedPath, next); err != nil {
 				return err
 			}
+			// The unencrypted sibling's recorded identity follows the
+			// rotation: a headered plaintext is re-keyed (body, $schema
+			// pointer, comments and formatting kept; a headerless plaintext
+			// stays headerless). Left on the old key it would disagree with
+			// the new pair key and refuse every later set/check/status.
+			updatedPlain := false
+			if plainFile != nil && plainFile.Header != nil {
+				h := *plainFile.Header
+				h.Format = pair.FormatVersion
+				h.PublicKey = newPK.String()
+				h.KeyID = next.Meta.KeyID
+				if h.Home == "" {
+					h.Home = pair.HomeRef
+				}
+				write := &pair.PlainFile{Header: &h, Schema: plainFile.Schema, Body: plainFile.Body}
+				if err := pair.WritePlainFile(p.UnencryptedPath, write); err != nil {
+					return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err),
+						fmt.Sprintf("%s was rotated to %s but the %s identity in %s was not updated; the two files now disagree on the pair key and jureuma refuses the pair until %s is fixed by hand", p.Rel(p.EncryptedPath), next.Meta.KeyID, pair.MetaKey, p.Rel(p.UnencryptedPath), p.Rel(p.UnencryptedPath)), err)
+				}
+				updatedPlain = true
+			}
 			retired := false
 			if sharedBy := otherPairsUsing(e, p, enc.Meta.KeyID); len(sharedBy) > 0 {
 				errf(cmd, "note: %s is still used by %s; it was not retired\n", enc.Meta.KeyID, strings.Join(sharedBy, ", "))
@@ -268,6 +303,9 @@ underlying secrets after a key leak.`,
 				retired = true
 			}
 			outf(cmd, "rotated %s: %s -> %s (%d %s re-encrypted)\n", p.Rel(p.EncryptedPath), enc.Meta.KeyID, next.Meta.KeyID, len(doc.Leaves(body)), plural(len(doc.Leaves(body)), "value", "values"))
+			if updatedPlain {
+				outf(cmd, "updated the %s identity in %s: %s -> %s\n", pair.MetaKey, p.Rel(p.UnencryptedPath), enc.Meta.KeyID, next.Meta.KeyID)
+			}
 			if label != "" {
 				outf(cmd, "the new key is labeled %s\n", label)
 			}

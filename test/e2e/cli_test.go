@@ -284,3 +284,65 @@ func TestKeyRotateAndRetire(t *testing.T) {
 		t.Fatalf("retiring the active key must fail\n%s", r)
 	}
 }
+
+// Rotation refreshes the recorded identity of a headered plaintext sibling:
+// an unbound project with both files present keeps working after key rotate
+// instead of ending with two files that disagree on the pair key.
+func TestKeyRotateRefreshesPlainSiblingIdentity(t *testing.T) {
+	needSh(t)
+	p := newProject(t)
+	// The reproduction: init binds the key, the project is then unbound, and
+	// both pair files are present with the plaintext carrying its identity.
+	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.init()
+	keyID, _ := p.privateKey()
+	p.expect(0, "set", "/svc/url", "sibling-rotate-value")
+	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	r := p.expect(0, "key", "rotate")
+	if !strings.Contains(r.stdout, "updated the $jureuma identity in config.unencrypted.json") {
+		t.Fatalf("rotate must report the sibling identity update:\n%s", r.stdout)
+	}
+	newID := p.encMeta("config.encrypted.json")["keyId"].(string)
+	if newID == keyID {
+		t.Fatal("rotate did not change the key")
+	}
+	plain := p.read("config.unencrypted.json")
+	if !strings.Contains(plain, `"keyId": "`+newID+`"`) || strings.Contains(plain, keyID) {
+		t.Fatalf("the plaintext identity did not follow the rotation:\n%s", plain)
+	}
+	// The body and the $schema pointer survive; nothing mentions the old key.
+	if !strings.Contains(plain, "sibling-rotate-value") || !strings.Contains(plain, `"$schema"`) {
+		t.Fatalf("body or $schema pointer lost:\n%s", plain)
+	}
+	for _, f := range []string{"config.encrypted.json", "config.unencrypted.json"} {
+		if strings.Contains(p.read(f), keyID) {
+			t.Fatalf("%s still mentions the old key", f)
+		}
+	}
+	p.expect(0, "check")
+	p.expect(0, "status")
+	p.expect(0, "set", "/n", "--json", "1")
+	p.expect(0, "run", "--", "true")
+	if got := p.revealConfig(); !strings.Contains(got, "sibling-rotate-value") {
+		t.Fatalf("values lost in rotation: %s", got)
+	}
+}
+
+// A headerless plaintext sibling is legal and stays byte-identical through a
+// rotation: no identity is injected into it.
+func TestKeyRotateKeepsHeaderlessSiblingHeaderless(t *testing.T) {
+	needSh(t)
+	p := newProject(t)
+	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.init()
+	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	const plain = `{"svc":{"url":"headerless-rotate-value"}}`
+	p.write("config.unencrypted.json", plain)
+	p.expect(0, "key", "rotate")
+	if got := p.read("config.unencrypted.json"); got != plain {
+		t.Fatalf("a headerless plaintext must stay byte-identical:\n%s", got)
+	}
+	p.expect(0, "run", "--", "true")
+	p.expect(0, "check")
+	p.expect(0, "set", "/n", "--json", "1")
+}
