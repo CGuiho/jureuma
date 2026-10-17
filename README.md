@@ -118,6 +118,22 @@ jureuma check                      # schema, gitignore, tracked plaintext, keys,
 
 On a machine without the private key (a fresh agent sandbox or CI), `set`, `unset`, `list` and `status` still work. CI supplies the key through the variable that `jureuma key show` names.
 
+## Project configuration
+
+`jureuma.yaml` declares the pairs and, optionally, the one key pair the whole project uses:
+
+```yaml
+key: k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25   # the key pair every configured pair uses (optional)
+pairs:
+  - name: config
+    schema: ./config.schema.json
+run:
+  format: json
+  envName: JUREUMA_CONFIG
+```
+
+`key` is a full key ID (`k_` followed by 32 lowercase hex characters) — never a label, so the binding can be verified without the keystore. When it is set, every pair's recorded `$jureuma.keyId` must match it: a disagreement fails with exit 5 and nothing is re-encrypted, while a pair that records no key yet is not a disagreement. `jureuma init` writes the binding after creating or choosing a key for a pair (exactly one line is spliced in, keeping every comment), and `jureuma key rotate` updates it to the new key ID. See the [design document](docs/2026-10-13-jureuma-design.md) for the full configuration shape.
+
 ## Agent-safety model
 
 - **Agents can** run `set`, `unset`, `encrypt`, `run`, `list`, `status`, `check` and `schema infer`. None of these commands show plaintext or key material on stdout, stderr, in errors or in logs.

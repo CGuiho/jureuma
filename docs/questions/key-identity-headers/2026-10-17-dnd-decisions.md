@@ -1,7 +1,7 @@
 ---
 name: 2026-10-17 DND Decisions
 purpose: Record every question the unattended (DND) workers answer themselves during the key-identity-headers train (issue #13).
-description: "DND question ledger for the key-identity-headers train: W1 key-list display format, label storage and relabeling, best-effort key-file metadata, picker behavior and label derivation — plus the issue #10 env-name-restore DND calls."
+description: "DND question ledger for the key-identity-headers train: W1 key-list display format, label storage and relabeling, best-effort key-file metadata, picker behavior and label derivation, the issue #10 env-name-restore DND calls, and the W4 project key-binding calls (issue #14)."
 created: 2026-10-17
 owner: jureuma-docs-questions-key-identity-headers
 flags: []
@@ -14,7 +14,10 @@ keywords:
   - "key labels"
   - "key list"
   - "key selection"
+  - "key binding"
+  - "jureuma.yaml"
   - "issue 13"
+  - "issue 14"
   - "question ledger"
 ---
 
@@ -397,4 +400,155 @@ untouched on purpose.
 
 - **confidence:** high.
 - **action taken:** none for that test.
+- **human-review:** pending
+
+## W4 — project key binding in `jureuma.yaml` (issue #14)
+
+CG's directive (2026-10-17): "a project will use a key pair, and the key pair
+that the project will use will be specified by the jureuma.yaml of the
+project." The W4 brief (`w4-project-key-binding.md`) is the contract; the
+judgment calls below were made unattended.
+
+### Q29 — `init` binds the key it creates or chooses. What happens to the
+multi-pair behaviour the W3 suite pins ("one key per new pair")?
+
+**Answer: one project, one key. When `init` creates or chooses a key for a
+pair with no recorded identity and no other configured pair records a
+different key, that key is written as the `key:` binding and every pair
+processed after it uses the bound key — so a fresh two-pair project now ends
+with one key, not two.** The brief's mission sentence is explicit ("One
+project, one key, every configured pair") and bullet 1 applies to a binding
+that exists by the time the next pair is processed ("when `jureuma.yaml` names
+a key … a pair with no recorded identity … uses the bound key"). The W3
+assertion `TestNamedPairsAndFileFlags: "want one key per new pair"` was
+flipped to "want one project key" accordingly, with the shared-key and
+binding assertions added; the other pinned selection behaviour
+(`TestInitKeySelection`: a pair with no recorded identity gets its own new key
+when the project records other keys) is unchanged and stays green.
+
+- **confidence:** medium-high (the mission sentence and the brief's bullet 1
+  support it; the alternative — keeping per-pair keys and never binding —
+  leaves CG's directive unrealised for multi-pair projects).
+- **action taken:** `TestNamedPairsAndFileFlags` flipped in
+  `test/e2e/lifecycle_test.go`; every other pinned assertion kept.
+- **human-review:** pending
+
+### Q30 — `init` must not write a binding other pairs would immediately
+contradict. Add it anyway (brief: "absent → add it"), refuse (exit 5), or
+skip?
+
+**Answer: skip with a note. When other configured pairs already record
+different keys, `init` adds no binding and says so (`jureuma.yaml got no key
+binding: pair X records … while pair Y uses …`); the pairs keep working
+unbound.** Writing the binding would violate the brief's own agreement rule
+("When `key` is set, every pair's recorded identity must match it") the
+moment it exists — every later `run`/`set` on those pairs would exit 5 — and
+refusing would break `init` for the ordinary mixed project (the pinned
+`TestInitKeySelection` expects a successful run that gives the fresh pair its
+own key). The exit-5 clause of the brief ("different → never overwrite") is
+kept for the binding itself: a binding that differs from the key just created
+or chosen is never overwritten and fails with exit 5.
+
+- **confidence:** high on "never write a contradiction"; medium on skip vs
+  refuse (skip keeps every pinned scenario working and loses nothing
+  reversible — the binding can be added later).
+- **action taken:** `ensureKeyBinding` in `internal/cli/cmd_init.go` with the
+  conflict scan and the note; `TestEnsureKeyBindingNeverOverwrites` pins the
+  exit-5 case.
+- **human-review:** pending
+
+### Q31 — How is the "byte-preserving one-line splice" implemented?
+
+**Answer: the top-level `key` entry is located through the parsed YAML node
+(line/column), and only the value span of that one line is replaced — the
+spacing before it and any trailing comment are preserved byte for byte; with
+no key entry one `key: <id>` line is appended on its own line (matching the
+file's line-ending style). The file must validate before the write, the
+spliced result is re-parsed and re-validated before anything is written, and
+the written file is re-read and validated again; an already-equal binding
+never rewrites the file at all.** Locating the line through the parser (never
+a blind `^key:` regex) keeps a line that merely looks like `key:` inside a
+multi-line scalar untouched. A binding that cannot be represented as one line
+— a quoted or flow-style key, a block or multi-line value, a duplicated
+`key` entry, a document that is not a top-level mapping — is refused with
+nothing written (the brief's "if the update cannot be represented" case).
+Preserving the trailing comment is the safest reading of "keep every comment
+byte-identical", and matches this repository's comment-preservation rule.
+
+- **confidence:** high (every refusal path is covered by
+  `internal/config/keybind_test.go`).
+- **action taken:** `config.BindProjectKey` in `internal/config/keybind.go`,
+  used by `init` and `key rotate`; `config.SaveProject` is never used for the
+  binding (it rewrites the whole document) but now round-trips the field so a
+  later whole-document save cannot drop it.
+- **human-review:** pending
+
+### Q32 — The brief's proof (b) says a binding disagreement "fails `run`/`set`
+with exit 5". `run` maps every jureuma-side failure to 125. Which wins?
+
+**Answer: `set` (and every other command) exits 5; `run` exits 125 with
+`[JUREUMA:KEY]` and the same message — the underlying error is the exit-5 key
+error.** `run`'s contract ("run returns the child's code, or `125` for a
+jureuma-side failure", `[JUREUMA:<KIND>]` prefix) is pinned by the design
+document, the command help and the suite; special-casing one key error inside
+`run` would contradict it. The manual proof records both numbers.
+
+- **confidence:** high (the run contract is explicit and test-pinned).
+- **action taken:** none in code; both exit codes captured in the manual
+  proof and asserted (`run` 125 `[JUREUMA:KEY]`, `set` 5) in
+  `internal/cli/projectkey_test.go` and `test/e2e/projectkey_test.go`.
+- **human-review:** pending
+
+### Q33 — `key rotate` updates the binding even when other pairs still use the
+old key. Is that not a fresh disagreement?
+
+**Answer: yes, and it follows the brief literally — after a successful
+rotation an existing binding is updated to the new key ID (absent stays
+absent), never left silently stale.** In a multi-pair project the pairs must
+each be rotated (the binding follows the last rotation); the alternative —
+leaving the binding on the old key — makes the rotated pair itself disagree
+and is exactly the "silently stale" outcome the brief forbids. The command
+fails after the truthful rotation report when the update cannot be
+represented.
+
+- **confidence:** medium-high (literal contract; the multi-pair rotation cost
+  is inherent to a one-key-per-project binding and worth a future look).
+- **action taken:** the update runs in `key rotate` after the report;
+  `TestProjectKeyBindingRotateUpdates` pins it (and the absent-stays-absent
+  half).
+- **human-review:** pending
+
+### Q34 — Flag resolution order when `--key-id` both names no stored key and
+contradicts the binding: exit 2 (usage) or exit 5 (key)?
+
+**Answer: a full key ID that contradicts the binding is exit 2 (it is a usage
+error detectable without the store); anything else is resolved first — an
+unknown key stays exit 5 ("no stored key …"), an ambiguous label stays exit 2
+("--key-id" hint) — and a resolved key that contradicts the binding is exit
+2.** This keeps the pinned `TestInitKeySelection` outcomes (unknown
+`--key-id` → 5, ambiguous label → 2) while satisfying "flags that contradict
+the binding are a usage error".
+
+- **confidence:** high (both pinned outcomes preserved).
+- **action taken:** `checkInitKeyFlags` in `internal/cli/cmd_init.go`;
+  `TestProjectKeyBindingFlagContradiction`.
+- **human-review:** pending
+
+### Q35 — Observation, not a change: `status` on a plaintext-only headerless
+pair exits 5 with "invalid key ID".
+
+**Answer: recorded, not fixed — it is pre-existing and outside this unit.**
+Verified at base commit `4027953` with the same scenario (no binding in the
+project at all): `internal/cli/cmd_info.go` calls `findKey("")` when neither
+file records an identity, and the keystore rejects the empty key ID. The
+message is not a binding disagreement ("… does not match the key bound …"),
+and `cmd_info.go` is not in this unit's ownership (`internal/cli` is scoped
+to `context.go`, `cmd_init.go`, `cmd_key.go` and tests). A binding-proof
+scenario avoids the state (`set` on a headerless plaintext alone returns the
+single-file `run jureuma init to repair` pointer instead) and the
+recommendation for a later unit is a `keyID != ""` guard before `findKey`.
+
+- **confidence:** high (reproduced on the base binary and diff-verified
+  unchanged code paths).
+- **action taken:** none; ledgered for human review.
 - **human-review:** pending

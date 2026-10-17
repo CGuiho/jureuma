@@ -10,6 +10,7 @@ files:
   "onefile_test.go": "Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both."
   "main_test.go": "TestMain builds the binary with an injected version; per-test homes, projects and scrubbed environments."
   "protect_test.go": "Human-only gate, agent markers, bypass and protections-seal tests."
+  "projectkey_test.go": "Project key-binding end-to-end tests (binding written by init, mismatch exit 5, no-identity states, rotate update, malformed binding exit 4)."
   "run_test.go": "run tests (json, flatten, file formats, --env, exit codes, private-key stripping, redaction)."
   "sentinel_test.go": "Sentinel values never displayed by any command or log."
   "values_test.go": "set/unset typing, paths, schema checks and status states."
@@ -37,6 +38,7 @@ End-to-end tests that build jureuma and drive it as a subprocess in throw-away h
 - `onefile_test.go`: Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both.
 - `main_test.go`: TestMain builds the binary with an injected version; per-test homes, projects and scrubbed environments.
 - `protect_test.go`: Human-only gate, agent markers, bypass and protections-seal tests.
+- `projectkey_test.go`: Project key-binding end-to-end tests (binding written by init, mismatch exit 5, no-identity states, rotate update, malformed binding exit 4).
 - `run_test.go`: run tests (json, flatten, file formats, --env, exit codes, private-key stripping, redaction).
 - `sentinel_test.go`: Sentinel values never displayed by any command or log.
 - `values_test.go`: set/unset typing, paths, schema checks and status states.

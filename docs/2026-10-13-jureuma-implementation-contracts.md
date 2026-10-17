@@ -207,6 +207,7 @@ Use `santhosh-tekuri/jsonschema/v6` for full validation; translate its `Validati
 
 ```go
 type Project struct {
+    Key   string       `yaml:"key"` // full key ID every configured pair uses ("" = no binding)
     Pairs []PairConfig `yaml:"pairs"`
     Run   RunConfig    `yaml:"run"`
     Agent AgentConfig  `yaml:"agent"`
@@ -228,6 +229,11 @@ func LoadProject(root string) (*Project, bool, error)  // bool: existed. Strict 
 func LoadGlobal(home string) (*Global, bool, error)
 func SaveProject(root string, p *Project, version string) error  // writes schema-reference header, atomic
 func SaveGlobal(home string, g *Global, version string) error
+// BindProjectKey writes the top-level key: binding as exactly one spliced line (the
+// existing key line, or one appended line), leaving comments and formatting elsewhere
+// byte-identical; it re-validates before writing and refuses with nothing written.
+// Returns whether the file changed (an equal binding never rewrites it).
+func BindProjectKey(root string, keyID string) (changed bool, err error)
 func Effective(p *Project, g *Global) EffectiveConfig   // project overrides global for agent.evolution
 type EffectiveConfig struct { Evolution Evolution; Run RunConfig; Protections Protections } // Go forbids a type and func both named Effective
 func ValidPolicy(s string) bool                          // disabled | always-ask | always-proceed
@@ -239,7 +245,7 @@ func SealProtections(home string, g *Global) error
 func ProtectionsIntact(home string, g *Global) (bool, error)
 ```
 
-Schema reference header: `# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v<version>/jureuma.schema.json` (global: `jureuma.global.schema.json`).
+Schema reference header: `# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v<version>/jureuma.schema.json` (global: `jureuma.global.schema.json`). A document that is present but invalid (schema or `Validate`) is a validation error carrying exit code 4.
 
 ## `internal/paths`
 

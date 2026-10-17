@@ -166,6 +166,7 @@ dotenvx uses ECIES over secp256k1. Go's standard library has no secp256k1, and t
 - Every load of an encrypted file checks that `keyId` matches `publicKey`; a mismatch is exit 5.
 - Every command that holds the private key (`encrypt`, `decrypt`, `get`, `run`, `check`, `status`, `key rotate`) derives the public key **from the private key** and refuses (exit 5) when it differs from `$jureuma.publicKey`. `encrypt` and `key rotate` never take the recipient key from the file.
 - `set`/`unset` without a private key encrypt to `$jureuma.publicKey`, after checking it against the local key file for that `keyId` when one exists. `jureuma check` and `jureuma status` warn when `$jureuma.publicKey` differs from the version at git `HEAD`. This catches a swapped recipient key (from a bad merge, a copied `$jureuma` block, or a malicious edit) before new secrets are encrypted to it.
+- **The project key binding (optional).** `jureuma.yaml` may carry a top-level `key: <keyId>` naming the one key pair every configured pair of the project uses — the full key ID (`k_` plus 32 lowercase hex characters, the shape jureuma derives); a label is display metadata and is not accepted, so the binding is verifiable on an agent machine without the keystore. When it is set, every pair's recorded identity must match it — the encrypted file's `$jureuma.keyId`, or the unencrypted file's `$jureuma.keyId` when the encrypted file is missing — and a disagreement is a key error (exit 5) on every command that resolves pairs, never a silent re-encrypt. A pair with no recorded identity (both files absent, or a headerless plaintext) is not a disagreement. An empty or malformed binding is a validation error (exit 4) when the file loads. The binding is written and updated by splicing exactly one top-level line: every comment, blank line, ordering and quoting outside it stays byte-identical.
 
 ### Value encryption
 
@@ -212,8 +213,9 @@ Private keys never live in the project directory.
 
 1. Generate a new key pair and write it to `keys/<newKeyId>.json`.
 2. Decrypt every value and re-encrypt it to the new key; write the new encrypted file atomically.
-3. Move the old key to `keys/retired/`. It is deleted only when the human runs `jureuma key retire <keyId>` and `jureuma check` reports no ciphertexts under it in the current project.
-4. Print the CI variable names to update (`JUREUMA_PRIVATE_KEY_<NEWKEYID>`) and a reminder that rotation does not revoke git history.
+3. When `jureuma.yaml` binds a key (`key:`), update the binding to the new key ID through the same one-line splice (an absent binding stays absent). When the update cannot be represented, the command fails after reporting the rotation truthfully; the binding is never left silently stale.
+4. Move the old key to `keys/retired/`. It is deleted only when the human runs `jureuma key retire <keyId>` and `jureuma check` reports no ciphertexts under it in the current project.
+5. Print the CI variable names to update (`JUREUMA_PRIVATE_KEY_<NEWKEYID>`) and a reminder that rotation does not revoke git history.
 
 Because every ciphertext carries its `keyId`, a file merged from an older branch can hold ciphertexts under a retired key; `check` reports them and `encrypt` migrates them using the retired keyring.
 
@@ -465,12 +467,12 @@ These slot into step 14 of the convention's `init` sequence, for each configured
 
 1. If `<stem>.encrypted.json` exists: never generate keys and never re-key. Report `private key not available (expected on agent and CI machines)` when no matching private key is available; this is informational, not a failure. Replacing a key on an existing file is only possible with `jureuma key rotate`. Old jureuma state is repaired in place — the `$jureuma` block becomes a format-2 identity header (adding `home`, keeping every value, `sync` and `pending`), the schema reference is recorded and the embedded schema copy added when the local schema is present. An already-repaired file is left byte-identical, so `init` is idempotent; a `$jureuma` block jureuma cannot parse at all is reported and never overwritten.
 2. If no encrypted file exists and the unencrypted file records the pair key in its `$jureuma` header: build the encrypted sibling from that document under that key (no private key needed).
-3. If no encrypted file exists and nothing records the identity: choose the pair key — a stored key picked in a terminal (`Which one do you want to use?`, label and short key ID each line, plus a `create a new key` choice) or named with `--key-id` / `--key-label`; a new key otherwise (non-TTY default), saved with the repository-name label — then create an empty encrypted file (`{"$jureuma": {…}}`) and, after the gitignore check, an empty `<stem>.unencrypted.json`.
+3. If no encrypted file exists and nothing records the identity: choose the pair key — the key bound in `jureuma.yaml` (`key:`) resolved from the keystore (a missing key is exit 5, naming the key ID and pointing at `jureuma key list`), else a stored key picked in a terminal (`Which one do you want to use?`, label and short key ID each line, plus a `create a new key` choice) or named with `--key-id` / `--key-label`; a new key otherwise (non-TTY default), saved with the repository-name label — then create an empty encrypted file (`{"$jureuma": {…}}`) and, after the gitignore check, an empty `<stem>.unencrypted.json`. After creating or choosing a key for such a pair, `init` ensures the `key:` binding names it: an absent binding is added (one spliced line; comments and formatting elsewhere stay byte-identical), an equal binding is never rewritten, a different one is never overwritten (exit 5). `--key-id` / `--key-label` that contradict the binding are a usage error (exit 2); a pair whose files record another key than the binding is a key error (exit 5).
 4. Add or repair the unencrypted file's `$jureuma` identity header and `$schema` pointer, keeping its body exactly.
 5. Ensure the `.gitignore` block exists.
 6. Ensure the resolved schema file exists (starter schema if missing).
 7. Offer the agent-tool deny rules.
-8. Fatal checks (init fails if any fails): gitignore block present, no unencrypted file tracked by git, schema present and supported, `keyId` matches `publicKey`. Informational: key availability, sync state, starter schema still in use.
+8. Fatal checks (init fails if any fails): gitignore block present, no unencrypted file tracked by git, schema present and supported, `keyId` matches `publicKey` and the `jureuma.yaml` key binding when it is set. Informational: key availability, sync state, starter schema still in use.
 
 ## The `juju` Alias
 
@@ -482,6 +484,7 @@ Per the convention: project `jureuma.yaml` and global `$HOME/.guiho/jureuma/jure
 
 ```yaml
 # yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.1.0/jureuma.schema.json
+key: k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25   # the one key pair every pair of this project uses (optional)
 pairs:
   - name: config
     schema: ./config.schema.json
@@ -497,6 +500,8 @@ agent:
     upgrade: always-ask
     issues: { bugs: always-ask, improvements: always-ask, reviews: always-ask }
 ```
+
+The top-level `key` is the optional project key binding: a full key ID naming the one key pair every configured pair uses. `init` writes it after creating or choosing a key for a pair with no recorded identity (one spliced line; an existing binding is never overwritten), every pair-resolving command enforces it (a disagreement is exit 5, never a silent re-encrypt), and `key rotate` updates it to the new key ID. Labels are not accepted there, and an empty or malformed value is a validation error (exit 4).
 
 ```yaml
 # yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.1.0/jureuma.global.schema.json

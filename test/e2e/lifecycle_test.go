@@ -398,8 +398,17 @@ func TestNamedPairsAndFileFlags(t *testing.T) {
 	if !p.exists("production.encrypted.json") || !p.exists("production.schema.json") || !p.exists("config.encrypted.json") {
 		t.Fatal("init did not create every configured pair")
 	}
-	if n := len(p.keyFiles()); n != 2 {
-		t.Fatalf("want one key per new pair, have %d", n)
+	// One project, one key: the first pair's key becomes the jureuma.yaml key
+	// binding and every configured pair uses it.
+	if n := len(p.keyFiles()); n != 1 {
+		t.Fatalf("want one project key, have %d", n)
+	}
+	keyID, _ := p.privateKey()
+	if got := p.encMeta("production.encrypted.json")["keyId"]; got != keyID {
+		t.Fatalf("production pair key %v, want the project key %s", got, keyID)
+	}
+	if !strings.Contains(p.read("jureuma.yaml"), "key: "+keyID) {
+		t.Fatalf("init did not bind the project key:\n%s", p.read("jureuma.yaml"))
 	}
 	p.expect(0, "set", "--name", "production", "/mode", "prod-mode")
 	p.expect(0, "set", "/mode", "dev-mode")

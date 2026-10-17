@@ -256,7 +256,9 @@ func TestCheckFailures(t *testing.T) {
 	p.write(".gitignore", gi)
 
 	// Swapped publicKey (recipient key replaced, keyId consistent) is detected
-	// against git HEAD.
+	// against git HEAD. A jureuma.yaml key binding refuses the swap even
+	// earlier, as a key error; the git-HEAD detection is exercised here on a
+	// project that binds no key.
 	p.git("add", ".gitignore", "config.encrypted.json", "config.schema.json", "jureuma.yaml")
 	p.git("commit", "-q", "-m", "e2e")
 	orig := p.read("config.encrypted.json")
@@ -266,6 +268,11 @@ func TestCheckFailures(t *testing.T) {
 	swapped := strings.Replace(orig, meta["publicKey"].(string), otherPK.String(), 1)
 	swapped = strings.Replace(swapped, `"keyId": "`+meta["keyId"].(string)+`"`, `"keyId": "`+crypt.KeyID(otherPK)+`"`, 1)
 	p.write("config.encrypted.json", swapped)
+	r = p.run("check")
+	if r.code != 5 || !strings.Contains(r.stderr, "key bound") {
+		t.Fatalf("a swapped key must disagree with the jureuma.yaml binding: want exit 5\n%s", r)
+	}
+	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
 	r = p.run("check")
 	if !strings.Contains(r.stdout, "differs from the version at git HEAD") {
 		t.Fatalf("swapped publicKey not reported\n%s", r)
