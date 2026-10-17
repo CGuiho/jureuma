@@ -112,7 +112,7 @@ func TestEndToEndNoValueLeaks(t *testing.T) {
 	h.expect(0, "", "unset", "/list/0", "--allow-invalid")
 	h.expect(1, "", "schema", "infer")
 	h.expect(0, "", "schema", "infer", "--force")
-	out := h.expect(0, "", "run", "--", "sh", "-c", `printf '%s\n' "$JUREUMA_"`)
+	out := h.expect(0, "", "run", "--", "sh", "-c", `printf '%s\n' "$JUREUMA_CONFIG"`)
 	if !strings.Contains(out, "[REDACTED]") {
 		t.Fatalf("run output not redacted: %s", out)
 	}

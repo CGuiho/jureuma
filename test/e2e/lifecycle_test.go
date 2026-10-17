@@ -211,7 +211,7 @@ func TestEncryptDecryptRoundTripKeepsOrderAndNumberText(t *testing.T) {
 
 	// The child sees the exact document text.
 	if got := p.revealConfig(); got != `{"zeta":1,"alpha":{"b":1.0,"a":1e2,"c":-0.50},"num":100,"big":12345678901234567890.000,"arr":[3,"x",true,null,{}],"empty":[],"esc":"aé\"b","last":"Zz9"}` {
-		t.Fatalf("JUREUMA_ = %s", got)
+		t.Fatalf("JUREUMA_CONFIG = %s", got)
 	}
 
 	// decrypt recreates the plaintext with the same order and number text,
@@ -258,7 +258,7 @@ func TestJSONCInput(t *testing.T) {
 		t.Fatalf("comments or values reached the encrypted file:\n%s", enc)
 	}
 	if got := p.revealConfig(); got != `{"db":{"url":"jsonc-url-value","pool":5},"tags":["a","b"]}` {
-		t.Fatalf("JUREUMA_ = %s", got)
+		t.Fatalf("JUREUMA_CONFIG = %s", got)
 	}
 	if o, _ := p.statusJSON(); o != "in-sync" {
 		t.Fatalf("status: %s", o)

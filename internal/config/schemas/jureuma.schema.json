@@ -76,7 +76,7 @@
           ]
         },
         "envName": {
-          "description": "Variable that receives the document (json) or its path (file). Default JUREUMA_.",
+          "description": "Variable that receives the document (json) or its path (file). Default JUREUMA_CONFIG.",
           "type": "string",
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
         },

@@ -53,7 +53,7 @@ func TestParseProjectValid(t *testing.T) {
 	if len(p.Pairs) != 2 || p.Pairs[0].Name != "config" || p.Pairs[1].Encrypted != "./production.encrypted.json" {
 		t.Fatalf("pairs: %+v", p.Pairs)
 	}
-	if p.Run.Format != "json" || p.Run.EnvName != "JUREUMA_" || p.Agent.Evolution.Issues.Reviews != "always-ask" {
+	if p.Run.Format != "json" || p.Run.EnvName != "JUREUMA_CONFIG" || p.Agent.Evolution.Issues.Reviews != "always-ask" {
 		t.Fatalf("decoded: %+v", p)
 	}
 	for _, s := range []string{"", "\n", "# only a comment\n", "~\n", "{}\n", "pairs: []\n", "run:\n  format: flatten\n  prefix: APP_\n  override: true\n"} {
@@ -278,17 +278,17 @@ func TestEffective(t *testing.T) {
 	}{
 		{"nil both", nil, nil, EffectiveConfig{
 			Evolution:   DefaultEvolution(),
-			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_"},
+			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_CONFIG"},
 			Protections: Protections{AllowBypass: boolp(true)},
 		}},
 		{"merge", p, g, EffectiveConfig{
 			Evolution:   Evolution{Upgrade: "disabled", Issues: Issues{Bugs: "always-ask", Improvements: "always-proceed", Reviews: "disabled"}},
-			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_", Prefix: "APP_"},
+			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_CONFIG", Prefix: "APP_"},
 			Protections: Protections{AllowBypass: boolp(false), AgentEnvMarkers: []string{"X_AGENT"}},
 		}},
 		{"project only", p, nil, EffectiveConfig{
 			Evolution:   Evolution{Upgrade: "always-ask", Issues: Issues{Bugs: "always-ask", Improvements: "always-proceed", Reviews: "always-ask"}},
-			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_", Prefix: "APP_"},
+			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_CONFIG", Prefix: "APP_"},
 			Protections: Protections{AllowBypass: boolp(true)},
 		}},
 		{"run explicit", &Project{Run: RunConfig{Format: "file", EnvName: "CFG"}}, g, EffectiveConfig{
@@ -416,13 +416,13 @@ func TestSchemaURL(t *testing.T) {
 }
 
 func TestValidateRejectsDenylistedRunEnvName(t *testing.T) {
-	for _, name := range []string{"BASH_ENV", "PAGER", "GIT_SSH_COMMAND", "LD_PRELOAD", "JUREUMA_USER_HOME", "JUREUMA_CONFIG"} {
+	for _, name := range []string{"BASH_ENV", "PAGER", "GIT_SSH_COMMAND", "LD_PRELOAD", "JUREUMA_USER_HOME", "JUREUMA_"} {
 		p := &Project{Run: RunConfig{EnvName: name}}
 		if err := p.Validate(); err == nil {
 			t.Errorf("run.envName %s accepted", name)
 		}
 	}
-	for _, name := range []string{"JUREUMA_", "APP_CONFIG"} {
+	for _, name := range []string{"JUREUMA_CONFIG", "APP_CONFIG"} {
 		p := &Project{Run: RunConfig{EnvName: name}}
 		if err := p.Validate(); err != nil {
 			t.Errorf("run.envName %s refused: %v", name, err)
@@ -430,20 +430,20 @@ func TestValidateRejectsDenylistedRunEnvName(t *testing.T) {
 	}
 }
 
-// The default run env name is the denylist's only exception; the former
-// default is an ordinary denylisted JUREUMA_* name.
+// The default run env name is the denylist's only exception; the abandoned
+// JUREUMA_ name is an ordinary denylisted JUREUMA_* name.
 func TestRunEnvNameDefaultIsTheDenylistException(t *testing.T) {
-	if DefaultEnvName != "JUREUMA_" {
+	if DefaultEnvName != "JUREUMA_CONFIG" {
 		t.Fatalf("DefaultEnvName = %q", DefaultEnvName)
 	}
-	p, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: JUREUMA_\n"))
+	p, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: JUREUMA_CONFIG\n"))
 	if err != nil {
-		t.Fatalf("run.envName JUREUMA_ must load: %v", err)
+		t.Fatalf("run.envName JUREUMA_CONFIG must load: %v", err)
 	}
 	if err := p.Validate(); err != nil {
-		t.Fatalf("run.envName JUREUMA_ refused: %v", err)
+		t.Fatalf("run.envName JUREUMA_CONFIG refused: %v", err)
 	}
-	if _, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: JUREUMA_CONFIG\n")); err == nil {
-		t.Fatal("run.envName JUREUMA_CONFIG must be rejected as denylisted")
+	if _, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: JUREUMA_\n")); err == nil {
+		t.Fatal("run.envName JUREUMA_ must be rejected as denylisted")
 	}
 }

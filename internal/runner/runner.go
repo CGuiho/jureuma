@@ -39,7 +39,7 @@ const (
 )
 
 // DefaultEnvName is the variable that carries the document by default.
-const DefaultEnvName = "JUREUMA_"
+const DefaultEnvName = "JUREUMA_CONFIG"
 
 // MinRedactLen is the minimum length of a string value redacted by default.
 const MinRedactLen = 4

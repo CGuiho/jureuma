@@ -14,25 +14,25 @@ func TestInjectAliasBehavesLikeRun(t *testing.T) {
 	p.setup(`{"database":{"url":"postgres://u:pw@h/db","pool":20},"apiKey":"key-inject-alias"}`)
 
 	// The child receives the injected document (checked inside the child).
-	p.expect(0, "inject", "--", "sh", "-c", `case "$JUREUMA_" in *'"apiKey":"key-inject-alias"'*) exit 0;; *) exit 1;; esac`)
+	p.expect(0, "inject", "--", "sh", "-c", `case "$JUREUMA_CONFIG" in *'"apiKey":"key-inject-alias"'*) exit 0;; *) exit 1;; esac`)
 	// The exact document reaches the child.
-	r := p.expect(0, "inject", "--dangerously-bypass-protections", "--", "sh", "-c", `printf '%s' "$JUREUMA_"`)
+	r := p.expect(0, "inject", "--dangerously-bypass-protections", "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
 	if r.stdout != `{"database":{"url":"postgres://u:pw@h/db","pool":20},"apiKey":"key-inject-alias"}` {
-		t.Fatalf("JUREUMA_ = %s", r.stdout)
+		t.Fatalf("JUREUMA_CONFIG = %s", r.stdout)
 	}
 	// Child output is redacted exactly like run.
-	r = p.expect(0, "inject", "--", "sh", "-c", `printf '%s' "$JUREUMA_"`)
+	r = p.expect(0, "inject", "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
 	if r.stdout != `{"database":{"url":"[REDACTED]","pool":20},"apiKey":"[REDACTED]"}` {
 		t.Fatalf("inject redaction: %s", r.stdout)
 	}
 	assertNo(t, "inject output", r.out(), "postgres://u:pw@h/db", "key-inject-alias")
 	// Every run flag is accepted: flatten, prefix, env, env-name.
 	r = p.expect(0, "inject", "--dangerously-bypass-protections", "--format", "flatten", "--prefix", "APP_",
-		"--env", "DB=/database/url", "--", "sh", "-c", `printf '%s|%s|%s' "$APP_DATABASE_POOL" "$DB" "${JUREUMA_-unset}"`)
+		"--env", "DB=/database/url", "--", "sh", "-c", `printf '%s|%s|%s' "$APP_DATABASE_POOL" "$DB" "${JUREUMA_CONFIG-unset}"`)
 	if r.stdout != "20|postgres://u:pw@h/db|unset" {
 		t.Fatalf("inject flags: %q", r.stdout)
 	}
-	r = p.expect(0, "inject", "--env-name", "APP_CFG", "--", "sh", "-c", `printf '%s|%s' "${APP_CFG:+set}" "${JUREUMA_:-unset}"`)
+	r = p.expect(0, "inject", "--env-name", "APP_CFG", "--", "sh", "-c", `printf '%s|%s' "${APP_CFG:+set}" "${JUREUMA_CONFIG:-unset}"`)
 	if r.stdout != "set|unset" {
 		t.Fatalf("inject --env-name: %q", r.stdout)
 	}

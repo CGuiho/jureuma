@@ -26,7 +26,7 @@ JUREUMA_PRIVATE_KEY and every JUREUMA_PRIVATE_KEY_* variable are always removed 
 child's environment.
 
 --format json (default): the whole document, compact JSON, in --env-name (default
-  JUREUMA_).
+  JUREUMA_CONFIG).
 --format flatten: one variable per leaf (/database/url -> DATABASE_URL), with --prefix.
   Code-loading names (LD_*, DYLD_*, NODE_OPTIONS, PYTHONPATH, ...) and JUREUMA_* are refused.
 --format file: --env-name holds a path to the document (an in-memory /dev/fd file on Linux,
