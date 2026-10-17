@@ -13,8 +13,8 @@
 | Status | Count |
 | --- | ---: |
 | todo | 0 |
-| in progress | 2 |
-| testing | 7 |
+| in progress | 1 |
+| testing | 8 |
 | stopped | 0 |
 | completed | 0 |
 
@@ -27,7 +27,7 @@
 
 ### JSONC write support
 
-- [ ] [Support writing `.jsonc` files with preserved comments (JSON stays the default)](https://github.com/CGuiho/jureuma/issues/12) — in progress
+- [ ] [Support writing `.jsonc` files with preserved comments (JSON stays the default)](https://github.com/CGuiho/jureuma/issues/12) — testing
 
 ### Key identity headers and single-file pairs
 
