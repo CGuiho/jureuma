@@ -19,7 +19,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/CGuiho/jureuma/internal/crypt"
 	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/jureuma/internal/xerr"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -59,6 +61,11 @@ const maxConfigSize = 1 << 20
 
 // Project is jureuma.yaml.
 type Project struct {
+	// Key is the full key ID of the one key pair every configured pair of
+	// this project uses. "" means the project binds no key. A label is
+	// display metadata and is never accepted here: a binding must be
+	// verifiable on an agent machine without the keystore.
+	Key   string       `yaml:"key"`
 	Pairs []PairConfig `yaml:"pairs"`
 	Run   RunConfig    `yaml:"run"`
 	Agent AgentConfig  `yaml:"agent"`
@@ -183,6 +190,9 @@ func (p *Project) Validate() error {
 		return nil
 	}
 	seen := map[string]int{}
+	if p.Key != "" && !crypt.ValidKeyID(p.Key) {
+		return fieldErr(ProjectFile, "/key", "must be a key ID (k_ followed by 32 lowercase hex characters); labels are display metadata and are not accepted here")
+	}
 	for i, pc := range p.Pairs {
 		at := fmt.Sprintf("/pairs/%d", i)
 		if pc.Name == "" {
@@ -259,8 +269,12 @@ func validStem(s string) bool {
 	return true
 }
 
+// fieldErr builds the value-free validation error of one configuration field:
+// the file, a JSON Pointer built only from known keys and indices, and a fixed
+// reason. It carries exit code 4 (validation), so a document that is present
+// but invalid fails every load as a validation error.
 func fieldErr(file, ptr, reason string) error {
-	return fmt.Errorf("%s: %s: %s", file, ptr, reason)
+	return xerr.Validation("%s: %s: %s", file, ptr, reason)
 }
 
 // Effective merges the two files. For agent.evolution each field set in the
@@ -583,6 +597,7 @@ type outAgent struct {
 }
 
 type outProject struct {
+	Key   string    `yaml:"key,omitempty"`
 	Pairs []outPair `yaml:"pairs,omitempty"`
 	Run   *outRun   `yaml:"run,omitempty"`
 	Agent *outAgent `yaml:"agent,omitempty"`
@@ -615,7 +630,7 @@ func marshalProject(p *Project, version string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	o := outProject{Agent: outAgentOf(p.Agent)}
+	o := outProject{Key: p.Key, Agent: outAgentOf(p.Agent)}
 	for _, pc := range p.Pairs {
 		o.Pairs = append(o.Pairs, outPair(pc))
 	}

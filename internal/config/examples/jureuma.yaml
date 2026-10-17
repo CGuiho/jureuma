@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.2.0/jureuma.schema.json
+key: k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25
 pairs:
   - name: config
     schema: ./config.schema.json

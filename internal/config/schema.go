@@ -5,12 +5,12 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
 	"sort"
 	"strings"
 
 	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/jureuma/internal/xerr"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 )
@@ -71,15 +71,15 @@ func mustCompile(name string, data []byte) *jsonschema.Schema {
 // failing keyword, never values or library message text.
 func validateSchema(s *jsonschema.Schema, raw any, file string) error {
 	if !jsonRepresentable(raw) {
-		return fmt.Errorf("%s: contains a value that is not representable as JSON (non-string key or non-finite number)", file)
+		return xerr.Validation("%s: contains a value that is not representable as JSON (non-string key or non-finite number)", file)
 	}
 	js, err := json.Marshal(raw)
 	if err != nil {
-		return fmt.Errorf("%s: contains a value that is not representable as JSON (non-string key or non-finite number)", file)
+		return xerr.Validation("%s: contains a value that is not representable as JSON (non-string key or non-finite number)", file)
 	}
 	inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(js))
 	if err != nil {
-		return fmt.Errorf("%s: contains a value that is not representable as JSON", file)
+		return xerr.Validation("%s: contains a value that is not representable as JSON", file)
 	}
 	err = s.Validate(inst)
 	if err == nil {
@@ -87,7 +87,7 @@ func validateSchema(s *jsonschema.Schema, raw any, file string) error {
 	}
 	var ve *jsonschema.ValidationError
 	if !errors.As(err, &ve) {
-		return fmt.Errorf("%s: schema validation failed", file)
+		return xerr.Validation("%s: schema validation failed", file)
 	}
 	seen := map[string]bool{}
 	var msgs []string
@@ -110,10 +110,10 @@ func validateSchema(s *jsonschema.Schema, raw any, file string) error {
 		}
 	})
 	if len(msgs) == 0 {
-		return fmt.Errorf("%s: schema validation failed", file)
+		return xerr.Validation("%s: schema validation failed", file)
 	}
 	sort.Strings(msgs)
-	return fmt.Errorf("%s: %s", file, strings.Join(msgs, "; "))
+	return xerr.Validation("%s: %s", file, strings.Join(msgs, "; "))
 }
 
 // jsonRepresentable reports whether v survives a JSON round-trip: every map

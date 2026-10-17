@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/jureuma/internal/xerr"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -53,6 +54,9 @@ func TestParseProjectValid(t *testing.T) {
 	if len(p.Pairs) != 2 || p.Pairs[0].Name != "config" || p.Pairs[1].Encrypted != "./production.encrypted.json" {
 		t.Fatalf("pairs: %+v", p.Pairs)
 	}
+	if p.Key != "k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25" {
+		t.Fatalf("key binding: %q", p.Key)
+	}
 	if p.Run.Format != "json" || p.Run.EnvName != "JUREUMA_CONFIG" || p.Agent.Evolution.Issues.Reviews != "always-ask" {
 		t.Fatalf("decoded: %+v", p)
 	}
@@ -85,6 +89,12 @@ func TestParseProjectInvalid(t *testing.T) {
 		{"pair encrypted", "pairs:\n  - name: a\n    encrypted: " + secretish + ".json\n", "/pairs/0/encrypted"},
 		{"pair unencrypted", "pairs:\n  - name: a\n    unencrypted: a.encrypted.json\n", "/pairs/0/unencrypted"},
 		{"dup key", "run:\n  format: json\n  format: " + secretish + "\n", "duplicate key"},
+		{"key label", "key: " + secretish + "\n", "/key: does not match"},
+		{"key empty", "key: \"\"\n", "/key: does not match"},
+		{"key null", "key:\n", "/key: wrong type"},
+		{"key wrong type", "key: [" + secretish + "]\n", "/key: wrong type"},
+		{"key short", "key: k_" + secretish + "\n", "/key: does not match"},
+		{"key uppercase", "key: k_" + strings.Repeat("A", 32) + "\n", "/key: does not match"},
 		{"syntax", "run: [" + secretish + "\n", "invalid YAML syntax"},
 		{"two docs", "run: {}\n---\nrun: {}\n", "exactly one YAML document"},
 		{"not mapping", secretish + "\n", "(root): wrong type"},
@@ -106,6 +116,28 @@ func TestParseProjectInvalid(t *testing.T) {
 	}
 	if _, err := ParseProject([]byte("protections: {}\n")); !errors.Is(err, ErrProtectionsInProject) {
 		t.Errorf("want ErrProtectionsInProject, got %v", err)
+	}
+}
+
+// A configuration document that is present but invalid is a validation error
+// (exit 4), never a plain failure: the empty or malformed key binding and
+// every other schema/semantic refusal share that classification.
+func TestConfigErrorsAreValidationErrors(t *testing.T) {
+	for _, in := range []string{
+		"key: " + secretish + "\n",
+		"key: \"\"\n",
+		"key:\n",
+		"run:\n  format: " + secretish + "\n",
+		"run:\n  envName: JUREUMA_\n",
+		"pairs:\n  - name: ../" + secretish + "\n",
+	} {
+		_, err := ParseProject([]byte(in))
+		if err == nil || xerr.CodeOf(err) != xerr.CodeValidation {
+			t.Errorf("%q: got %v, want exit %d", in, err, xerr.CodeValidation)
+		}
+	}
+	if _, err := ParseGlobal([]byte("protections:\n  allowBypass: " + secretish + "\n")); err == nil || xerr.CodeOf(err) != xerr.CodeValidation {
+		t.Errorf("global: got %v, want exit %d", err, xerr.CodeValidation)
 	}
 }
 
@@ -175,6 +207,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	home := isolate(t)
 	root := t.TempDir()
 	p := &Project{
+		Key:   "k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25",
 		Pairs: []PairConfig{{Name: "config", Schema: "./config.schema.json"}, {Name: "apps/api/production", Encrypted: "apps/api/p.encrypted.json", Unencrypted: "apps/api/p.unencrypted.jsonc"}},
 		Run:   RunConfig{Format: "flatten", EnvName: "APP_CONFIG", Prefix: "APP_", Override: true},
 		Agent: AgentConfig{Evolution: Evolution{Upgrade: "disabled", Issues: Issues{Bugs: "always-proceed"}}},

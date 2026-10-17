@@ -5,6 +5,11 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "key": {
+      "description": "Key ID of the one key pair every configured pair of this project uses: k_ followed by 32 lowercase hex characters (the shape jureuma derives and validates). Optional. When set, every pair's recorded $jureuma.keyId must match it; labels are display metadata and are not accepted here, so the binding is verifiable without the keystore.",
+      "type": "string",
+      "pattern": "^k_[0-9a-f]{32}$"
+    },
     "pairs": {
       "description": "Configuration pairs declared for this project.",
       "type": "array",
