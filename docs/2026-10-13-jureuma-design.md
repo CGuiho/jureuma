@@ -244,7 +244,7 @@ If a check fails, the command exits `3` with `[PROTECTED] <command> is human-onl
 
 ### Injection (`run`)
 
-`jureuma run [flags] -- <command> [args...]`:
+`jureuma run [flags] -- <command> [args...]` (`inject` is an accepted alias of `run`: the same command, flags, injection, redaction and exit codes):
 
 1. Load the encrypted file, load and verify the private key, decrypt in memory, validate against the schema.
 2. Build the child environment: start from the inherited environment, **remove `JUREUMA_PRIVATE_KEY` and every `JUREUMA_PRIVATE_KEY_*` unconditionally**, then add injected values (mapping below).
@@ -413,7 +413,7 @@ jureuma
 ├── set <pointer> [value]   encrypt one value (--json, --value-stdin, --value-file, --allow-invalid)
 ├── unset <pointer>         remove one value (--allow-invalid)
 ├── get <pointer>    [P]    print one plaintext value
-├── run -- <cmd>            inject values into a child process, redacted output
+├── run -- <cmd>            inject values into a child process, redacted output (alias: inject)
 ├── list                    pointers, flattened env names, types (schema-declared without key; actual with key)
 ├── status                  read-only pair state, per path
 ├── check                   schema, gitignore, tracked plaintext, key/publicKey consistency, env collisions, deny rules

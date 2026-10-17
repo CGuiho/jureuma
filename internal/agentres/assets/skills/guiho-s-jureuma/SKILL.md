@@ -87,7 +87,7 @@ Values default to strings; if the schema says the path is not a string, `set` fa
 
 **Remove a value:** `jureuma unset /path` removes a member or subtree (parents remain as `{}`). Without the private key only object members and the **last** array element can be removed; for other array elements, ask the human.
 
-**Run with configuration:**
+**Run with configuration** (`inject` is an alias of `run`, identical in every way):
 
 ```sh
 jureuma run -- npm start
@@ -139,7 +139,7 @@ Pair-aware commands accept `--name`, `--encrypted-file`, `--unencrypted-file`, `
 | `jureuma set <pointer> [value] [--json] [--value-stdin] [--value-file <path>] [--allow-invalid]` | Encrypt and store one value. |
 | `jureuma unset <pointer> [--allow-invalid]` | Remove one value or subtree. |
 | `jureuma get <pointer>` [P] | Print one plaintext value. |
-| `jureuma run [--format json\|flatten\|file] [--env-name NAME] [--prefix P] [--env NAME=/ptr]... [--override] -- <cmd> [args...]` | Run a command with injected, redacted configuration. |
+| `jureuma run [--format json\|flatten\|file] [--env-name NAME] [--prefix P] [--env NAME=/ptr]... [--override] -- <cmd> [args...]` | Run a command with injected, redacted configuration. `inject` is an alias of `run`. |
 | `jureuma list` | Pointers, flattened names, and types. Never values. |
 | `jureuma status` | Read-only per-path sync state. |
 | `jureuma check` | Full consistency and validation check (needs the key for value validation). |

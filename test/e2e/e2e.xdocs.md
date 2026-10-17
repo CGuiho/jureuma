@@ -5,6 +5,7 @@ parent: jureuma-test
 children: []
 files:
   "cli_test.go": "Command-surface tests (init, pairs, JSON output, schema infer, version, help, juju, key rotation)."
+  "inject_test.go": "inject alias of run (issue #9): identical injection, flags, redaction and exit codes, and help discoverability."
   "lifecycle_test.go": "Lifecycle tests with --keep-both (encrypt/decrypt round trips, gitignore invariant, status)."
   "onefile_test.go": "Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both."
   "main_test.go": "TestMain builds the binary with an injected version; per-test homes, projects and scrubbed environments."
@@ -31,6 +32,7 @@ End-to-end tests that build jureuma and drive it as a subprocess in throw-away h
 ## Files
 
 - `cli_test.go`: Command-surface tests (init, pairs, JSON output, schema infer, version, help, juju, key rotation).
+- `inject_test.go`: inject alias of run (issue #9): identical injection, flags, redaction and exit codes, and help discoverability.
 - `lifecycle_test.go`: Lifecycle tests with --keep-both (encrypt/decrypt round trips, gitignore invariant, status).
 - `onefile_test.go`: Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both.
 - `main_test.go`: TestMain builds the binary with an injected version; per-test homes, projects and scrubbed environments.

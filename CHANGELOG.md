@@ -4,6 +4,10 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 
 ## Unreleased
 
+### Added
+
+- `inject` is an accepted alias of `run`: the same flags, injected document, redacted child output and exit codes (`jureuma inject -- <command>`).
+
 ## 0.1.0 - 2026-10-16
 
 ### Added

@@ -166,6 +166,13 @@ func writeHelpDocs(cmd *cobra.Command, w io.Writer) error {
 		fmt.Fprintf(&b, "%s\n\n", strings.TrimSpace(cmd.Long))
 	}
 	fmt.Fprintf(&b, "## Usage\n\n```text\n%s\n```\n\n", cmd.UseLine())
+	if len(cmd.Aliases) > 0 {
+		names := make([]string, len(cmd.Aliases))
+		for i, al := range cmd.Aliases {
+			names[i] = "`" + al + "`"
+		}
+		fmt.Fprintf(&b, "Alias: %s (the same command).\n\n", strings.Join(names, ", "))
+	}
 	if cmd.Example != "" {
 		fmt.Fprintf(&b, "## Examples\n\n```text\n%s\n```\n\n", strings.Trim(cmd.Example, "\n"))
 	}

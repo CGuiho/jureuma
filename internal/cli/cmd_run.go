@@ -18,8 +18,9 @@ func (a *app) cmdRun() *cobra.Command {
 	var envs []string
 	var override, bypass bool
 	c := &cobra.Command{
-		Use:   "run [flags] -- <command> [args...]",
-		Short: "run a command with the decrypted configuration injected, output redacted",
+		Use:     "run [flags] -- <command> [args...]",
+		Aliases: []string{"inject"},
+		Short:   "run a command with the decrypted configuration injected, output redacted",
 		Long: `Decrypts the configuration in memory, validates it, and starts the command with it injected.
 JUREUMA_PRIVATE_KEY and every JUREUMA_PRIVATE_KEY_* variable are always removed from the
 child's environment.
