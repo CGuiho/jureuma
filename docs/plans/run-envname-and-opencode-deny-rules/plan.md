@@ -67,3 +67,9 @@ path. Brief: `execution/handoffs/w2-opencode-deny-rules.md`.
   the default, and the denylist exception follows the default only.
 - Both units run in one native background workhorse, W1 then W2, one commit
   each (disjoint docs surfaces, serialized Git index).
+
+## Outcome
+
+Delivered 2026-10-17 in one native background workhorse (W1 `c0f9dcd`,
+W2 `17e10a1`), both reviewed by the orchestrator with the full battery
+green; the units sit at Testing pending CG's release word.

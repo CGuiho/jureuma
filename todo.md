@@ -12,9 +12,9 @@
 
 | Status | Count |
 | --- | ---: |
-| todo | 1 |
-| in progress | 2 |
-| testing | 5 |
+| todo | 0 |
+| in progress | 1 |
+| testing | 7 |
 | stopped | 0 |
 | completed | 0 |
 
@@ -22,12 +22,12 @@
 
 ### Run env name and OpenCode deny rules
 
-- [ ] [Change the default run env name from JUREUMA_CONFIG to JUREUMA_](https://github.com/CGuiho/jureuma/issues/10) — in progress
-- [ ] [Add OpenCode deny rules to jureuma init alongside the Claude Code ones](https://github.com/CGuiho/jureuma/issues/11) — in progress
+- [ ] [Change the default run env name from JUREUMA_CONFIG to JUREUMA_](https://github.com/CGuiho/jureuma/issues/10) — testing
+- [ ] [Add OpenCode deny rules to jureuma init alongside the Claude Code ones](https://github.com/CGuiho/jureuma/issues/11) — testing
 
 ### JSONC write support
 
-- [ ] [Support writing `.jsonc` files with preserved comments (JSON stays the default)](https://github.com/CGuiho/jureuma/issues/12) — todo
+- [ ] [Support writing `.jsonc` files with preserved comments (JSON stays the default)](https://github.com/CGuiho/jureuma/issues/12) — in progress
 
 ### Release 0.1.0
 
