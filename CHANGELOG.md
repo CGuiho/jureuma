@@ -9,6 +9,7 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 ### Added
 
 - `jureuma init` also protects OpenCode sessions in the project: with the agent-tool deny rules it appends read-deny rules for `*.unencrypted.json`, `*.unencrypted.jsonc` and `$HOME/.guiho/jureuma/*` to the project's `opencode.json` (or `opencode.jsonc`), OpenCode V2's ordered `permissions` array (last matching rule wins), creating the file with its `$schema` when absent. `--agent-deny-rules` governs both tools, `check` reports both, and `agent instruction remove` / `uninstall` remove exactly what jureuma recorded for each tool.
+- `.jsonc` is now fully two-way for the human-owned files: a comment-preserving writer updates an existing `.jsonc` plaintext or schema in place from `set`, `unset`, `decrypt` and `schema infer` (`WritePlain` and the schema write). Only the minimal byte spans a change needs are spliced; comments, blank lines, formatting, number text (`1e3`, `-0`) and string-escape spelling outside them survive byte for byte, existing trailing commas are preserved (and reused as separators) and no new trailing comma is emitted. A change that cannot be represented — or a file that no longer parses — is refused with nothing written. `init` also creates a missing `.jsonc` plaintext side. `.json` stays the default and the encrypted file stays `.json`.
 
 ### Changed
 

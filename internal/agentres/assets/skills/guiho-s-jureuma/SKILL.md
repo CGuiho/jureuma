@@ -85,7 +85,7 @@ jureuma set /features/- --json '"search"'                                  # app
 jureuma set /optional --json null                                          # stores null (not the same as unset)
 ```
 
-Values default to strings; if the schema says the path is not a string, `set` fails with exit `4` and suggests `--json`. Missing parent objects are created. `set` writes the encrypted file first, then mirrors the value into an existing `.json` unencrypted file. It never prints the value. Use `--value-file <path>` only for a file you created yourself for this purpose, never for an `*.unencrypted.*` file.
+Values default to strings; if the schema says the path is not a string, `set` fails with exit `4` and suggests `--json`. Missing parent objects are created. `set` writes the encrypted file first, then mirrors the value into an existing unencrypted file (`.json` or `.jsonc`; a `.jsonc` file keeps its comments and formatting outside the written value). It never prints the value. Use `--value-file <path>` only for a file you created yourself for this purpose, never for an `*.unencrypted.*` file.
 
 **Remove a value:** `jureuma unset /path` removes a member or subtree (parents remain as `{}`). Without the private key only object members and the **last** array element can be removed; for other array elements, ask the human.
 
@@ -183,7 +183,7 @@ agent:
 
 The schema is a standard **JSON Schema draft 2020-12** document in `<stem>.schema.json`, or `<stem>.schema.jsonc` when you want comments. It is committed and must never contain configuration values. Nobody writes it from scratch:
 
-1. **Generate:** `jureuma schema infer` (add `--name <stem>` for another pair). jureuma reads the structure and JSON types internally, never the values, and writes objects with `required` for every present key and `additionalProperties: false`, homogeneous arrays as `items`, mixed arrays as `prefixItems`. Without a plaintext file it infers structure only from the encrypted file and leaves leaf types unconstrained (`{}`). It refuses to overwrite an existing schema; pass `--force` only when replacing the old schema is intended (refinements are lost).
+1. **Generate:** `jureuma schema infer` (add `--name <stem>` for another pair). jureuma reads the structure and JSON types internally, never the values, and writes objects with `required` for every present key and `additionalProperties: false`, homogeneous arrays as `items`, mixed arrays as `prefixItems`. Without a plaintext file it infers structure only from the encrypted file and leaves leaf types unconstrained (`{}`). It refuses to overwrite an existing schema; pass `--force` only when replacing the old schema is intended (refinements are lost; a `.schema.jsonc` keeps its comments on surviving keys).
 2. **Refine** the generated file by editing it, using only what you know from field names, the code that consumes the configuration, and what the human told you. Never infer constraints by looking at values.
 3. **Verify:** `jureuma check` (it also warns while the permissive starter schema from `init` is still in use).
 

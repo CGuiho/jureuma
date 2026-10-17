@@ -412,14 +412,10 @@ func initPair(r *initReport, e *env, p *pair.Pair) error {
 		r.step("created   %s", p.EncryptedPath)
 	}
 	if !fileExists(p.UnencryptedPath) {
-		if p.UnencryptedIsJSONC {
-			r.step("missing   %s (jureuma never writes .jsonc files)", p.UnencryptedPath)
-		} else {
-			if err := pair.WritePlain(p.UnencryptedPath, doc.NewObject()); err != nil {
-				return err
-			}
-			r.step("created   %s (empty, git-ignored)", p.UnencryptedPath)
+		if err := pair.WritePlain(p.UnencryptedPath, doc.NewObject()); err != nil {
+			return err
 		}
+		r.step("created   %s (empty, git-ignored)", p.UnencryptedPath)
 	} else {
 		r.step("exists    %s", p.UnencryptedPath)
 	}

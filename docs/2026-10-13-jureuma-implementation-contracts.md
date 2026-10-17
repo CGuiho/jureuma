@@ -37,6 +37,16 @@ func Parse(data []byte, strict bool) (*doc.Value, error)
 // HasComments reports whether JSONC data contains at least one comment.
 func HasComments(data []byte) bool
 
+// Edit returns original with the changes from old to new spliced in as
+// minimal byte spans: every byte outside the edited spans (comments, blank
+// lines, formatting, number text, string-escape spelling) survives exactly.
+// old must be the document parsed from original (lenient); the result parses
+// to exactly new. New object keys are appended before the closing brace; a
+// change that cannot be represented — an interior array insertion, a file
+// whose text does not match old — is refused (ErrUnrepresentable,
+// ErrMismatch), never rewritten.
+func Edit(original []byte, old, new *doc.Value) ([]byte, error)
+
 // SyntaxError is the only error type Parse returns. Its Error() is
 // "line L, column C: <Class>" and never includes source text.
 type SyntaxError struct { Line, Column int; Class string }
@@ -251,7 +261,7 @@ type SyncEntry struct { C, H string }
 func ReadEncrypted(path string) (*Encrypted, error)
 func WriteEncrypted(path string, e *Encrypted) error   // $jureuma first, sorted sync/pending, atomic
 func ReadPlain(path string, jsonc bool) (*doc.Value, error)
-func WritePlain(path string, v *doc.Value) error        // refuses unless git-ignored (EnsureIgnored)
+func WritePlain(path string, v *doc.Value) error        // .json canonical; an existing .jsonc is merged with jsonc.Edit (comments preserved); refuses unless git-ignored (EnsureIgnored)
 func EnsureIgnored(root, path string) error              // .gitignore managed block + git check-ignore
 func TrackedByGit(root, path string) (bool, error)
 func EncryptDoc(pk crypt.PublicKey, plain *doc.Value, prev *Encrypted, sk *crypt.PrivateKey) (*doc.Value, error) // reuses unchanged ciphertexts when sk given

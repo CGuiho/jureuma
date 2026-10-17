@@ -208,21 +208,56 @@ func TestJSONCInput(t *testing.T) {
 	if o, _ := p.statusJSON(); o != "in-sync" {
 		t.Fatalf("status: %s", o)
 	}
-	// jureuma never writes .jsonc: decrypt refuses, set leaves it alone.
+	// jureuma writes .jsonc in place: decrypt and set keep every comment
+	// and the formatting outside the values they change.
 	jsoncBefore := p.read("config.unencrypted.jsonc")
-	if r := p.run("decrypt", "--keep-both", "--dangerously-bypass-protections"); r.code == 0 {
-		t.Fatalf("decrypt wrote a .jsonc pair:\n%s", r)
+	p.expect(0, "decrypt", "--keep-both", "--dangerously-bypass-protections")
+	if got := p.read("config.unencrypted.jsonc"); got != jsoncBefore {
+		t.Fatalf("decrypt must reproduce the same document without touching comments:\ngot:\n%s\nwant:\n%s", got, jsoncBefore)
 	}
 	p.expect(0, "set", "/db/url", "changed-by-set")
-	if p.read("config.unencrypted.jsonc") != jsoncBefore {
-		t.Fatal("set modified the .jsonc file")
+	got := p.read("config.unencrypted.jsonc")
+	for _, want := range []string{"// leading comment", "/* block\n     comment */", `"url": "changed-by-set", // trailing comment`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("set must preserve comments and formatting:\n%s", got)
+		}
+	}
+	if strings.Contains(got, "jsonc-url-value") {
+		t.Fatalf("set must replace the old value:\n%s", got)
 	}
 	if p.exists("config.unencrypted.json") {
 		t.Fatal("set created a .json plaintext beside the .jsonc one")
 	}
-	_, states := p.statusJSON()
-	if states["/db/url"] != "encrypted-newer" {
-		t.Fatalf("after set on a .jsonc pair /db/url is %q, want encrypted-newer", states["/db/url"])
+	if o, _ := p.statusJSON(); o != "in-sync" {
+		t.Fatalf("status after set on a .jsonc pair: %s", o)
+	}
+	p.expect(0, "check")
+	// decrypt restores the encrypted values but keeps the comments of
+	// surviving keys and every comment outside the written spans.
+	p.write("config.unencrypted.jsonc", `// leading comment
+{
+  /* block
+     comment */
+  "db": {
+    "url": "human-edit", // trailing comment
+    "pool": 5,
+  },
+  "tags": ["a", "b",],
+  // human note
+}
+`)
+	p.expect(0, "decrypt", "--keep-both", "--force", "--dangerously-bypass-protections")
+	got = p.read("config.unencrypted.jsonc")
+	for _, want := range []string{"// leading comment", "/* block\n     comment */", "// trailing comment", "// human note", `"url": "changed-by-set"`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("decrypt must preserve comments:\n%s", got)
+		}
+	}
+	if strings.Contains(got, "human-edit") {
+		t.Fatalf("decrypt must restore the encrypted value:\n%s", got)
+	}
+	if o, _ := p.statusJSON(); o != "in-sync" {
+		t.Fatalf("status after decrypt on a .jsonc pair: %s", o)
 	}
 	// Both .json and .jsonc present is a usage error for every command.
 	p.write("config.unencrypted.json", `{}`)

@@ -40,8 +40,9 @@ Releases: `mirror version plan <target>` (Git tags `v<semver>`; the first releas
 
 - Base syntax is standard JSON (RFC 8259 / ECMA-404).
 - `//` single-line and `/* */` multi-line comments are allowed wherever insignificant whitespace is allowed. Block comments do not nest. `#` comments are not supported.
-- Trailing commas in objects and arrays are **accepted when reading** and **never emitted when writing**.
+- Trailing commas in objects and arrays are **accepted when reading** and **never emitted when writing** (an existing trailing comma is preserved and may be reused as a separator).
 - Comments must not affect the data; removing them must yield the same values. When rewriting a file, preserve existing comments and formatting wherever possible.
+- Writing `.jsonc` is fully supported and comment-preserving: `set`, `unset`, `decrypt` and `schema infer` splice only the byte spans a change needs. Comments, blank lines, formatting, number text (`1e3`, `-0`) and string-escape spelling outside those spans survive byte for byte; a change that cannot be represented without touching them — or a file that no longer parses — is refused with nothing written (preserve over destroy). `.json` stays the default format, and the encrypted file is always `.json`: comments are never carried into it.
 - Preferred file extension is `.jsonc`; media type is `application/jsonc`.
 - JSON5 features (unquoted keys, single quotes, hex numbers, `NaN`/`Infinity`, multiline strings) are out of scope.
 

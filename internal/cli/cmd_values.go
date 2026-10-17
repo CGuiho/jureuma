@@ -228,10 +228,11 @@ func (a *app) cmdDecrypt() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "decrypt",
 		Short: "[human-only] decrypt the encrypted file into the unencrypted file",
-		Long: `Writes every decrypted value into the unencrypted .json file (mode 0600, git-ignored).
+		Long: `Writes every decrypted value into the unencrypted file (mode 0600, git-ignored). A .jsonc
+file is updated in place: comments and formatting outside the written values survive.
 Human-only: requires an interactive terminal, no agent environment and a typed confirmation
 word. Refuses when the unencrypted file has unsaved edits (unencrypted-newer or conflict)
-unless --force is given. Never writes .jsonc files. On success the encrypted file is deleted
+unless --force is given. On success the encrypted file is deleted
 unless --keep-both is given; a copy (ciphertext only) is saved under ~/.guiho/jureuma/state so
 the next jureuma encrypt reuses the same key and unchanged ciphertexts.`,
 		Args: cobra.NoArgs,
@@ -246,9 +247,6 @@ the next jureuma encrypt reuses the same key and unchanged ciphertexts.`,
 			}
 			if err := p.CheckSchemaFlag(); err != nil {
 				return err
-			}
-			if p.UnencryptedIsJSONC {
-				return xerr.Failure("%s: jureuma never writes .jsonc files; edit it by hand or switch the pair to .json", p.Rel(p.UnencryptedPath))
 			}
 			unlock, err := e.lock(p)
 			if err != nil {
@@ -457,7 +455,8 @@ func (a *app) cmdSet() *cobra.Command {
 		Use:   "set <pointer> [value]",
 		Short: "encrypt one value into the encrypted file (works without the private key)",
 		Long: `Encrypts one value at a JSON Pointer using the public key in the encrypted file, records
-the path as pending, and mirrors the value into an existing .json unencrypted file. The
+the path as pending, and mirrors the value into an existing unencrypted file (.json or
+.jsonc; a .jsonc file keeps its comments and formatting). The
 value is never echoed. By default it is stored as a string; --json parses it as JSON
 (numbers, booleans, null, objects, arrays). Prefer --value-stdin so the value stays out of
 shell history; one trailing line break is dropped from stdin and --value-file input.`,
@@ -660,13 +659,14 @@ func copySync(m map[string]pair.SyncEntry) map[string]pair.SyncEntry {
 	return out
 }
 
-// mirrorPlain applies fn to an existing .json unencrypted file and writes it.
-// It returns the written document, or nil when there was nothing to mirror.
+// mirrorPlain applies fn to an existing unencrypted file (.json or .jsonc)
+// and writes it, preserving comments and formatting in a .jsonc file. It
+// returns the written document, or nil when there was nothing to mirror.
 func mirrorPlain(p *pair.Pair, fn func(*doc.Value) error) (*doc.Value, error) {
-	if p.UnencryptedIsJSONC || !fileExists(p.UnencryptedPath) {
+	if !fileExists(p.UnencryptedPath) {
 		return nil, nil
 	}
-	plain, err := pair.ReadPlain(p.UnencryptedPath, false)
+	plain, err := pair.ReadPlain(p.UnencryptedPath, p.UnencryptedIsJSONC)
 	if err != nil {
 		return nil, err
 	}
@@ -690,7 +690,8 @@ func (a *app) cmdUnset() *cobra.Command {
 		Long: `Removes the value at a JSON Pointer; on a container the whole subtree. Parents are kept.
 Without the private key only object members and the last array element can be removed,
 because removing another element shifts later indices and their ciphertexts are bound to
-their paths. The removal is mirrored into an existing .json unencrypted file. Removing a
+their paths. The removal is mirrored into an existing unencrypted file (.json or .jsonc;
+a .jsonc file keeps its comments and formatting). Removing a
 required property needs --allow-invalid.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

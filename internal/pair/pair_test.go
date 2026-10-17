@@ -258,8 +258,68 @@ func TestGitignoreAndWritePlain(t *testing.T) {
 	if err := WritePlain(filepath.Join(root, "other.unencrypted.json"), doc.NewObject()); err == nil {
 		t.Fatal("must refuse a file git does not ignore")
 	}
-	if err := WritePlain(filepath.Join(root, "x.unencrypted.jsonc"), doc.NewObject()); err == nil {
-		t.Fatal("must refuse .jsonc")
+	// A .jsonc target is written like any other plaintext target.
+	if err := WritePlain(filepath.Join(root, "x.unencrypted.jsonc"), doc.NewObject()); err != nil {
+		t.Fatalf("must write .jsonc: %v", err)
+	}
+}
+
+func TestWritePlainJSONC(t *testing.T) {
+	if !gitAvailable() {
+		t.Skip("git not installed")
+	}
+	root := t.TempDir()
+	gitInit(t, root)
+	p := filepath.Join(root, "config.unencrypted.jsonc")
+
+	// A missing .jsonc target is created as canonical JSON (valid JSONC).
+	if err := WritePlain(p, mustParse(t, `{"a":1}`)); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(p); string(data) != "{\n  \"a\": 1\n}\n" {
+		t.Fatalf("created: %q", data)
+	}
+	if st, _ := os.Stat(p); st.Mode().Perm() != 0o600 {
+		t.Fatalf("mode %v", st.Mode().Perm())
+	}
+
+	// An existing .jsonc target is merged in place: comments and formatting
+	// outside the edited spans survive byte for byte.
+	orig := "// header\n{\n  \"a\": 1, // about a\n  \"b\": [2, 3,],\n}\n"
+	if err := os.WriteFile(p, []byte(orig), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WritePlain(p, mustParse(t, `{"a":9,"b":[2,3],"c":4}`)); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(p)
+	want := "// header\n{\n  \"a\": 9, // about a\n  \"b\": [2, 3,],\n  \"c\": 4\n}\n"
+	if string(data) != want {
+		t.Fatalf("merge:\ngot:\n%q\nwant:\n%q", data, want)
+	}
+
+	// An unparseable current file is refused and left untouched.
+	bad := "{ not json"
+	if err := os.WriteFile(p, []byte(bad), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WritePlain(p, mustParse(t, `{"a":1}`)); err == nil {
+		t.Fatal("must refuse an unparseable .jsonc")
+	}
+	if data, _ := os.ReadFile(p); string(data) != bad {
+		t.Fatalf("unparseable file was touched: %q", data)
+	}
+
+	// A change the editor cannot represent is refused and left untouched.
+	arr := "{\"l\": [1, 3]}\n"
+	if err := os.WriteFile(p, []byte(arr), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WritePlain(p, mustParse(t, `{"l":[1,2,3]}`)); err == nil {
+		t.Fatal("must refuse an unrepresentable change")
+	}
+	if data, _ := os.ReadFile(p); string(data) != arr {
+		t.Fatalf("unrepresentable file was touched: %q", data)
 	}
 }
 

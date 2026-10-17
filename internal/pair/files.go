@@ -281,16 +281,17 @@ func ReadPlain(path string, jsonc_ bool) (*doc.Value, error) {
 	return v, nil
 }
 
-// WritePlain writes an unencrypted .json file with mode 0600. It refuses
-// .jsonc targets, targets that git would not ignore (after adding the managed
-// block), and targets tracked by git.
+// WritePlain writes an unencrypted file with mode 0600. A .json target is
+// written as canonical JSON. A .jsonc target with existing content is updated
+// in place with the comment-preserving editor (comments and formatting
+// outside the edited spans survive; unparseable or unrepresentable content is
+// refused, never rewritten); a missing .jsonc target is created as canonical
+// JSON (valid JSON is valid JSONC). It refuses targets that git would not
+// ignore (after adding the managed block) and targets tracked by git.
 func WritePlain(path string, v *doc.Value) error {
 	name := filepath.Base(path)
 	if err := CheckUnencryptedName(path); err != nil {
 		return err
-	}
-	if strings.EqualFold(filepath.Ext(path), ".jsonc") {
-		return xerr.Failure("%s: jureuma never writes .jsonc files; edit it by hand or switch the pair to .json", name)
 	}
 	if v.Kind != doc.Object || v.Get(MetaKey) != nil {
 		return xerr.Failure("%s: refusing to write an invalid document", name)
@@ -309,7 +310,10 @@ func WritePlain(path string, v *doc.Value) error {
 	if tracked {
 		return xerr.Failure("%s: refusing to write a file that is tracked by git (run git rm --cached %s)", name, name)
 	}
-	data := doc.Marshal(v)
+	data, err := plainBytes(path, v)
+	if err != nil {
+		return err
+	}
 	defer clear(data)
 	if len(data) > maxFileSize {
 		return tooLarge(path)
@@ -318,4 +322,29 @@ func WritePlain(path string, v *doc.Value) error {
 		return xerr.Failure("%s: cannot write file", name)
 	}
 	return nil
+}
+
+// plainBytes renders v for path: canonical JSON for .json targets and missing
+// files, a comment-preserving merge for an existing .jsonc target.
+func plainBytes(path string, v *doc.Value) ([]byte, error) {
+	name := filepath.Base(path)
+	if !strings.EqualFold(filepath.Ext(path), ".jsonc") {
+		return doc.Marshal(v), nil
+	}
+	orig, err := readLimited(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return doc.Marshal(v), nil
+		}
+		return nil, readErr(name, err)
+	}
+	current, err := jsonc.Parse(orig, false)
+	if err != nil {
+		return nil, xerr.Validation("%s: %v (fix it by hand; jureuma will not rewrite it)", name, err)
+	}
+	data, err := jsonc.Edit(orig, current, v)
+	if err != nil {
+		return nil, xerr.Failure("%s: %v; nothing was written", name, err)
+	}
+	return data, nil
 }

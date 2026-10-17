@@ -56,11 +56,11 @@ The goal is that a human sets raw values once and an agent can run the project w
 | Extension | Read | Written | Notes |
 | --- | --- | --- | --- |
 | `.json` | yes | yes | RFC 8259. |
-| `.jsonc` | yes | **no** | jsonc.org draft, lenient: `//` and `/* */` comments; trailing commas accepted. Converted to `.json` on encryption. |
+| `.jsonc` | yes | yes | jsonc.org draft, lenient: `//` and `/* */` comments; trailing commas accepted. Written in place with comments and formatting preserved. Converted to `.json` on encryption. |
 | `.json5` | no | no | Future. |
 
 - The encrypted file is always `.json`. Comments in a `.jsonc` plaintext file are **not** carried into the encrypted file.
-- `jureuma` never writes a `.jsonc` file (no comment-preserving writer in v1). When a pair's plaintext side is `.jsonc`, `set` and `decrypt` do not write it; `status` then reports `encrypted-newer` and the human reconciles by hand or switches to `.json`.
+- `jureuma` writes a `.jsonc` file only through a comment-preserving editor: `set`, `unset`, `decrypt` and `schema infer` splice the minimal byte spans their change needs (a replaced value gets exactly its value span; a removal deletes the key-to-value span plus one separator comma; an insertion lands before the closing brace or bracket, matching the sibling indentation and separator style and reusing an existing trailing comma). Every comment, blank line, formatting detail, number text (`1e3`, `-0`) and string-escape spelling outside the edited spans survives byte for byte, and a new trailing comma is never emitted. A change that cannot be represented this way, and a file that no longer parses, are refused with nothing written — never rewritten. `.json` stays the default (new pairs and the starter schema), and the encrypted file is always `.json`.
 - If both `<stem>.unencrypted.json` and `<stem>.unencrypted.jsonc` exist, every command on that pair fails with a usage error.
 - Duplicate object keys are rejected. A plaintext document may not use the top-level key `$jureuma`.
 - Strings containing NUL are rejected on input (they cannot be injected into environment variables).
@@ -368,7 +368,7 @@ config.unencrypted.json  ──────────────────�
 
 - Removes the value at the pointer; on a container, removes the whole subtree. Parents are not pruned (`{}` remains).
 - Without the key, only object members and the **last** array element can be removed, because removing another element shifts later indices and their path-bound ciphertexts must be re-encrypted. Otherwise `unset` asks for the key (exit 5 without it) and suggests editing the plaintext file and running `encrypt`.
-- `unset` is mirrored into an existing `.json` unencrypted file, like `set`.
+- `unset` is mirrored into an existing unencrypted file (`.json` or `.jsonc`), like `set`.
 - The `set` mirror never replaces an unsaved human edit. With the private key, it is skipped when a touched path is `unencrypted-newer` or `conflict`; without the key, when the plaintext already holds a value at or under the target (it cannot be compared). An append (`/-`) is also skipped when the two arrays differ in length. A skipped mirror prints a warning and leaves the path pending. `/-` appends only to an existing array; it is a usage error under a missing parent.
 - `set` refuses pointers deeper than 64 levels, and every write refuses (exit 4) a file larger than the 32 MiB that jureuma reads.
 - Paths that come from committed files (`pairs[].encrypted`, `pairs[].unencrypted`, `pairs[].schema` in `jureuma.yaml`, and `$jureuma.schema`) must stay inside the project root, also after resolving symbolic links, and a schema path must end with `.schema.json` or `.schema.jsonc`. Only command-line flags may name files outside the project. A `--schema-file` on a mutating command must agree with the configured schema, or with the default `<stem>.schema.json(c)` when that file exists.
