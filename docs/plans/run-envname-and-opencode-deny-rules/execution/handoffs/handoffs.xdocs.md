@@ -7,6 +7,7 @@ files: {}
 documents:
   "w1-envname-default.md": "Workhorse brief for unit W1 (issue #10): default the run env name to `JUREUMA_`."
   "w2-opencode-deny-rules.md": "Workhorse brief for unit W2 (issue #11): add OpenCode deny rules to `jureuma init`."
+  "w3-restore-jureuma-config.md": "Workhorse brief for the follow-up to issue #10: restore `JUREUMA_CONFIG` as the default run env name after the `JUREUMA_` experiment."
 tags:
   - "handoffs"
   - "workers"

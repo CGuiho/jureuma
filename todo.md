@@ -31,7 +31,7 @@
 
 ### Key identity headers and single-file pairs
 
-- [ ] [Single-file pairs: `$jureuma` header on both files, key labels and key selection](https://github.com/CGuiho/jureuma/issues/13) — in progress
+- [ ] [Single-file pairs: `$jureuma` header on both files, key labels and key selection](https://github.com/CGuiho/jureuma/issues/13) — testing
 - [ ] [Bind the project key pair in `jureuma.yaml` (`key:`)](https://github.com/CGuiho/jureuma/issues/14) — todo
 
 ### Release 0.1.0
