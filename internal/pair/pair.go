@@ -418,7 +418,9 @@ func (p *Pair) SchemaRef() string {
 	return rel
 }
 
-// readMetaSchema returns $jureuma.schema from an encrypted file, or "".
+// readMetaSchema returns the schema path of $jureuma.schema from an encrypted
+// file, or "". Both written shapes are accepted in any format generation: the
+// readable path alone, or { path, c } with the embedded encrypted copy.
 // Any problem is ignored here; ReadEncrypted reports it.
 func readMetaSchema(path string) string {
 	data, err := readLimited(path)
@@ -434,10 +436,18 @@ func readMetaSchema(path string) string {
 		return ""
 	}
 	s := m.Get("schema")
-	if s == nil || s.Kind != doc.String {
+	if s == nil {
 		return ""
 	}
-	return s.S
+	if s.Kind == doc.String {
+		return s.S
+	}
+	if s.Kind == doc.Object {
+		if p := s.Get("path"); p != nil && p.Kind == doc.String {
+			return p.S
+		}
+	}
+	return ""
 }
 
 // maxFileSize bounds every configuration file jureuma reads (and writes).

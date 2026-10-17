@@ -15,11 +15,13 @@ import (
 	"github.com/CGuiho/jureuma/internal/xerr"
 )
 
-// MetaKey is the reserved top-level key of an encrypted file.
+// MetaKey is the reserved top-level key of both pair files.
 const MetaKey = "$jureuma"
 
-// FormatVersion is the only encrypted-file format version.
-const FormatVersion = 1
+// FormatVersion is the format generation this jureuma writes. Parsing accepts
+// 1 (legacy) and 2; every write renders FormatVersion, so the Format fields of
+// Header and Meta record the generation that was read.
+const FormatVersion = 2
 
 // Encrypted is a parsed encrypted file. Body excludes $jureuma.
 type Encrypted struct {
@@ -27,11 +29,17 @@ type Encrypted struct {
 	Body *doc.Value
 }
 
-// Meta is the $jureuma block.
+// Meta is the $jureuma block: the shared identity (format, publicKey, keyId,
+// home) plus the schema reference, the sync baseline and the pending paths.
+// Schema is the readable path; SchemaCopy is the schema document encrypted to
+// the pair key ("" when no embedded copy is stored), and its presence turns
+// the written schema reference into the { path, c } form.
 type Meta struct {
 	Format           int
 	PublicKey, KeyID string
+	Home             string
 	Schema           string
+	SchemaCopy       string
 	Sync             map[string]SyncEntry
 	Pending          []string
 }
@@ -47,7 +55,7 @@ func (m Meta) PublicKeyValue() (crypt.PublicKey, error) {
 // NewEncrypted returns an empty encrypted file for pk.
 func NewEncrypted(pk crypt.PublicKey, schemaRef string) *Encrypted {
 	return &Encrypted{
-		Meta: Meta{Format: FormatVersion, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Schema: schemaRef, Sync: map[string]SyncEntry{}},
+		Meta: Meta{Format: FormatVersion, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Home: HomeRef, Schema: schemaRef, Sync: map[string]SyncEntry{}},
 		Body: doc.NewObject(),
 	}
 }
@@ -73,6 +81,9 @@ func ReadEncrypted(path string) (*Encrypted, error) {
 }
 
 // ParseEncrypted parses encrypted-file content; name is used in error messages.
+// A $jureuma block with format 1 parses and records Format 1 (legacy: reads
+// keep working); an unknown future format is rejected explicitly; a
+// present-but-malformed block returns the typed legacy refusal.
 func ParseEncrypted(name string, data []byte) (*Encrypted, error) {
 	root, err := jsonc.Parse(data, true)
 	if err != nil {
@@ -82,81 +93,14 @@ func ParseEncrypted(name string, data []byte) (*Encrypted, error) {
 		return nil, xerr.Failure("%s: top level must be an object", name)
 	}
 	mv := root.Get(MetaKey)
-	if mv == nil || mv.Kind != doc.Object {
+	if mv == nil {
 		return nil, xerr.Failure("%s: missing %s block", name, MetaKey)
 	}
-	bad := func(field string) error {
-		return xerr.Failure("%s: %s/%s is invalid", name, MetaKey, field)
-	}
-	e := &Encrypted{Meta: Meta{Sync: map[string]SyncEntry{}}}
-	for _, k := range mv.Keys {
-		v := mv.M[k]
-		switch k {
-		case "format":
-			if v.Kind != doc.Number || v.N != "1" {
-				return nil, xerr.Failure("%s: unsupported %s/format (this jureuma reads format 1)", name, MetaKey)
-			}
-			e.Meta.Format = FormatVersion
-		case "publicKey":
-			if v.Kind != doc.String {
-				return nil, bad(k)
-			}
-			e.Meta.PublicKey = v.S
-		case "keyId":
-			if v.Kind != doc.String || !crypt.ValidKeyID(v.S) {
-				return nil, bad(k)
-			}
-			e.Meta.KeyID = v.S
-		case "schema":
-			if v.Kind != doc.String {
-				return nil, bad(k)
-			}
-			e.Meta.Schema = v.S
-		case "sync":
-			if v.Kind != doc.Object {
-				return nil, bad(k)
-			}
-			for _, p := range v.Keys {
-				ent := v.M[p]
-				if _, err := doc.ParsePointer(p); err != nil || ent.Kind != doc.Object {
-					return nil, bad(k)
-				}
-				c, h := ent.Get("c"), ent.Get("h")
-				if c == nil || h == nil || c.Kind != doc.String || h.Kind != doc.String || !tagRe.MatchString(c.S) || !tagRe.MatchString(h.S) || len(ent.Keys) != 2 {
-					return nil, bad(k)
-				}
-				e.Meta.Sync[p] = SyncEntry{C: c.S, H: h.S}
-			}
-		case "pending":
-			if v.Kind != doc.Array {
-				return nil, bad(k)
-			}
-			for _, x := range v.A {
-				if x.Kind != doc.String {
-					return nil, bad(k)
-				}
-				if _, err := doc.ParsePointer(x.S); err != nil {
-					return nil, bad(k)
-				}
-				e.Meta.Pending = append(e.Meta.Pending, x.S)
-			}
-		default:
-			return nil, xerr.Failure("%s: unknown field %s/%s", name, MetaKey, k)
-		}
-	}
-	if e.Meta.Format != FormatVersion {
-		return nil, bad("format")
-	}
-	if e.Meta.PublicKey == "" || e.Meta.KeyID == "" {
-		return nil, bad("publicKey")
-	}
-	pk, err := crypt.ParsePublicKey(e.Meta.PublicKey)
+	meta, err := parseMeta(name, mv)
 	if err != nil {
-		return nil, bad("publicKey")
+		return nil, err
 	}
-	if crypt.KeyID(pk) != e.Meta.KeyID {
-		return nil, xerr.Key("%s: %s/keyId does not match %s/publicKey", name, MetaKey, MetaKey)
-	}
+	e := &Encrypted{Meta: *meta}
 	body := doc.NewObject()
 	for _, k := range root.Keys {
 		if k == MetaKey {
@@ -173,15 +117,119 @@ func ParseEncrypted(name string, data []byte) (*Encrypted, error) {
 	return e, nil
 }
 
-// MarshalEncrypted renders e with $jureuma first and sorted sync/pending.
+// parseMeta parses the $jureuma block of an encrypted file. The identity
+// fields are shared with the unencrypted header; schema accepts the readable
+// path alone or the { path, c } form with the embedded schema copy in any
+// format generation.
+func parseMeta(name string, mv *doc.Value) (*Meta, error) {
+	if mv.Kind != doc.Object {
+		return nil, LegacyHeader(name)
+	}
+	bad := func(field string) error {
+		return &xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: name + ": " + MetaKey + "/" + field + " is invalid (legacy or malformed); " + RepairHint, Err: ErrLegacyHeader}
+	}
+	e := &Meta{Sync: map[string]SyncEntry{}}
+	for _, k := range mv.Keys {
+		v := mv.M[k]
+		switch k {
+		case "format":
+			n, err := parseGeneration(name, v)
+			if err != nil {
+				return nil, err
+			}
+			e.Format = n
+		case "publicKey":
+			if v.Kind != doc.String {
+				return nil, bad(k)
+			}
+			e.PublicKey = v.S
+		case "keyId":
+			if v.Kind != doc.String || !crypt.ValidKeyID(v.S) {
+				return nil, bad(k)
+			}
+			e.KeyID = v.S
+		case "home":
+			if v.Kind != doc.String {
+				return nil, bad(k)
+			}
+			e.Home = v.S
+		case "schema":
+			switch v.Kind {
+			case doc.String:
+				e.Schema = v.S
+			case doc.Object:
+				p, c := v.Get("path"), v.Get("c")
+				if p == nil || c == nil || p.Kind != doc.String || c.Kind != doc.String || !crypt.IsCiphertext(c.S) || len(v.Keys) != 2 {
+					return nil, bad(k)
+				}
+				e.Schema, e.SchemaCopy = p.S, c.S
+			default:
+				return nil, bad(k)
+			}
+		case "sync":
+			if v.Kind != doc.Object {
+				return nil, bad(k)
+			}
+			for _, p := range v.Keys {
+				ent := v.M[p]
+				if _, err := doc.ParsePointer(p); err != nil || ent.Kind != doc.Object {
+					return nil, bad(k)
+				}
+				c, h := ent.Get("c"), ent.Get("h")
+				if c == nil || h == nil || c.Kind != doc.String || h.Kind != doc.String || !tagRe.MatchString(c.S) || !tagRe.MatchString(h.S) || len(ent.Keys) != 2 {
+					return nil, bad(k)
+				}
+				e.Sync[p] = SyncEntry{C: c.S, H: h.S}
+			}
+		case "pending":
+			if v.Kind != doc.Array {
+				return nil, bad(k)
+			}
+			for _, x := range v.A {
+				if x.Kind != doc.String {
+					return nil, bad(k)
+				}
+				if _, err := doc.ParsePointer(x.S); err != nil {
+					return nil, bad(k)
+				}
+				e.Pending = append(e.Pending, x.S)
+			}
+		default:
+			return nil, &xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: name + ": unknown field " + MetaKey + "/" + k + "; " + RepairHint, Err: ErrLegacyHeader}
+		}
+	}
+	if e.Format == 0 {
+		return nil, bad("format")
+	}
+	if e.PublicKey == "" || e.KeyID == "" {
+		return nil, bad("publicKey")
+	}
+	pk, err := crypt.ParsePublicKey(e.PublicKey)
+	if err != nil {
+		return nil, bad("publicKey")
+	}
+	if crypt.KeyID(pk) != e.KeyID {
+		return nil, xerr.Key("%s: %s/keyId does not match %s/publicKey", name, MetaKey, MetaKey)
+	}
+	return e, nil
+}
+
+// MarshalEncrypted renders e with $jureuma first and sorted sync/pending. The
+// block always carries FormatVersion and the home reference; the schema
+// reference is the plain path, or { path, c } when an embedded schema copy is
+// present.
 func MarshalEncrypted(e *Encrypted) []byte {
 	m := doc.NewObject()
-	n, _ := doc.NewNumber("1")
-	m.Put("format", n)
-	m.Put("publicKey", doc.NewString(e.Meta.PublicKey))
-	m.Put("keyId", doc.NewString(e.Meta.KeyID))
-	if e.Meta.Schema != "" {
-		m.Put("schema", doc.NewString(e.Meta.Schema))
+	putIdentity(m, e.Meta.Identity())
+	if e.Meta.Schema != "" || e.Meta.SchemaCopy != "" {
+		if e.Meta.SchemaCopy == "" {
+			m.Put("schema", doc.NewString(e.Meta.Schema))
+		} else {
+			s := doc.NewObject()
+			s.Put("path", doc.NewString(e.Meta.Schema))
+			s.Put("c", doc.NewString(e.Meta.SchemaCopy))
+			m.Put("schema", s)
+		}
 	}
 	sync := doc.NewObject()
 	keys := make([]string, 0, len(e.Meta.Sync))
@@ -281,13 +329,15 @@ func ReadPlain(path string, jsonc_ bool) (*doc.Value, error) {
 	return v, nil
 }
 
-// WritePlain writes an unencrypted file with mode 0600. A .json target is
-// written as canonical JSON. A .jsonc target with existing content is updated
-// in place with the comment-preserving editor (comments and formatting
-// outside the edited spans survive; unparseable or unrepresentable content is
-// refused, never rewritten); a missing .jsonc target is created as canonical
-// JSON (valid JSON is valid JSONC). It refuses targets that git would not
-// ignore (after adding the managed block) and targets tracked by git.
+// WritePlain writes an unencrypted file with mode 0600, exactly the document
+// it is given: no $jureuma header or $schema pointer is injected and nothing
+// in the document is stripped. A .json target is written as canonical JSON. A
+// .jsonc target with existing content is updated in place with the
+// comment-preserving editor (comments and formatting outside the edited spans
+// survive; unparseable or unrepresentable content is refused, never
+// rewritten); a missing .jsonc target is created as canonical JSON (valid
+// JSON is valid JSONC). It refuses targets that git would not ignore (after
+// adding the managed block) and targets tracked by git.
 func WritePlain(path string, v *doc.Value) error {
 	name := filepath.Base(path)
 	if err := CheckUnencryptedName(path); err != nil {
@@ -296,21 +346,120 @@ func WritePlain(path string, v *doc.Value) error {
 	if v.Kind != doc.Object || v.Get(MetaKey) != nil {
 		return xerr.Failure("%s: refusing to write an invalid document", name)
 	}
-	root, err := paths.ProjectRoot(filepath.Dir(path))
+	return writePlainDoc(path, v, false)
+}
+
+// PlainFile is a parsed unencrypted file: its $jureuma identity header, the
+// top-level $schema pointer, and the body without either reserved key.
+type PlainFile struct {
+	// Header is nil when the file carries no $jureuma block (a headerless
+	// plaintext is legal and stays mutable).
+	Header *Header
+	// Schema is the top-level $schema pointer value, "" when absent.
+	Schema string
+	// Body never contains $jureuma or $schema.
+	Body *doc.Value
+}
+
+// ReadPlainFile parses an unencrypted file (JSONC when jsonc is true) with
+// its identity metadata: the $jureuma header and the top-level $schema
+// pointer are returned separately and excluded from Body. A header with
+// format 1 parses and records Format 1 (legacy: reads keep working); an
+// unknown future format is rejected explicitly; a present-but-malformed
+// header returns the typed legacy refusal and a keyId that contradicts
+// publicKey fails with exit 5.
+func ReadPlainFile(path string, jsonc_ bool) (*PlainFile, error) {
+	name := filepath.Base(path)
+	data, err := readLimited(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, &xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: name + ": not found", Err: fs.ErrNotExist}
+		}
+		return nil, readErr(name, err)
+	}
+	v, err := jsonc.Parse(data, !jsonc_)
+	if err != nil {
+		return nil, xerr.Validation("%s: %v", name, err)
+	}
+	if v.Kind != doc.Object {
+		return nil, xerr.Validation("%s: top level must be an object", name)
+	}
+	f := &PlainFile{Body: doc.NewObject()}
+	if mv := v.Get(MetaKey); mv != nil {
+		h, err := parseHeader(name, mv)
+		if err != nil {
+			return nil, err
+		}
+		f.Header = h
+	}
+	if sv := v.Get(SchemaKey); sv != nil {
+		if sv.Kind != doc.String {
+			return nil, xerr.Validation("%s: %s must be a string", name, SchemaKey)
+		}
+		f.Schema = sv.S
+	}
+	for _, k := range v.Keys {
+		if k == MetaKey || k == SchemaKey {
+			continue
+		}
+		f.Body.Put(k, v.M[k])
+	}
+	return f, nil
+}
+
+// WritePlainFile writes an unencrypted file from its identity metadata: the
+// $jureuma header (when set) first, then the $schema pointer (when set), then
+// the body. Body must not contain the reserved keys. Like WritePlain it
+// composes .jsonc targets through the comment-preserving editor and refuses
+// targets git would not ignore.
+func WritePlainFile(path string, f *PlainFile) error {
+	return writePlainFile(path, f, false)
+}
+
+// writePlainFile validates the metadata and composes the document for
+// writePlainDoc. repair is reserved for the jureuma init repair path.
+func writePlainFile(path string, f *PlainFile, repair bool) error {
+	name := filepath.Base(path)
+	if err := CheckUnencryptedName(path); err != nil {
+		return err
+	}
+	if f == nil || f.Body == nil || f.Body.Kind != doc.Object || f.Body.Get(MetaKey) != nil || f.Body.Get(SchemaKey) != nil {
+		return xerr.Failure("%s: refusing to write an invalid document", name)
+	}
+	root := doc.NewObject()
+	if f.Header != nil {
+		root.Put(MetaKey, marshalHeader(f.Header))
+	}
+	if f.Schema != "" {
+		root.Put(SchemaKey, doc.NewString(f.Schema))
+	}
+	for _, k := range f.Body.Keys {
+		root.Put(k, f.Body.M[k])
+	}
+	return writePlainDoc(path, root, repair)
+}
+
+// writePlainDoc writes the composed document through the git ignore and
+// tracking rules and the file itself. repair is reserved for the jureuma init
+// repair path.
+func writePlainDoc(path string, root *doc.Value, repair bool) error {
+	_ = repair
+	name := filepath.Base(path)
+	dir, err := paths.ProjectRoot(filepath.Dir(path))
 	if err != nil {
 		return xerr.Failure("%s: cannot resolve the project root", name)
 	}
-	if err := EnsureIgnored(root, path); err != nil {
+	if err := EnsureIgnored(dir, path); err != nil {
 		return err
 	}
-	tracked, err := TrackedByGit(root, path)
+	tracked, err := TrackedByGit(dir, path)
 	if err != nil {
 		return err
 	}
 	if tracked {
 		return xerr.Failure("%s: refusing to write a file that is tracked by git (run git rm --cached %s)", name, name)
 	}
-	data, err := plainBytes(path, v)
+	data, err := plainBytes(path, root)
 	if err != nil {
 		return err
 	}

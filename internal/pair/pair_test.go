@@ -129,7 +129,7 @@ func TestEncryptedRoundTripAndChecks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := &Encrypted{Meta: Meta{Format: 1, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Sync: ComputeSync(sk, plain, body), Pending: []string{"/z", "/a/0", "/z"}}, Body: body}
+	e := &Encrypted{Meta: Meta{Format: FormatVersion, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Home: HomeRef, Sync: ComputeSync(sk, plain, body), Pending: []string{"/z", "/a/0", "/z"}}, Body: body}
 	if err := WriteEncrypted(path, e); err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestReadEncryptedRejects(t *testing.T) {
 		"plaintext leaf": {strings.Replace(string(MarshalEncrypted(good)), "\"pending\": []\n  }", "\"pending\": []\n  },\n  \"x\": \""+sentinel+"\"", 1), xerr.CodeFailure},
 		"no meta":        {`{"x": 1}`, xerr.CodeFailure},
 		"syntax":         {`{"$jureuma": ` + sentinel, xerr.CodeFailure},
-		"unknown meta":   {strings.Replace(string(MarshalEncrypted(good)), `"format": 1,`, `"format": 1, "extra": "`+sentinel+`",`, 1), xerr.CodeFailure},
+		"unknown meta":   {strings.Replace(string(MarshalEncrypted(good)), `"format": 2,`, `"format": 2, "extra": "`+sentinel+`",`, 1), xerr.CodeFailure},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -351,7 +351,7 @@ func TestStatusStates(t *testing.T) {
 	pk := sk.Public()
 	base := mustParse(t, `{"a":"one","b":"two","c":"three","d":"four"}`)
 	body, _ := EncryptDoc(pk, base, nil, nil)
-	e := &Encrypted{Meta: Meta{Format: 1, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Sync: ComputeSync(sk, base, body)}, Body: body}
+	e := &Encrypted{Meta: Meta{Format: FormatVersion, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Home: HomeRef, Sync: ComputeSync(sk, base, body)}, Body: body}
 	p := &Pair{Name: "config"}
 
 	if r := Status(p, e, base, &sk); r.Overall != StateInSync {

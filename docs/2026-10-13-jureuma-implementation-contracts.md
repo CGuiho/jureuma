@@ -13,6 +13,8 @@ keywords:
   - API
 ---
 
+#### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
+
 # Jureuma Implementation Contracts
 
 The behaviour is defined in [the design](./2026-10-13-jureuma-design.md). This file fixes **where** it lives and the **exported API** each package must provide. Packages may add unexported helpers and extra exported helpers, but must not change these signatures.
@@ -259,11 +261,34 @@ type Options struct { Root, Name, EncryptedFile, UnencryptedFile, SchemaFile str
 type Pair struct { Name, EncryptedPath, UnencryptedPath, SchemaPath string; UnencryptedIsJSONC bool }
 func Resolve(o Options) (*Pair, error)            // naming rules, .encrypted./.unencrypted. enforcement, schema precedence
 type Encrypted struct { Meta Meta; Body *doc.Value }   // Body excludes $jureuma
-type Meta struct { Format int; PublicKey, KeyID, Schema string; Sync map[string]SyncEntry; Pending []string }
+type Meta struct {   // the $jureuma block: shared identity + schema/sync/pending
+    Format int                       // the generation that was read (1 legacy, 2 current)
+    PublicKey, KeyID, Home string    // identity; Home is the portable HomeRef
+    Schema, SchemaCopy string        // readable path + embedded encrypted copy ("" = none)
+    Sync map[string]SyncEntry; Pending []string
+}
 type SyncEntry struct { C, H string }
-func ReadEncrypted(path string) (*Encrypted, error)
+type Header struct { Format int; PublicKey, KeyID, Home string }  // identity of both files
+const FormatVersion = 2             // written generation; parse accepts 1 (legacy) and 2
+const HomeRef = "~/.guiho/jureuma/" // portable global-directory reference stored in home
+const SchemaKey = "$schema"         // reserved top-level key of the unencrypted file
+const SchemaCopyPointer = "/$jureuma/schema/c"   // AAD pointer of the embedded schema envelope
+const RepairHint = "run jureuma init to repair"
+var ErrLegacyHeader, ErrUnsupportedFormat, ErrMissingPlainIdentity error   // typed refusals (errors.Is)
+func LegacyHeader(file string) error         // typed refusal: $jureuma is format 1 or malformed
+func UnsupportedFormat(file string) error    // typed rejection: unknown future generation
+func MissingPlainIdentity(file string) error // typed repair pointer for a headerless plaintext
+func ReadEncrypted(path string) (*Encrypted, error)   // accepts $jureuma.schema as string or {path,c}
 func WriteEncrypted(path string, e *Encrypted) error   // $jureuma first, sorted sync/pending, atomic
-func ReadPlain(path string, jsonc bool) (*doc.Value, error)
+func (m Meta) Identity() Header                       // identity part of the meta block
+func (e *Encrypted) SetSchemaCopy(schemaText []byte) error        // encrypt the schema to the pair key
+func (e *Encrypted) OpenSchemaCopy(keys KeyLookup) ([]byte, error) // decrypt the embedded copy
+type PlainFile struct { Header *Header; Schema string; Body *doc.Value } // Header nil = headerless; Body excludes $jureuma and $schema
+func ReadPlainFile(path string, jsonc bool) (*PlainFile, error)   // full read: header + $schema + body
+func WritePlainFile(path string, f *PlainFile) error              // full write: header + $schema + body
+func CheckIdentity(plain *PlainFile, enc *Encrypted) (warnings []string, err error) // cross-file key match (exit 5), home/schema warnings
+func ReadPlain(path string, jsonc bool) (*doc.Value, error)       // legacy reader: rejects $jureuma, passes $schema through
+func WritePlain(path string, v *doc.Value) error        // legacy writer: writes exactly what it is given
 func WritePlain(path string, v *doc.Value) error        // .json canonical; an existing .jsonc is merged with jsonc.Edit (comments preserved); refuses unless git-ignored (EnsureIgnored)
 func EnsureIgnored(root, path string) error              // .gitignore managed block + git check-ignore
 func TrackedByGit(root, path string) (bool, error)
