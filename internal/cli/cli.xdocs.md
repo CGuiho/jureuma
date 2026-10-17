@@ -10,8 +10,8 @@ files:
   "stash.go": "Saved copy of an encrypted file removed by decrypt, and its restore (saved copy, then git HEAD) for encrypt."
   "cmd_values.go": "encrypt, decrypt, set, unset and get, including the only-unencrypted sibling builds and the schema-copy restore on decrypt."
   "cmd_run.go": "run: inject configuration into a child process with redacted output."
-  "cmd_info.go": "list, status and check: pair state across the four file states, identity headers and $schema/embedded-copy reporting."
-  "cmd_key.go": "key show, list, export, rotate (values, the embedded schema copy and the jureuma.yaml key binding) and retire."
+  "cmd_info.go": "list, status and check: pair state across the four file states, identity headers and $schema/embedded-copy reporting; a missing key ID is reported as state, never a key error."
+  "cmd_key.go": "key show, list, export, rotate (project-wide with a binding: every bound pair to one new key — values, embedded schema copies and recorded identities — plus the jureuma.yaml binding update) and retire."
   "keysel.go": "Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker."
   "cmd_schema.go": "schema infer (optional $schema property, $schema pointer and embedded copy refresh)."
   "cmd_juju.go": "juju-enable and juju-disable (alias ownership by SHA-256)."
@@ -25,7 +25,7 @@ files:
   "cli_test.go": "In-process CLI tests, including the marker-value leak test."
   "keysel_test.go": "Rendering, picker and default-label tests."
   "cmd_key_list_test.go": "key list, key show and key rotate label tests."
-  "projectkey_test.go": "Project key-binding tests (disagreement exit 5, init binding writes and the bound key, flag contradiction exit 2, rotate update, malformed binding exit 4)."
+  "projectkey_test.go": "Project key-binding tests (disagreement exit 5, init binding writes and the bound key, flag contradiction exit 2, rotate update, malformed binding exit 4, never-overwritten binding)."
   "upgrade_tx.go": "Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command."
   "upgrade_journal.go": "Upgrade transaction journal (phases, write-ahead rollback plan) and interrupted-transaction repair."
   "upgrade_journal_test.go": "Journal and repair tests."
@@ -61,8 +61,8 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `stash.go`: Saved copy of an encrypted file removed by decrypt, and its restore (saved copy, then git HEAD) for encrypt.
 - `cmd_values.go`: encrypt, decrypt, set, unset and get, including the only-unencrypted sibling builds and the schema-copy restore on decrypt.
 - `cmd_run.go`: run: inject configuration into a child process with redacted output.
-- `cmd_info.go`: list, status and check: pair state across the four file states, identity headers and $schema/embedded-copy reporting.
-- `cmd_key.go`: key show, list, export, rotate (values, the embedded schema copy and the jureuma.yaml key binding) and retire.
+- `cmd_info.go`: list, status and check: pair state across the four file states, identity headers and $schema/embedded-copy reporting; a missing key ID is reported as state, never a key error.
+- `cmd_key.go`: key show, list, export, rotate (project-wide with a binding: every bound pair to one new key — values, embedded schema copies and recorded identities — plus the jureuma.yaml binding update) and retire.
 - `keysel.go`: Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker.
 - `cmd_schema.go`: schema infer (optional $schema property, $schema pointer and embedded copy refresh).
 - `cmd_juju.go`: juju-enable and juju-disable (alias ownership by SHA-256).
@@ -76,7 +76,7 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `cli_test.go`: In-process CLI tests, including the marker-value leak test.
 - `keysel_test.go`: Rendering, picker and default-label tests.
 - `cmd_key_list_test.go`: key list, key show and key rotate label tests.
-- `projectkey_test.go`: Project key-binding tests (disagreement exit 5, init binding writes and the bound key, flag contradiction exit 2, rotate update, malformed binding exit 4).
+- `projectkey_test.go`: Project key-binding tests (disagreement exit 5, init binding writes and the bound key, flag contradiction exit 2, rotate update, malformed binding exit 4, never-overwritten binding).
 - `upgrade_tx.go`: Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command.
 - `upgrade_journal.go`: Upgrade transaction journal (phases, write-ahead rollback plan) and interrupted-transaction repair.
 - `upgrade_journal_test.go`: Journal and repair tests.

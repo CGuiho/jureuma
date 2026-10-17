@@ -211,11 +211,12 @@ Private keys never live in the project directory.
 
 `jureuma key rotate` (requires the old private key):
 
-1. Generate a new key pair and write it to `keys/<newKeyId>.json`.
-2. Decrypt every value and re-encrypt it to the new key; write the new encrypted file atomically.
-3. When `jureuma.yaml` binds a key (`key:`), update the binding to the new key ID through the same one-line splice (an absent binding stays absent). When the update cannot be represented, the command fails after reporting the rotation truthfully; the binding is never left silently stale.
-4. Move the old key to `keys/retired/`. It is deleted only when the human runs `jureuma key retire <keyId>` and `jureuma check` reports no ciphertexts under it in the current project.
-5. Print the CI variable names to update (`JUREUMA_PRIVATE_KEY_<NEWKEYID>`) and a reminder that rotation does not revoke git history.
+1. Without a key binding (and for a bound project that declares no pairs), rotate the selected pair exactly as before. With `key:` set, rotation is **project-wide**: every configured pair that records the bound key rotates to ONE new key, and a pair recording another key refuses with exit 5 — naming the pair and both key IDs — before anything is written (never a silent re-encrypt). Pairs with no recorded identity are skipped with a note; an unreadable file, old jureuma state or a missing key fails before any write, so a rotation is all-or-nothing for everything a pair can refuse.
+2. Generate one new key pair and write it to `keys/<newKeyId>.json`.
+3. Decrypt every pair's values (retired keys still open older ciphertexts), re-encrypt them to the new key, write each encrypted file atomically, rebuild each pair's `sync`/`pending`, and migrate each embedded schema copy. Every recorded identity follows the new key: a headered unencrypted file — the sibling of an encrypted file, or a pair whose plaintext is its only file — is re-keyed with its body untouched, so no pair ends up disagreeing with the binding.
+4. When `jureuma.yaml` binds a key, update the binding to the new key ID **once**, after the pair writes succeed, through the same one-line splice (an absent binding stays absent). When the update cannot be represented, the command fails after reporting the rotation truthfully; the binding is never left silently stale.
+5. Move the old key to `keys/retired/` when no pair still uses it. It is deleted only when the human runs `jureuma key retire <keyId>` and `jureuma check` reports no ciphertexts under it in the current project.
+6. Print one line per rotated pair plus a summary (single-pair rotation keeps its original report), the CI variable names to update (`JUREUMA_PRIVATE_KEY_<NEWKEYID>`) and a reminder that rotation does not revoke git history.
 
 Because every ciphertext carries its `keyId`, a file merged from an older branch can hold ciphertexts under a retired key; `check` reports them and `encrypt` migrates them using the retired keyring.
 
@@ -501,7 +502,7 @@ agent:
     issues: { bugs: always-ask, improvements: always-ask, reviews: always-ask }
 ```
 
-The top-level `key` is the optional project key binding: a full key ID naming the one key pair every configured pair uses. `init` writes it after creating or choosing a key for a pair with no recorded identity (one spliced line; an existing binding is never overwritten), every pair-resolving command enforces it (a disagreement is exit 5, never a silent re-encrypt), and `key rotate` updates it to the new key ID. Labels are not accepted there, and an empty or malformed value is a validation error (exit 4).
+The top-level `key` is the optional project key binding: a full key ID naming the one key pair every configured pair uses. `init` writes it after creating or choosing a key for a pair with no recorded identity (one spliced line; an existing binding is never overwritten), every pair-resolving command enforces it (a disagreement is exit 5, never a silent re-encrypt), and `key rotate` is project-wide with it — every configured pair that records the bound key rotates to one new key — then updates the binding to the new key ID. Labels are not accepted there, and an empty or malformed value is a validation error (exit 4).
 
 ```yaml
 # yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.1.0/jureuma.global.schema.json

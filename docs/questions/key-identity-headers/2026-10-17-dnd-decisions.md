@@ -500,22 +500,25 @@ document, the command help and the suite; special-casing one key error inside
 - **human-review:** pending
 
 ### Q33 — `key rotate` updates the binding even when other pairs still use the
-old key. Is that not a fresh disagreement?
+old key. Is that not a fresh disagreement? *(superseded in the fix wave)*
 
-**Answer: yes, and it follows the brief literally — after a successful
-rotation an existing binding is updated to the new key ID (absent stays
-absent), never left silently stale.** In a multi-pair project the pairs must
-each be rotated (the binding follows the last rotation); the alternative —
-leaving the binding on the old key — makes the rotated pair itself disagree
-and is exactly the "silently stale" outcome the brief forbids. The command
-fails after the truthful rotation report when the update cannot be
-represented.
+**Answer (fix wave, 2026-10-17): it was — and the parent review rejected it
+as a dead end. Rotation is now project-wide: with a binding, `key rotate`
+rotates EVERY configured pair that records the bound key to ONE new key, so
+no pair is ever left recording a key the binding no longer names.** One
+generated key, every pair's values re-encrypted (`sync`/`pending` rebuilt per
+pair, each embedded schema copy migrated), every recorded identity followed
+to the new key, one binding update through `config.BindProjectKey` after the
+pair writes, and one retirement of the old key. The original entry's
+behaviour (single-pair rotation updating the binding while other bound pairs
+kept the old key) is gone: it left those pairs at exit 5 — including for
+`key rotate` itself — so the project could not be repaired from the CLI.
 
-- **confidence:** medium-high (literal contract; the multi-pair rotation cost
-  is inherent to a one-key-per-project binding and worth a future look).
-- **action taken:** the update runs in `key rotate` after the report;
-  `TestProjectKeyBindingRotateUpdates` pins it (and the absent-stays-absent
-  half).
+- **confidence:** high (the parent review named the old behaviour a blocking
+  dead end; the project-wide rotation is pinned by
+  `TestProjectKeyBindingRotateRotatesWholeProject`).
+- **action taken:** `rotateProject` in `internal/cli/cmd_key.go` (bound
+  projects with configured pairs); the single-pair path is untouched.
 - **human-review:** pending
 
 ### Q34 — Flag resolution order when `--key-id` both names no stored key and
@@ -534,10 +537,15 @@ the binding are a usage error".
   `TestProjectKeyBindingFlagContradiction`.
 - **human-review:** pending
 
-### Q35 — Observation, not a change: `status` on a plaintext-only headerless
-pair exits 5 with "invalid key ID".
+### Q35 — `status` on a plaintext-only headerless pair exits 5 with
+"invalid key ID". *(fixed in the fix wave)*
 
-**Answer: recorded, not fixed — it is pre-existing and outside this unit.**
+**Answer (fix wave, 2026-10-17): fixed — with no recorded key ID both
+read-only reports skip the keystore lookup entirely. `status` reports the
+state (missing-identity note) and exits 0; `check` keeps its exit-1
+repair-pointer failure and never raises a key error from an empty lookup.**
+The original entry recorded it as pre-existing and out of scope; the parent
+review then assigned the fix.
 Verified at base commit `4027953` with the same scenario (no binding in the
 project at all): `internal/cli/cmd_info.go` calls `findKey("")` when neither
 file records an identity, and the keystore rejects the empty key ID. The
@@ -549,8 +557,11 @@ single-file `run jureuma init to repair` pointer instead) and the
 recommendation for a later unit is a `keyID != ""` guard before `findKey`.
 
 - **confidence:** high (reproduced on the base binary and diff-verified
-  unchanged code paths).
-- **action taken:** none; ledgered for human review.
+  unchanged code paths; the fix is pinned by
+  `TestStatusAndCheckWithoutRecordedKey`).
+- **action taken:** `internal/cli/cmd_info.go` (status and `checkPair`) now
+  call `findKey` only with a non-empty key ID; both call sites keep every
+  other report unchanged.
 - **human-review:** pending
 
 ### Q36 — "Empty or malformed values are validation errors (exit 4 on load)".
@@ -573,4 +584,81 @@ jureuma-side failure to 125.
 - **action taken:** `fieldErr` and `validateSchema` return typed exit-4
   errors in `internal/config`; `loadEnv` and `init` preserve the carried code
   instead of forcing exit 1. Pinned by `TestConfigErrorsAreValidationErrors`.
+- **human-review:** pending
+
+## W4 fix wave — project-wide rotation and the empty key lookup (2026-10-17)
+
+Two parent-review findings were fixed: the multi-pair rotation dead end
+(Finding 1) and the empty key-ID lookup in read-only reports (Finding 2,
+Q35). The judgment calls below were made unattended.
+
+### Q37 — Which pairs does "rotate ALL configured pairs that belong to the
+binding" cover, and what is the rotation set?
+
+**Answer: every configured pair (plus the explicitly selected pair when it is
+not configured — an explicit selection is never silently ignored) is
+verified; the pairs that RECORD an identity — which the verification proves
+to be the bound key — are rotated, and pairs with no recorded identity (no
+files, or a headerless plaintext alone) are skipped with a note.** "Belongs
+to the binding" is exactly "records an identity" here, because the same
+pre-check refuses any recorded identity that differs from the binding
+(exit 5, naming the pair and both key IDs) before anything is written. The
+reading of the brief's "and no selected role" is "plays no part in the
+rotation": empty pairs are skipped with a note whichever way they were
+selected, because there is nothing of theirs to re-encrypt.
+
+- **confidence:** medium-high (the skip clause is unambiguous; "selected
+  role" is the one phrase that could mean the flag-selected pair is treated
+  differently — resolved as above since rotating a pair with no files is
+  impossible).
+- **action taken:** `rotateProject` phase 1 (`internal/cli/cmd_key.go`);
+  `TestProjectKeyBindingRotateSkipsIdentitylessPair` and
+  `TestProjectKeyBindingRotateRefusesMixedKeys`.
+- **human-review:** pending
+
+### Q38 — What happens to recorded identities that are not the encrypted file
+(headered unencrypted siblings, plaintext-only pairs)?
+
+**Answer: every recorded identity follows the new key. A headered
+unencrypted file — the sibling beside an encrypted file, or a pair whose
+plaintext is its only file — is re-keyed (identity fields only; the body,
+comments and `$schema` pointer are kept), and a headerless plaintext is left
+byte-identical.** Without this, rotation would immediately create the very
+dead end the finding forbids: `pair.CheckIdentity` and the shared resolver
+both compare the plaintext header with the pair key, so a stale header makes
+`set`, `check`, `status` and `init` exit 5 on that pair (verified on the
+pre-fix build in the both-present state). Rotation therefore means "every
+record of this pair's identity says the new key".
+
+- **confidence:** high (the alternative leaves bound projects unrepairable
+  after one rotation; the behaviour is pinned by the sibling-header
+  assertions in `TestProjectKeyBindingRotateRotatesWholeProject`).
+- **action taken:** the identity refresh is part of project-wide rotation
+  only; it uses the ordinary pair writer (`pair.WritePlainFile`), so `.jsonc`
+  keeps its comments and a `.json` plaintext is normalised the same way
+  `init` repair normalises it.
+- **human-review:** pending
+
+### Q39 — "Rotation is all-or-nothing" — what is guaranteed, and what about
+the single-pair path?
+
+**Answer: all-or-nothing holds for everything a pair can refuse — unreadable
+files, old jureuma state, a missing key and a mismatched recorded key all
+fail in the preparation phase, before the first write (and before the new key
+is even generated). A mid-write I/O failure stops at the failing pair and
+reports how many pairs were written and that the binding was not updated;
+perfect atomicity across several files is not achievable without a
+transaction.** The single-pair/no-binding path is untouched byte-for-byte,
+per the brief. **Residual, deliberately not fixed here:** that path still
+leaves a headered unencrypted sibling stale after rotating a both-present
+pair — the pre-existing edge this wave's Q38 analysis documents (`set`,
+`check` and `status` then exit 5 on the cross-file identity check; verified
+at base `5268be9`). The brief pinned the single-pair path's behaviour, so the
+fix wave did not touch it; the same identity refresh would fix it (one call),
+recommended as a follow-up.
+
+- **confidence:** high on the guarantee boundary; medium on leaving the
+  single-pair edge unfixed (explicit brief constraint vs. consistency).
+- **action taken:** the preparation/write split in `rotateProject`
+  (`internal/cli/cmd_key.go`); the single-pair code path is unchanged.
 - **human-review:** pending
