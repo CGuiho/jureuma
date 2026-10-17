@@ -4,10 +4,11 @@ description: "Resolves, stores, retires and lists private keys under ~/.guiho/ju
 parent: jureuma-internal
 children: []
 files:
-  "keystore.go": "Key storage and lookup."
+  "keystore.go": "Key storage and lookup, with non-secret key labels."
   "file_unix.go": "Unix permission checks."
   "file_windows.go": "Windows file handling."
   "keystore_test.go": "Keystore tests."
+  "keystore_label_test.go": "Label round-trip, legacy key files and label listing tests."
   "keystore_unix_test.go": "Unix permission tests."
 documents: {}
 tags:
@@ -27,8 +28,9 @@ Resolves, stores, retires and lists private keys under ~/.guiho/jureuma/keys and
 
 ## Files
 
-- `keystore.go`: Key storage and lookup.
+- `keystore.go`: Key storage and lookup, with non-secret key labels.
 - `file_unix.go`: Unix permission checks.
 - `file_windows.go`: Windows file handling.
 - `keystore_test.go`: Keystore tests.
+- `keystore_label_test.go`: Label round-trip, legacy key files and label listing tests.
 - `keystore_unix_test.go`: Unix permission tests.

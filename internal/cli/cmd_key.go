@@ -18,9 +18,9 @@ import (
 func (a *app) cmdKey() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "key",
-		Short: "show, export, rotate and retire keys",
+		Short: "show, list, export, rotate and retire keys",
 	}
-	c.AddCommand(a.cmdKeyShow(), a.cmdKeyExport(), a.cmdKeyRotate(), a.cmdKeyRetire())
+	c.AddCommand(a.cmdKeyShow(), a.cmdKeyList(), a.cmdKeyExport(), a.cmdKeyRotate(), a.cmdKeyRetire())
 	return c
 }
 
@@ -58,7 +58,16 @@ func (a *app) cmdKeyShow() *cobra.Command {
 				}
 				sk = &k
 			}
+			label := ""
+			if entries, err := e.store.List(); err == nil {
+				for _, en := range entries {
+					if en.KeyID == enc.Meta.KeyID {
+						label = en.Label
+					}
+				}
+			}
 			outf(cmd, "keyId:      %s\n", enc.Meta.KeyID)
+			outf(cmd, "label:      %s\n", keyLabel(label))
 			outf(cmd, "publicKey:  %s\n", enc.Meta.PublicKey)
 			outf(cmd, "ciVariable: %s\n", keystore.EnvName(enc.Meta.KeyID))
 			if sk != nil {
@@ -75,6 +84,34 @@ func (a *app) cmdKeyShow() *cobra.Command {
 	addPairFlags(c, &pf)
 	c.Flags().BoolVar(&private, "private", false, "[human-only] also print the private key")
 	addBypassFlag(c, &bypass, "skip the human-only gate for --private (only when a human explicitly asked; audited)")
+	return c
+}
+
+func (a *app) cmdKeyList() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "list",
+		Short: "list the stored keys by label, short key ID and public-key prefix",
+		Long: `Lists every key stored in ~/.guiho/jureuma/keys/ (active keys first, then retired
+keys), one line each: label, short key ID, the beginning of the public key, and the
+state. Labels, key IDs and public-key prefixes are non-secret metadata; private keys
+are never listed. Keys without a label (created before labels existed) show a
+placeholder.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			e, err := loadEnv()
+			if err != nil {
+				return err
+			}
+			entries, err := e.store.List()
+			if err != nil {
+				return xerr.Failure("cannot list keys")
+			}
+			for _, line := range renderKeyLines(entries) {
+				outf(cmd, "%s\n", line)
+			}
+			return nil
+		},
+	}
 	return c
 }
 
@@ -169,7 +206,8 @@ revoke values already in git history: rotate the underlying secrets after a key 
 				return xerr.Failure("cannot generate a key")
 			}
 			newPK := newSK.Public()
-			if _, err := e.store.Save(newSK); err != nil {
+			label := defaultKeyLabel(e.root, gitOriginURL)
+			if _, err := e.store.SaveLabeled(newSK, label); err != nil {
 				return xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
 			}
 			body, err := pair.EncryptDoc(newPK, plain, nil, nil)
@@ -206,6 +244,9 @@ revoke values already in git history: rotate the underlying secrets after a key 
 				retired = true
 			}
 			outf(cmd, "rotated %s: %s -> %s (%d %s re-encrypted)\n", p.Rel(p.EncryptedPath), enc.Meta.KeyID, next.Meta.KeyID, len(doc.Leaves(body)), plural(len(doc.Leaves(body)), "value", "values"))
+			if label != "" {
+				outf(cmd, "the new key is labeled %s\n", label)
+			}
 			if retired {
 				outf(cmd, "the old key was moved to ~/.guiho/jureuma/keys/retired/\n")
 			}

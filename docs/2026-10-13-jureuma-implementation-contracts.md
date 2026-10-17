@@ -104,20 +104,23 @@ func New(home string) *Store                        // Getenv = os.Getenv
 // Returns ErrNoKey when none exists, *MismatchError when a source holds a
 // different key.
 func (s *Store) Find(keyID string) (crypt.PrivateKey, Source, error)
-func (s *Store) Save(sk crypt.PrivateKey) (path string, err error)   // keys/<id>.json, 0600, atomic
+func (s *Store) Save(sk crypt.PrivateKey) (path string, err error)   // SaveLabeled(sk, "")
+func (s *Store) SaveLabeled(sk crypt.PrivateKey, label string) (path string, err error) // keys/<id>.json, 0600, atomic; label omitted when empty; relabeling keeps created
 func (s *Store) Retire(keyID string) error                          // move to keys/retired/
 func (s *Store) Delete(keyID string) error                          // retired only
+// List reads each file's non-secret metadata (label, public key) best-effort;
+// both are empty when a file cannot be parsed or predates labels.
 func (s *Store) List() ([]Entry, error)
 // Source names where a key came from, e.g. "env:JUREUMA_PRIVATE_KEY", "file:keys/k_….json".
 type Source string
-type Entry struct { KeyID string; Retired bool; Path string }
+type Entry struct { KeyID, Label, PublicKey string; Retired bool; Path string } // Label and PublicKey are non-secret metadata
 type MismatchError struct { Source Source }
 var ErrNoKey = errors.New("private key not available")
 // PrivateKeyEnvNames are stripped from child environments by runner.
 func IsPrivateKeyEnv(name string) bool
 ```
 
-Key file format: `{"keyId": "...", "publicKey": "jureuma-pk-1:...", "privateKey": "jureuma-sk-1:...", "created": "RFC3339"}`. Reject symlinks, files not owned by the current user, and mode wider than 0600 on Unix. `keyID` is validated before any path is built.
+Key file format: `{"keyId": "...", "publicKey": "jureuma-pk-1:...", "privateKey": "jureuma-sk-1:...", "label": "...", "created": "RFC3339"}`. `label` is non-secret metadata (the repository/project name) and is omitted when empty; files without it load normally and list with a placeholder. Reject symlinks, files not owned by the current user, and mode wider than 0600 on Unix. `keyID` is validated before any path is built.
 
 ## `internal/gate`
 
@@ -316,7 +319,7 @@ func SkillInstalledCurrent(s Skill, dest string) bool
 
 ## `internal/cli`
 
-Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, export, rotate, retire}`, `schema {infer}`, `juju-enable`, `juju-disable`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/jureuma/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
+Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, list, export, rotate, retire}`, `schema {infer}`, `juju-enable`, `juju-disable`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Keys carry a non-secret label (default: the repository name from the `origin` remote, else the project directory name); `key list` shows `label  short key ID  public-key prefix  active|retired`, and stored-key selection prompts "Which one do you want to use?" only in a TTY. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/jureuma/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
 
 ## Exit codes
 

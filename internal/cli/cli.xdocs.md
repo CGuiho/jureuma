@@ -11,7 +11,8 @@ files:
   "cmd_values.go": "encrypt, decrypt, set, unset and get."
   "cmd_run.go": "run: inject configuration into a child process with redacted output."
   "cmd_info.go": "list, status and check."
-  "cmd_key.go": "key show, export, rotate and retire."
+  "cmd_key.go": "key show, list, export, rotate and retire."
+  "keysel.go": "Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker."
   "cmd_schema.go": "schema infer."
   "cmd_juju.go": "juju-enable and juju-disable (alias ownership by SHA-256)."
   "cmd_agent.go": "agent skill, instruction and prompt commands."
@@ -22,6 +23,8 @@ files:
   "detach_unix.go": "Detached background update worker on Unix (Setsid)."
   "detach_windows.go": "Detached background update worker on Windows (DETACHED_PROCESS)."
   "cli_test.go": "In-process CLI tests, including the marker-value leak test."
+  "keysel_test.go": "Rendering, picker and default-label tests."
+  "cmd_key_list_test.go": "key list, key show and key rotate label tests."
   "upgrade_tx.go": "Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command."
   "upgrade_journal.go": "Upgrade transaction journal (phases, write-ahead rollback plan) and interrupted-transaction repair."
   "upgrade_journal_test.go": "Journal and repair tests."
@@ -58,7 +61,8 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `cmd_values.go`: encrypt, decrypt, set, unset and get.
 - `cmd_run.go`: run: inject configuration into a child process with redacted output.
 - `cmd_info.go`: list, status and check.
-- `cmd_key.go`: key show, export, rotate and retire.
+- `cmd_key.go`: key show, list, export, rotate and retire.
+- `keysel.go`: Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker.
 - `cmd_schema.go`: schema infer.
 - `cmd_juju.go`: juju-enable and juju-disable (alias ownership by SHA-256).
 - `cmd_agent.go`: agent skill, instruction and prompt commands.
@@ -69,6 +73,8 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `detach_unix.go`: Detached background update worker on Unix (Setsid).
 - `detach_windows.go`: Detached background update worker on Windows (DETACHED_PROCESS).
 - `cli_test.go`: In-process CLI tests, including the marker-value leak test.
+- `keysel_test.go`: Rendering, picker and default-label tests.
+- `cmd_key_list_test.go`: key list, key show and key rotate label tests.
 - `upgrade_tx.go`: Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command.
 - `upgrade_journal.go`: Upgrade transaction journal (phases, write-ahead rollback plan) and interrupted-transaction repair.
 - `upgrade_journal_test.go`: Journal and repair tests.

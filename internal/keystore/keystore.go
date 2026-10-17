@@ -45,11 +45,15 @@ func New(home string) *Store { return &Store{Home: home, Getenv: os.Getenv} }
 // "file:keys/k_….json".
 type Source string
 
-// Entry is one stored key file.
+// Entry is one stored key file. Label and PublicKey are non-secret metadata
+// read from the file: both are empty when the file could not be parsed or the
+// key file predates labels. No private material is ever carried here.
 type Entry struct {
-	KeyID   string
-	Retired bool
-	Path    string
+	KeyID     string
+	Label     string
+	PublicKey string
+	Retired   bool
+	Path      string
 }
 
 // MismatchError reports that a source holds a key whose derived key ID does
@@ -90,12 +94,23 @@ func IsPrivateKeyEnv(name string) bool {
 	return u == EnvPrivateKey || strings.HasPrefix(u, EnvPrivateKeyPrefix)
 }
 
-// keyFile is the on-disk format.
+// keyFile is the on-disk format. Label is non-secret metadata and is omitted
+// when empty; key files written before labels existed simply lack the field.
 type keyFile struct {
 	KeyID      string `json:"keyId"`
 	PublicKey  string `json:"publicKey"`
 	PrivateKey string `json:"privateKey"`
+	Label      string `json:"label,omitempty"`
 	Created    string `json:"created"`
+}
+
+// keyFileMeta is the non-secret part of a key file. Decoding into this shape
+// never materialises the private key in memory.
+type keyFileMeta struct {
+	KeyID     string `json:"keyId"`
+	PublicKey string `json:"publicKey"`
+	Label     string `json:"label"`
+	Created   string `json:"created"`
 }
 
 func (s *Store) getenv(name string) string {
@@ -229,17 +244,58 @@ func loadKeyFile(path string, src Source, keyID string) (crypt.PrivateKey, error
 
 var errSymlink = errors.New("symbolic link")
 
-// Save writes sk to keys/<id>.json with mode 0600, atomically. If an
-// identical, valid key file already exists it is left untouched.
+// readKeyMeta returns the non-secret metadata of one key file. It reports ok
+// false when the file cannot be opened, checked or parsed, or when the key ID
+// inside does not match the file name; callers listing keys stay best-effort
+// in that case. The private key field is never decoded.
+func readKeyMeta(path string, keyID string) (keyFileMeta, bool) {
+	var zero keyFileMeta
+	f, err := openKeyFile(path)
+	if err != nil {
+		return zero, false
+	}
+	defer f.Close()
+	if checkKeyFile(f) != "" {
+		return zero, false
+	}
+	data, err := io.ReadAll(io.LimitReader(f, maxKeyFile+1))
+	if err != nil || len(data) > maxKeyFile {
+		return zero, false
+	}
+	var meta keyFileMeta
+	if err := json.Unmarshal(data, &meta); err != nil || meta.KeyID != keyID {
+		return zero, false
+	}
+	return meta, true
+}
+
+// Save writes sk to keys/<id>.json without a label. See SaveLabeled.
 func (s *Store) Save(sk crypt.PrivateKey) (string, error) {
+	return s.SaveLabeled(sk, "")
+}
+
+// SaveLabeled writes sk with its non-secret label to keys/<id>.json with mode
+// 0600, atomically. An empty label is omitted from the file. If an identical,
+// valid key file with the same label already exists it is left untouched;
+// otherwise the file is (re)written, keeping its original created timestamp
+// when it already existed.
+func (s *Store) SaveLabeled(sk crypt.PrivateKey, label string) (string, error) {
 	pk := sk.Public()
 	id := crypt.KeyID(pk)
 	path := s.activePath(id)
 	if err := ensureDir(filepath.Join(s.Home, keysDir)); err != nil {
 		return "", err
 	}
+	created := time.Now().UTC().Format(time.RFC3339)
 	if existing, err := loadKeyFile(path, fileSource(keysDir, id+".json"), id); err == nil && crypt.SameKey(existing, sk) {
-		return path, nil
+		if meta, ok := readKeyMeta(path, id); ok {
+			if meta.Label == label {
+				return path, nil
+			}
+			if meta.Created != "" {
+				created = meta.Created
+			}
+		}
 	}
 	if fi, err := os.Lstat(path); err == nil && fi.Mode()&os.ModeSymlink != 0 {
 		return "", &InvalidKeyError{Source: fileSource(keysDir, id+".json"), Reason: "key file is a symbolic link"}
@@ -248,7 +304,8 @@ func (s *Store) Save(sk crypt.PrivateKey) (string, error) {
 		KeyID:      id,
 		PublicKey:  pk.String(),
 		PrivateKey: sk.String(),
-		Created:    time.Now().UTC().Format(time.RFC3339),
+		Label:      label,
+		Created:    created,
 	}, "", "  ")
 	if err != nil {
 		return "", errors.New("cannot encode key file")
@@ -309,7 +366,9 @@ func (s *Store) Delete(keyID string) error {
 }
 
 // List returns active keys followed by retired keys, each sorted by key ID.
-// Only files named <valid keyId>.json are listed; contents are not read.
+// Only files named <valid keyId>.json are listed; each file's non-secret
+// metadata (label, public key) is read best-effort and left empty when the
+// file cannot be parsed. No private material is ever returned.
 func (s *Store) List() ([]Entry, error) {
 	var out []Entry
 	for _, d := range []struct {
@@ -333,7 +392,13 @@ func (s *Store) List() ([]Entry, error) {
 			if !ok || !crypt.ValidKeyID(id) || e.IsDir() {
 				continue
 			}
-			part = append(part, Entry{KeyID: id, Retired: d.retired, Path: filepath.Join(d.dir, name)})
+			path := filepath.Join(d.dir, name)
+			en := Entry{KeyID: id, Retired: d.retired, Path: path}
+			if meta, ok := readKeyMeta(path, id); ok {
+				en.Label = meta.Label
+				en.PublicKey = meta.PublicKey
+			}
+			part = append(part, en)
 		}
 		sort.Slice(part, func(i, j int) bool { return part[i].KeyID < part[j].KeyID })
 		out = append(out, part...)
