@@ -191,3 +191,144 @@ already owns keystore lookups.
   write paths, `header_test.go`); Q9–Q12 change no behaviour the untouched
   suite pins.
 - **human-review:** pending
+
+## W3 — single-file flows, `init` repair and `init` key selection
+
+### Q15 — How does a keyless sibling rebuild record the sync baseline when `h`
+needs the private key?
+
+**Answer: it writes no baseline at all — `Meta.Sync` stays empty and nothing is
+pending (touched paths only when a skipped mirror leaves them there).** The
+plan's "keyless rebuild baseline" wanted `c` per leaf with `h` absent, but the
+frozen W2 parser (`internal/pair`, `parseMeta`) requires every `sync` entry to
+carry both tags and rejects the file otherwise, and `crypt.PlainTag` derives `h`
+from the private key. Writing `c`-only entries would make the pair unreadable.
+The observable guarantee holds unchanged: jureuma never claims `in-sync`
+without an `h` tag — with the key, `status` reports `in-sync` only after
+proving equality by decryption (pair `Status`'s existing fallback); without it,
+the overall state is `key-unavailable`. A key holder refreshing the sibling
+writes full `c`/`h` pairs.
+
+### Q16 — Where does `init` get the pair identity when no encrypted file exists?
+
+**Answer: from the unencrypted file's `$jureuma` header when it has one, else
+from a chosen stored key.** CG's flow is that the agent opens the single file;
+when the file records the key, that key *is* "a key that is already stored" and
+re-keying would orphan the pair. The picker (`--key-id` / `--key-label` /
+TTY picker / create-new) therefore runs only when nothing records an identity.
+`--key-id`/`--key-label` against a plaintext-recorded identity is a usage error
+(they would disagree), and against an existing pair they are ignored with a
+note (`key rotate` re-keys).
+
+### Q17 — What does `init` write into the sibling when the plaintext holds
+values?
+
+**Answer: the sibling is built from the unencrypted document (values
+included), not left empty.** An empty sibling beside a plaintext with values
+would make `run` inject an empty document — a silent outage on agent machines,
+where `encrypt` is impossible (no key). Building from the document is exactly
+the sibling build `set`/`unset` use, so `run` works right after `init`. When
+the plaintext is missing or empty, `init` keeps today's empty-file behaviour.
+
+### Q18 — How is the "create a new key" choice offered through the W1 picker?
+
+**Answer: `pickKey` is called with a synthetic trailing entry labeled
+`create a new key`, whose selection (empty key ID) creates a key instead of
+using one.** `internal/cli/keysel.go` is W1's surface and outside this unit's
+ownership, so the picker is used as it stands; the synthetic line renders with
+an empty key-ID column, a cosmetic imperfection accepted to keep the picker
+untouched. EOF/cancel stays a hard `no key selected` failure — it never falls
+through to creating a key.
+
+### Q19 — When may `set`'s mirror write into the plaintext in the
+only-unencrypted flow?
+
+**Answer: exactly when today's `mirrorBlocked` allows it — an unsaved human
+edit, or a value jureuma cannot prove unchanged, is never replaced.** The
+baseline is the last saved state (the decrypt saved copy, then git `HEAD`),
+falling back to "nothing is saved" when neither exists; without the private
+key any existing value at or under the target blocks, as before. A skipped
+mirror warns, keeps the path pending and leaves the value in the sibling
+(`encrypt`/`decrypt` reconcile it). The alternative — treating the plaintext as
+its own baseline so the mirror always lands — would silently overwrite a
+human's post-decrypt edit at the set path, which the design document forbids.
+
+### Q20 — What does `init` repair touch, and what about files it cannot parse?
+
+**Answer: only metadata, only when it differs.** The encrypted side is
+rewritten (format 2 identity, `home`, recorded schema path, embedded copy
+added when absent) keeping values, `sync` and `pending`; the unencrypted side
+keeps its body exactly and gains/renews the identity header and `$schema`
+pointer. An already-correct file is not rewritten at all, so `init` is
+byte-idempotent and keyless for legacy upgrades. A `$jureuma` block jureuma
+cannot parse at all (present-but-malformed) cannot be repaired through the
+frozen pair API — `ReadPlainFile`/`ReadEncrypted` refuse it and there is no
+lenient reader — so `init` reports it (`fix or remove the $jureuma block by
+hand, then re-run jureuma init`) and leaves the file untouched. **Pair-API need
+recorded for review:** an additive lenient repair reader (parse the document,
+split the body from a malformed `$jureuma` without validating it) would let
+`RepairPlainFile`/`RepairEncrypted` heal malformed blocks too; it needs an
+`internal/pair` addition, which this unit must not make.
+
+### Q21 — Why is the schema path recorded in `$jureuma.schema`, and how does a
+schema-file rename work?
+
+**Answer: the path is always recorded (the `{ path, c }` form with the copy,
+the plain string without) so both files agree on the schema and the copy can
+be restored to its recorded path; a rename is an explicit choice through
+`jureuma.yaml` (`pairs[].schema`) or `schema infer`.** `pair.CheckIdentity`
+compares the plaintext `$schema` pointer against `$jureuma.schema` directly, so
+an empty recorded path would warn "different schemas" on every ordinary pair;
+recording the resolved path in both keeps that check meaningful and
+`decrypt`'s restore faithful (a `.schema.jsonc` copy returns to a
+`.schema.jsonc` path). The known cost: deleting the recorded schema file and
+creating a differently-named one does not follow automatically — `check` fails
+naming the missing schema until `pairs[].schema` or `schema infer` records the
+new path. `test/e2e/cli_test.go`'s `.schema.jsonc` scenario was flipped to
+declare the file in `jureuma.yaml` for exactly this reason (its coverage —
+comments, refinements, maximum — is unchanged).
+
+### Q22 — `key rotate` must keep passing with embedded copies. What had to
+change?
+
+**Answer: `internal/cli/cmd_key.go` got an additive 8-line migration of the
+embedded schema copy during rotation (and the copy's key now counts as key
+usage for `retire`/rotation sharing) — a recorded scope deviation.** Without
+it, `TestKeyRotateAndRetire`'s security invariant ("no ciphertext under the
+old key remains after rotate") fails as soon as a copy is embedded, because
+the copy is a ciphertext like every value. Weakening that assertion instead
+would have hidden a real leak of the old key ID; leaving the suite red would
+break the unit gate. `cmd_key.go` is otherwise untouched.
+
+### Q23 — What severity do `check` and `status` give the new states?
+
+**Answer: warnings for anything repairable or cosmetic, failures only where a
+mutation or an invariant is actually broken.** Legacy format state fails
+(every mutation refuses, exit 1, with the repair pointer); a missing plaintext
+identity fails only when the plaintext is the single file (the flows that must
+rebuild the sibling refuse) and warns beside an encrypted file (mutations work
+there); missing `$schema` pointer, pointer mismatch, missing/differing schema
+copy and "both files exist" are warnings. `status` reports `encrypted-missing`
+as the overall state of the only-unencrypted pair and lists its paths as
+`unencrypted-only` — it never claims `in-sync` there.
+
+### Q24 — What metadata does `decrypt` write into the plaintext?
+
+**Answer: the identity header (the one already in the file, else the pair
+identity from the encrypted file) and the `$schema` pointer (the recorded one,
+else the resolved form), so the single-file state stays workable.** The body
+and, in `.jsonc`, every comment and formatting detail outside the written
+spans are preserved; a missing local schema is restored from the embedded
+copy, an existing one is never overwritten. `set`/`unset`/mirror keep whatever
+they read byte-identically and never add metadata.
+
+- **confidence:** high for Q15–Q20 and Q23–Q24 (each is pinned by the new
+  `test/e2e/lifecycle_test.go` coverage and by the untouched suite staying
+  green); medium for Q21 (a real usability trade-off, chosen for cross-file
+  consistency) and Q22 (a scope deviation forced by a security invariant).
+- **action taken:** implemented in W3 (`internal/cli/cmd_values.go`,
+  `cmd_init.go`, `cmd_info.go`, `cmd_schema.go`, `context.go`, the
+  `cmd_key.go` migration of Q22, `test/e2e/lifecycle_test.go` plus three
+  flipped assertions in `lifecycle_test.go`, `values_test.go` and
+  `cli_test.go`); the Q20 pair-API need is recorded here, not implemented.
+- **human-review:** pending

@@ -40,9 +40,13 @@ func TestSetTypingAndPaths(t *testing.T) {
 	if obj == nil || !crypt.IsCiphertext(obj["host"].(string)) || !crypt.IsCiphertext(obj["port"].(string)) {
 		t.Fatalf("--json object not expanded per leaf: %v", enc["obj"])
 	}
-	// set mirrors into the existing .json plaintext file.
-	if stripWS(p.read("config.unencrypted.json")) != stripWS(`{"s":"123","n":123,"f":1.50,"b":true,"z":null,"stdin":"from-stdin-value","file":"from-file-value","obj":{"host":"h","port":5432},"a":{"b":{"c":"deep"}},"arr":[0,2,3],"a/b":"slash-key"}`) {
+	// set mirrors into the existing .json plaintext file, keeping the pair's
+	// $jureuma identity header and $schema pointer beside the body.
+	if stripWS(bodyWithoutMeta(p.read("config.unencrypted.json"))) != stripWS(`{"s":"123","n":123,"f":1.50,"b":true,"z":null,"stdin":"from-stdin-value","file":"from-file-value","obj":{"host":"h","port":5432},"a":{"b":{"c":"deep"}},"arr":[0,2,3],"a/b":"slash-key"}`) {
 		t.Fatalf("plaintext mirror differs:\n%s", p.read("config.unencrypted.json"))
+	}
+	if plain := p.read("config.unencrypted.json"); !strings.Contains(plain, `"$jureuma"`) || !strings.Contains(plain, `"$schema": "./config.schema.json"`) {
+		t.Fatalf("the mirror must keep the identity header and $schema pointer:\n%s", plain)
 	}
 
 	before := p.read("config.encrypted.json")

@@ -6,7 +6,7 @@ children: []
 files:
   "cli_test.go": "Command-surface tests (init, pairs, JSON output, schema infer, version, help, juju, key rotation)."
   "inject_test.go": "inject alias of run (issue #9): identical injection, flags, redaction and exit codes, and help discoverability."
-  "lifecycle_test.go": "Lifecycle tests with --keep-both (encrypt/decrypt round trips, gitignore invariant, status)."
+  "lifecycle_test.go": "Lifecycle tests (encrypt/decrypt round trips and order, single-file flows, init repair and key selection, $schema pointer and embedded copy, four-state reporting, gitignore invariant, status)."
   "onefile_test.go": "Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both."
   "main_test.go": "TestMain builds the binary with an injected version; per-test homes, projects and scrubbed environments."
   "protect_test.go": "Human-only gate, agent markers, bypass and protections-seal tests."
@@ -33,7 +33,7 @@ End-to-end tests that build jureuma and drive it as a subprocess in throw-away h
 
 - `cli_test.go`: Command-surface tests (init, pairs, JSON output, schema infer, version, help, juju, key rotation).
 - `inject_test.go`: inject alias of run (issue #9): identical injection, flags, redaction and exit codes, and help discoverability.
-- `lifecycle_test.go`: Lifecycle tests with --keep-both (encrypt/decrypt round trips, gitignore invariant, status).
+- `lifecycle_test.go`: Lifecycle tests (encrypt/decrypt round trips and order, single-file flows, init repair and key selection, $schema pointer and embedded copy, four-state reporting, gitignore invariant, status).
 - `onefile_test.go`: Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both.
 - `main_test.go`: TestMain builds the binary with an injected version; per-test homes, projects and scrubbed environments.
 - `protect_test.go`: Human-only gate, agent markers, bypass and protections-seal tests.

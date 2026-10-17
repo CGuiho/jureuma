@@ -75,7 +75,9 @@ func TestSchemaInferThenValidation(t *testing.T) {
 		t.Fatal("failed set wrote the encrypted file")
 	}
 
-	// A .schema.jsonc file with comments is supported, refinements apply.
+	// A .schema.jsonc file with comments is supported, refinements apply. The
+	// schema a pair uses is the one jureuma.yaml names (or the recorded
+	// $jureuma.schema path), so switching the file is an explicit choice.
 	p.write("config.unencrypted.json", `{"server":{"port":8080,"host":"`+v1+`"},"tags":["a","b"],"mixed":[1,"x"],"empty":[],"on":true}`)
 	os.Remove(p.path("config.schema.json"))
 	p.write("config.schema.jsonc", `{
@@ -86,6 +88,7 @@ func TestSchemaInferThenValidation(t *testing.T) {
     "server": {"type": "object", "properties": {"port": {"type": "integer", "maximum": 100,},},},
   },
 }`)
+	p.write("jureuma.yaml", "pairs:\n  - name: config\n    schema: ./config.schema.jsonc\n")
 	r = p.run("encrypt", "--keep-both")
 	if r.code != 4 || !strings.Contains(r.out(), "maximum") {
 		t.Fatalf("jsonc schema maximum: want exit 4\n%s", r)
@@ -93,6 +96,7 @@ func TestSchemaInferThenValidation(t *testing.T) {
 	assertNo(t, "maximum failure", r.out(), "8080", v1)
 	// Unknown keywords and unsupported formats are errors.
 	os.Remove(p.path("config.schema.jsonc"))
+	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
 	p.write("config.schema.json", `{"type":"object","propertys":{}}`)
 	if r := p.run("check"); r.code != 4 {
 		t.Fatalf("unknown keyword: want exit 4\n%s", r)

@@ -95,6 +95,8 @@ The schema for a pair is resolved in this order; the first source that is set wi
 
 Several pairs may share one schema (for example `production` and `staging` both use `config.schema.json`). `init` creates a missing schema only at the resolved path, so a pair configured to share a schema never gets its own copy.
 
+`init`, `encrypt` and `schema infer` record the resolved path in `$jureuma.schema`, so a pair stays self-describing and the recorded path follows `jureuma.yaml` whenever that file names one. To move the schema to another file (for example from `config.schema.json` to `config.schema.jsonc`), name it in `pairs[].schema` or re-run `jureuma schema infer` — deleting the recorded file makes `check` fail until then. The unencrypted document's `$schema` pointer and the copy embedded in the encrypted file are kept in step: `check` and `status` report pointer presence, path match and drift between the embedded copy and the local file (all warnings), `schema infer` refreshes both, and `decrypt` restores a missing local schema from the embedded copy — never clobbering an existing file, and warning when it differs.
+
 `config.schema.json` is committed and contains no values. `jureuma check` warns when a schema carries `default`, `examples`, `const`, or `enum` on a path marked `x-jureuma-secret`, since those could embed secrets.
 
 ### Gitignore invariant
@@ -121,10 +123,11 @@ The encrypted file mirrors the plaintext structure. Object keys and array positi
 ```json
 {
   "$jureuma": {
-    "format": 1,
+    "format": 2,
     "publicKey": "jureuma-pk-1:BASE64URL",
     "keyId": "k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25",
-    "schema": "./config.schema.json",
+    "home": "~/.guiho/jureuma/",
+    "schema": { "path": "./config.schema.json", "c": "jureuma:1:k_5c…:BASE64URL" },
     "sync": {
       "/database/url":  { "c": "9f2c…", "h": "41ab…" },
       "/database/pool": { "c": "07de…", "h": "c3f0…" }
@@ -143,6 +146,14 @@ The encrypted file mirrors the plaintext structure. Object keys and array positi
 - Empty objects and arrays stay as `{}` and `[]`.
 - All values are encrypted, as required. Plaintext opt-outs (like dotenvx `_PLAIN`) are not supported in v1 (Q3).
 - An agent can read this file or run `jureuma list` to learn which settings exist, their nesting, and array lengths, without learning values or their types.
+
+### Pair identity and schema metadata
+
+Both files of a pair carry the same `$jureuma` identity — `format`, `publicKey`, `keyId` and the global directory reference `home` (`~/.guiho/jureuma/`) — so a single file is enough to know which key the pair belongs to. This jureuma writes `format: 2`; it reads `1` (legacy) and `2`, and every write renders `2`, so no path re-emits a legacy block. The unencrypted header is exactly those four fields; beside it the document always carries a top-level `$schema` pointer at the local schema (`./config.schema.json` or `.jsonc`), which editors use to validate and autocomplete.
+
+Both are **reserved metadata, never values**: `$jureuma` and `$schema` are excluded from the body, so they are never encrypted, listed, injected into `run`, or accepted as `set`/`unset` paths. Every write preserves them exactly as they were read; `init` adds and repairs them; `decrypt` writes them into the plaintext it creates. The encrypted `$jureuma` block additionally records the readable schema path and the schema document encrypted to the pair key (`$jureuma.schema = { path, c }`, or the plain string path while no copy is embedded), so each file is self-describing and a key holder can restore the schema from the committed file alone — a keyless sibling build embeds the copy too, because encryption needs only the public key.
+
+A pair whose files carry old jureuma state (a `$jureuma` block with `format: 1`, or a present-but-malformed one) **refuses every mutation** with a typed, value-free `run jureuma init to repair` error; reads keep working, and `init` repairs the headers in place (keylessly) keeping values, `sync` and `pending`. A headerless unencrypted file is not legacy: it stays fully mutable in the both-present and only-encrypted flows, while the single-file flows that must rebuild the sibling from it return the same repair pointer. One pair belongs to exactly one key: a `publicKey`/`keyId` disagreement between the two files is a key error (exit 5), `home` and schema-path differences are warnings only.
 
 ## Cryptography
 
@@ -305,7 +316,8 @@ By default only **one side of a pair exists at a time**, so the state is obvious
 - `jureuma decrypt` writes the unencrypted file and then **deletes the encrypted file**. Before deleting, it saves a copy (ciphertext and `$jureuma` metadata only) to `~/.guiho/jureuma/state/stash/<hash>.encrypted.json`.
 - `--keep-both` on either command keeps both files.
 - When the encrypted file is missing, `encrypt` restores the key, sync baseline and unchanged ciphertexts from that saved copy, falling back to the version at git `HEAD`. The saved copy is removed once the encrypted file exists again.
-- While a pair is decrypted, commands that need the encrypted file (`set`, `unset`, `run`, `list`) fail with `not found (run jureuma encrypt …)`; a human finishes editing and runs `jureuma encrypt`.
+- While a pair is decrypted, `set` and `unset` keep working from the unencrypted file alone: the `publicKey` in its `$jureuma` header rebuilds (or refreshes) the encrypted sibling from the document, with no private key required, and the usual mirror writes the value into the plaintext. `run`, `list` and `get` keep needing the encrypted file (`not found (run jureuma encrypt …)`); a human finishes editing and runs `jureuma encrypt`.
+- The two single-file states are the designed ones. When both files exist (for example after such a rebuild), `status` and `check` warn that this is the riskiest state; `encrypt` or `decrypt` returns the pair to a single file. `status` and `check` report all four states (only the unencrypted file, only the encrypted file, both, legacy jureuma state) with value-free output.
 
 ```text
           human edits                       jureuma encrypt
@@ -324,6 +336,8 @@ config.unencrypted.json  ──────────────────�
 
 `$jureuma.pending` is a sorted list of pointers written by keyless `set`/`unset` since the last sync. Both are sorted maps and lists, so concurrent branches merge in git without a single-line conflict.
 
+A keyless sibling rebuild (`set`/`unset` with only the unencrypted file, or `init` building the sibling) writes **no baseline**: `h` needs the private key, and jureuma never claims `in-sync` for a path without one. A key holder refreshing the sibling writes full `c`/`h` pairs; `encrypt` and `decrypt` rebuild the whole baseline as before.
+
 ### States
 
 `jureuma status` is **read-only**. Per path and overall it reports:
@@ -335,12 +349,14 @@ config.unencrypted.json  ──────────────────�
 | `encrypted-newer` | Ciphertext differs from `c` (or path is pending); plaintext matches `h`. | `jureuma decrypt` |
 | `conflict` | Both sides changed the same path. | Human resolves; `encrypt --force` or `decrypt --force` |
 | `unencrypted-missing` | No plaintext file. | Normal on agent and CI machines |
+| `encrypted-missing` | No encrypted file: the unencrypted file is the only side. | `jureuma set` rebuilds the sibling; `jureuma encrypt` finishes the human flow |
+| `unencrypted-only` | Per-path state while the encrypted file is missing. | — |
 | `key-unavailable` | No matching private key; only `c`/`pending` checks run. | Normal on agent machines |
 
 ### Rules
 
 - **Human workflow:** `jureuma decrypt` (removes the encrypted file) → edit `config.unencrypted.json` → `jureuma encrypt` (removes the unencrypted file).
-- **Agent workflow:** `jureuma set /path` writes the encrypted file using the public key, adds the path to `pending`, and, if a `.json` unencrypted file exists, writes the same value into it (the agent already knows the value it set). The encrypted file is written first, then the unencrypted file.
+- **Agent workflow:** `jureuma set /path` writes the encrypted file using the pair's public key (from the encrypted file, or from the unencrypted file's `$jureuma` header when it is the only side), records the touched paths, and, if an unencrypted file exists, writes the same value into it (the agent already knows the value it set). The encrypted file is written first, then the unencrypted file. With only the unencrypted file present, the whole encrypted sibling is built or refreshed from that document first.
 - `encrypt` refuses to overwrite any path in `conflict` or `encrypted-newer` unless `--force` is given, so an agent's `set` is never silently lost. `--force` resolves conflicts in favour of the plaintext only: a path changed on the encrypted side alone keeps its ciphertext (or stays removed), stays in `pending` and is listed on stderr; one that no longer fits the plaintext structure is listed as discarded. On success `encrypt` refreshes `sync` and clears every other `pending` entry.
 - `decrypt` refuses when the plaintext file has paths in `unencrypted-newer` or `conflict` (unsaved human edits), or new empty objects or arrays that the encrypted side lacks, unless `--force` is given.
 
@@ -361,6 +377,7 @@ config.unencrypted.json  ──────────────────�
 ### Paths
 
 - Object or array values given with `--json` are expanded into per-leaf ciphertexts, as the format requires.
+- `$jureuma` and `$schema` are reserved metadata: `set` and `unset` refuse them as value paths (exit 2), and they never appear in a body, a listing or an injection.
 - Missing intermediate objects are created. A pointer that passes through an existing leaf (setting `/database/url` when `/database` is a leaf) is an error.
 - Array indices may address an existing element or `len` (append); `/-` also appends. Indices beyond `len` are an error.
 
@@ -369,7 +386,9 @@ config.unencrypted.json  ──────────────────�
 - Removes the value at the pointer; on a container, removes the whole subtree. Parents are not pruned (`{}` remains).
 - Without the key, only object members and the **last** array element can be removed, because removing another element shifts later indices and their path-bound ciphertexts must be re-encrypted. Otherwise `unset` asks for the key (exit 5 without it) and suggests editing the plaintext file and running `encrypt`.
 - `unset` is mirrored into an existing unencrypted file (`.json` or `.jsonc`), like `set`.
-- The `set` mirror never replaces an unsaved human edit. With the private key, it is skipped when a touched path is `unencrypted-newer` or `conflict`; without the key, when the plaintext already holds a value at or under the target (it cannot be compared). An append (`/-`) is also skipped when the two arrays differ in length. A skipped mirror prints a warning and leaves the path pending. `/-` appends only to an existing array; it is a usage error under a missing parent.
+- The `set` mirror never replaces an unsaved human edit. With the private key, it is skipped when a touched path is `unencrypted-newer` or `conflict`; without the key, when the plaintext already holds a value at or under the target (it cannot be compared). An append (`/-`) is also skipped when the two arrays differ in length. A skipped mirror prints a warning and leaves the path pending. The rule is unchanged when only the unencrypted file exists: the edit is compared against the last saved state (the saved copy, then git `HEAD`), and a value the plaintext holds that cannot be proven unchanged is never replaced.
+- With only the unencrypted file present, `set` and `unset` rebuild the whole encrypted sibling from the document (values included), so there `unset` may remove any array element — nothing has to be re-indexed ciphertext by ciphertext.
+- `set` validates against the readable schema when one is present, and says so explicitly when validation is skipped (no schema file). `/-` appends only to an existing array; it is a usage error under a missing parent.
 - `set` refuses pointers deeper than 64 levels, and every write refuses (exit 4) a file larger than the 32 MiB that jureuma reads.
 - Paths that come from committed files (`pairs[].encrypted`, `pairs[].unencrypted`, `pairs[].schema` in `jureuma.yaml`, and `$jureuma.schema`) must stay inside the project root, also after resolving symbolic links, and a schema path must end with `.schema.json` or `.schema.jsonc`. Only command-line flags may name files outside the project. A `--schema-file` on a mutating command must agree with the configured schema, or with the default `<stem>.schema.json(c)` when that file exists.
 - `set /x --json null` stores `null`; it is not the same as `unset`.
@@ -394,14 +413,14 @@ config.unencrypted.json  ──────────────────�
 | Command | Validation | Needs key |
 | --- | --- | --- |
 | `encrypt` | Whole plaintext document. Fails before writing. | yes |
-| `set`, `unset` | **Structural pass** over the encrypted file (`required`, `additionalProperties`, `unevaluatedProperties`, `propertyNames`, `patternProperties` names, `minItems`/`maxItems`, `minProperties`/`maxProperties`), which needs no values, plus a **provisional value check**: accept if any schema branch that could apply to the path, with sibling values unknown, accepts the value. | no |
+| `set`, `unset` | **Structural pass** over the encrypted file (`required`, `additionalProperties`, `unevaluatedProperties`, `propertyNames`, `patternProperties` names, `minItems`/`maxItems`, `minProperties`/`maxProperties`), which needs no values, plus a **provisional value check**: accept if any schema branch that could apply to the path, with sibling values unknown, accepts the value. Without a readable schema nothing is validated and `set`/`unset` warn that validation was skipped. | no |
 | `run`, `check` | Whole decrypted document. | yes |
 
 A failed `set`/`unset` validation exits 4 and writes nothing unless `--allow-invalid` is given. Removing a `required` property is allowed only with `--allow-invalid`.
 
 ### `schema infer`
 
-Generates a starter schema from the **plaintext file's** structure and JSON types (never values): objects get `required` for every present key and `additionalProperties: false`; homogeneous arrays become `items`; mixed arrays become `prefixItems`; empty arrays become `items: {}`. It needs the unencrypted file and refuses to overwrite an existing schema without `--force`. `init` creates a permissive starter schema (`{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}`) when none exists, and `check` warns while that starter is still in use.
+Generates a starter schema from the **plaintext file's** structure and JSON types (never values): objects get `required` for every present key and `additionalProperties: false`; homogeneous arrays become `items`; mixed arrays become `prefixItems`; empty arrays become `items: {}`. The generated schema declares the optional top-level `$schema` string property (the pointer the unencrypted document always carries) without requiring it, so editors can validate the whole document. It needs the unencrypted file and refuses to overwrite an existing schema without `--force`. `init` creates a permissive starter schema (`{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}`) when none exists, and `check` warns while that starter is still in use. After writing, `schema infer` refreshes the unencrypted file's `$schema` pointer and the copy embedded in the encrypted file.
 
 ## Command Tree
 
@@ -409,7 +428,7 @@ Domain commands sit beside the convention's mandatory commands. All flags are lo
 
 ```text
 jureuma
-├── init                    convention init + domain steps below
+├── init                    convention init + domain steps below (--key-id, --key-label)
 ├── encrypt                 unencrypted file → encrypted file
 ├── decrypt          [P]    encrypted file → unencrypted file
 ├── set <pointer> [value]   encrypt one value (--json, --value-stdin, --value-file, --allow-invalid)
@@ -417,8 +436,8 @@ jureuma
 ├── get <pointer>    [P]    print one plaintext value
 ├── run -- <cmd>            inject values into a child process, redacted output (alias: inject)
 ├── list                    pointers, flattened env names, types (schema-declared without key; actual with key)
-├── status                  read-only pair state, per path
-├── check                   schema, gitignore, tracked plaintext, key/publicKey consistency, env collisions, deny rules
+├── status                  read-only pair state across its four file states, per path
+├── check                   pair state, identity headers, $schema pointer and embedded schema copy, schema, gitignore, tracked plaintext, key/publicKey consistency, env collisions, deny rules
 ├── key
 │   ├── show                public key and key ID
 │   │                       --private is [P]
@@ -444,12 +463,14 @@ Exit codes for every command except `run`: `0` success, `1` general failure, `2`
 
 These slot into step 14 of the convention's `init` sequence, for each configured pair:
 
-1. If `<stem>.encrypted.json` exists: never generate keys and never modify `$jureuma`. If no matching private key is available, report `private key not available (expected on agent and CI machines)`; this is informational, not a failure. Replacing a key on an existing file is only possible with `jureuma key rotate`.
-2. If no encrypted file exists: generate a key pair, write `keys/<keyId>.json`, and create an empty encrypted file (`{"$jureuma": {…}}`) and, after the gitignore check, an empty `<stem>.unencrypted.json`.
-3. Ensure the `.gitignore` block exists.
-4. Ensure the resolved schema file exists (starter schema if missing).
-5. Offer the agent-tool deny rules.
-6. Fatal checks (init fails if any fails): gitignore block present, no unencrypted file tracked by git, schema present and supported, `keyId` matches `publicKey`. Informational: key availability, sync state, starter schema still in use.
+1. If `<stem>.encrypted.json` exists: never generate keys and never re-key. Report `private key not available (expected on agent and CI machines)` when no matching private key is available; this is informational, not a failure. Replacing a key on an existing file is only possible with `jureuma key rotate`. Old jureuma state is repaired in place — the `$jureuma` block becomes a format-2 identity header (adding `home`, keeping every value, `sync` and `pending`), the schema reference is recorded and the embedded schema copy added when the local schema is present. An already-repaired file is left byte-identical, so `init` is idempotent; a `$jureuma` block jureuma cannot parse at all is reported and never overwritten.
+2. If no encrypted file exists and the unencrypted file records the pair key in its `$jureuma` header: build the encrypted sibling from that document under that key (no private key needed).
+3. If no encrypted file exists and nothing records the identity: choose the pair key — a stored key picked in a terminal (`Which one do you want to use?`, label and short key ID each line, plus a `create a new key` choice) or named with `--key-id` / `--key-label`; a new key otherwise (non-TTY default), saved with the repository-name label — then create an empty encrypted file (`{"$jureuma": {…}}`) and, after the gitignore check, an empty `<stem>.unencrypted.json`.
+4. Add or repair the unencrypted file's `$jureuma` identity header and `$schema` pointer, keeping its body exactly.
+5. Ensure the `.gitignore` block exists.
+6. Ensure the resolved schema file exists (starter schema if missing).
+7. Offer the agent-tool deny rules.
+8. Fatal checks (init fails if any fails): gitignore block present, no unencrypted file tracked by git, schema present and supported, `keyId` matches `publicKey`. Informational: key availability, sync state, starter schema still in use.
 
 ## The `juju` Alias
 
