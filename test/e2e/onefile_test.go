@@ -25,7 +25,7 @@ func TestEncryptDeletesPlaintextByDefault(t *testing.T) {
 	}
 	// Injection still works from the encrypted file alone.
 	if got := p.revealConfig(); !strings.Contains(got, "OneFileSecret") {
-		t.Fatalf("JUREUMA_CONFIG = %s", got)
+		t.Fatalf("JUREUMA_ = %s", got)
 	}
 }
 

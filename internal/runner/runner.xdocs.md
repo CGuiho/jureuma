@@ -28,7 +28,7 @@ tags:
   - "go"
   - "process"
 keywords:
-  - "JUREUMA_CONFIG"
+  - "JUREUMA_"
   - "flatten"
   - "memfd"
   - "redaction"

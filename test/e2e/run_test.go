@@ -16,28 +16,28 @@ func TestRunDefaultJSON(t *testing.T) {
 	p.setup(`{"database":{"url":"postgres://u:pw@h/db","pool":20},"apiKey":"key-run-json","debug":false,"short":"abc"}`)
 
 	// Without the bypass the child gets the real document but its output is redacted.
-	r := p.expect(0, "run", "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
+	r := p.expect(0, "run", "--", "sh", "-c", `printf '%s' "$JUREUMA_"`)
 	if r.stdout != `{"database":{"url":"[REDACTED]","pool":20},"apiKey":"[REDACTED]","debug":false,"short":"abc"}` {
-		t.Fatalf("redacted JUREUMA_CONFIG: %s", r.stdout)
+		t.Fatalf("redacted JUREUMA_: %s", r.stdout)
 	}
 	// The child really received the values (checked inside the child).
-	p.expect(0, "run", "--", "sh", "-c", `case "$JUREUMA_CONFIG" in *'"apiKey":"key-run-json"'*) exit 0;; *) exit 1;; esac`)
+	p.expect(0, "run", "--", "sh", "-c", `case "$JUREUMA_" in *'"apiKey":"key-run-json"'*) exit 0;; *) exit 1;; esac`)
 	// The exact document reaches the child.
 	if got := p.revealConfig(); got != `{"database":{"url":"postgres://u:pw@h/db","pool":20},"apiKey":"key-run-json","debug":false,"short":"abc"}` {
-		t.Fatalf("JUREUMA_CONFIG = %s", got)
+		t.Fatalf("JUREUMA_ = %s", got)
 	}
 	// --env-name renames the variable; an existing variable wins unless --override.
-	r = p.expect(0, "run", "--env-name", "APP_CFG", "--", "sh", "-c", `printf '%s|%s' "${APP_CFG:+set}" "${JUREUMA_CONFIG:-unset}"`)
+	r = p.expect(0, "run", "--env-name", "APP_CFG", "--", "sh", "-c", `printf '%s|%s' "${APP_CFG:+set}" "${JUREUMA_:-unset}"`)
 	if r.stdout != "set|unset" {
 		t.Fatalf("--env-name: %q", r.stdout)
 	}
 	// The document variable always carries this run's document: an inherited
-	// JUREUMA_CONFIG (shell, outer run) never wins silently.
-	r = p.expectEnv(0, []string{"JUREUMA_CONFIG=preexisting"}, "run", "--", "sh", "-c", `printf '%.1s' "$JUREUMA_CONFIG"`)
+	// JUREUMA_ (shell, outer run) never wins silently.
+	r = p.expectEnv(0, []string{"JUREUMA_=preexisting"}, "run", "--", "sh", "-c", `printf '%.1s' "$JUREUMA_"`)
 	if r.stdout != "{" {
-		t.Fatalf("an inherited JUREUMA_CONFIG must be replaced: %q", r.stdout)
+		t.Fatalf("an inherited JUREUMA_ must be replaced: %q", r.stdout)
 	}
-	r = p.expectEnv(0, []string{"JUREUMA_CONFIG=preexisting"}, "run", "--override", "--", "sh", "-c", `printf '%.1s' "$JUREUMA_CONFIG"`)
+	r = p.expectEnv(0, []string{"JUREUMA_=preexisting"}, "run", "--override", "--", "sh", "-c", `printf '%.1s' "$JUREUMA_"`)
 	if r.stdout != "{" {
 		t.Fatalf("--override: %q", r.stdout)
 	}
@@ -107,11 +107,11 @@ func TestRunFileFormat(t *testing.T) {
 	needSh(t)
 	p := newProject(t)
 	p.setup(`{"svc":{"token":"file-format-token"},"n":1.0}`)
-	r := p.expect(0, "run", "--dangerously-bypass-protections", "--format", "file", "--", "sh", "-c", `cat "$JUREUMA_CONFIG"`)
+	r := p.expect(0, "run", "--dangerously-bypass-protections", "--format", "file", "--", "sh", "-c", `cat "$JUREUMA_"`)
 	if stripWS(r.stdout) != `{"svc":{"token":"file-format-token"},"n":1.0}` {
 		t.Fatalf("--format file document: %q", r.stdout)
 	}
-	r = p.expect(0, "run", "--format", "file", "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
+	r = p.expect(0, "run", "--format", "file", "--", "sh", "-c", `printf '%s' "$JUREUMA_"`)
 	path := r.stdout
 	if path == "" {
 		t.Fatal("--format file: no path")
@@ -125,7 +125,7 @@ func TestRunFileFormat(t *testing.T) {
 	if ents, _ := os.ReadDir(filepath.Join(p.jhome(), "run")); len(ents) != 0 {
 		t.Fatalf("run registry not cleaned: %v", ents)
 	}
-	r = p.expect(0, "run", "--format", "file", "--", "sh", "-c", `cat "$JUREUMA_CONFIG"`)
+	r = p.expect(0, "run", "--format", "file", "--", "sh", "-c", `cat "$JUREUMA_"`)
 	if strings.Contains(r.stdout, "file-format-token") || !strings.Contains(r.stdout, "[REDACTED]") {
 		t.Fatalf("file-format output not redacted: %s", r.stdout)
 	}
@@ -137,7 +137,7 @@ func TestRunEnvExtras(t *testing.T) {
 	p.setup(`{"db":{"url":"extra-db-url","port":5432,"opt":null},"list":["a","b"]}`)
 	r := p.expect(0, "run", "--dangerously-bypass-protections",
 		"--env", "DB=/db/url", "--env", "PORT=/db/port", "--env", "LIST=/list", "--env", "OPT=/db/opt",
-		"--", "sh", "-c", `printf '%s|%s|%s|%s|%s' "$DB" "$PORT" "$LIST" "${OPT-unset}" "${JUREUMA_CONFIG:+json}"`)
+		"--", "sh", "-c", `printf '%s|%s|%s|%s|%s' "$DB" "$PORT" "$LIST" "${OPT-unset}" "${JUREUMA_:+json}"`)
 	if r.stdout != `extra-db-url|5432|["a","b"]|unset|json` {
 		t.Fatalf("--env extras: %q\n%s", r.stdout, r)
 	}
@@ -213,7 +213,7 @@ func TestRunStripsPrivateKeys(t *testing.T) {
 		t.Fatalf("private-key variables reached the child: %q", r.stdout)
 	}
 	// Even with the bypass, private keys stay out of the child and redacted.
-	r = p.expectEnv(0, env, "run", "--dangerously-bypass-protections", "--", "sh", "-c", `env | grep -c '^JUREUMA_PRIVATE_KEY'; printf '%s\n' "$JUREUMA_CONFIG"`)
+	r = p.expectEnv(0, env, "run", "--dangerously-bypass-protections", "--", "sh", "-c", `env | grep -c '^JUREUMA_PRIVATE_KEY'; printf '%s\n' "$JUREUMA_"`)
 	if !strings.HasPrefix(r.stdout, "0\n") || !strings.Contains(r.stdout, "strip-value") {
 		t.Fatalf("bypass run: %q", r.stdout)
 	}
@@ -248,9 +248,9 @@ func TestRunRedaction(t *testing.T) {
 	if strings.Contains(r.stdout, b64) || strings.Contains(r.stdout, qe) || strings.Count(r.stdout, "[REDACTED]") != 2 {
 		t.Fatalf("encoded variants not redacted: %q", r.stdout)
 	}
-	// JSON-escaped forms inside JUREUMA_CONFIG are redacted too.
+	// JSON-escaped forms inside JUREUMA_ are redacted too.
 	p.expect(0, "set", "/esc", `q"uo\\te/é`)
-	r = p.expect(0, "run", "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
+	r = p.expect(0, "run", "--", "sh", "-c", `printf '%s' "$JUREUMA_"`)
 	if strings.Contains(r.stdout, `uo\\`) || !strings.Contains(r.stdout, `"esc":"[REDACTED]"`) {
 		t.Fatalf("JSON-escaped value not redacted: %s", r.stdout)
 	}

@@ -96,8 +96,8 @@ func TestBuildEnv(t *testing.T) {
 	if _, ok := get(env, "JUREUMA_PRIVATE_KEY_K_00"); ok {
 		t.Fatal("dedicated private key not stripped")
 	}
-	if v, _ := get(env, "JUREUMA_CONFIG"); v != `{"db":{"url":"postgres://x","port":5432},"flag":null}` {
-		t.Fatalf("JUREUMA_CONFIG = %q", v)
+	if v, _ := get(env, "JUREUMA_"); v != `{"db":{"url":"postgres://x","port":5432},"flag":null}` {
+		t.Fatalf("JUREUMA_ = %q", v)
 	}
 	env, _ = BuildEnv(Options{Doc: d, Environ: environ, Format: FormatFlatten, Env: []string{"PORT=/db/port", "WHOLE=/db"}}, "")
 	if v, _ := get(env, "DB_URL"); v != "keep" {
@@ -172,7 +172,7 @@ func TestRunRedactsAndPassesExitCode(t *testing.T) {
 	t.Setenv("JUREUMA_PRIVATE_KEY", sk.String())
 	code, err := Run(context.Background(), Options{
 		Doc: d, Redact: true, PrivateKeys: []crypt.PrivateKey{sk}, Home: home,
-		Args:  []string{"sh", "-c", `printf '%s\n' "$JUREUMA_CONFIG"; printf 'key=%s\n' "${JUREUMA_PRIVATE_KEY:-none}"; printf '%s' "$JUREUMA_CONFIG" | base64 >&2; exit 3`},
+		Args:  []string{"sh", "-c", `printf '%s\n' "$JUREUMA_"; printf 'key=%s\n' "${JUREUMA_PRIVATE_KEY:-none}"; printf '%s' "$JUREUMA_" | base64 >&2; exit 3`},
 		Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errb,
 	})
 	if err != nil {
@@ -201,7 +201,7 @@ func TestRunFileFormat(t *testing.T) {
 	var out bytes.Buffer
 	code, err := Run(context.Background(), Options{
 		Doc: d, Format: FormatFile, Redact: true, Home: home,
-		Args:  []string{"sh", "-c", `test -r "$JUREUMA_CONFIG" && grep -c a "$JUREUMA_CONFIG"`},
+		Args:  []string{"sh", "-c", `test -r "$JUREUMA_" && grep -c a "$JUREUMA_"`},
 		Stdin: strings.NewReader(""), Stdout: &out, Stderr: &out,
 	})
 	if err != nil || code != 0 {
@@ -261,7 +261,7 @@ func TestFlattenDeniedPathMappedExplicitly(t *testing.T) {
 func TestBuildEnvRejectsDenylistedEnvName(t *testing.T) {
 	d := parse(t, `{"a":"b"}`)
 	for _, format := range []string{FormatJSON, FormatFile} {
-		for _, name := range []string{"BASH_ENV", "ENV", "PAGER", "EDITOR", "GIT_SSH_COMMAND", "PROMPT_COMMAND", "PS4", "LD_PRELOAD", "JUREUMA_USER_HOME", "bash_env"} {
+		for _, name := range []string{"BASH_ENV", "ENV", "PAGER", "EDITOR", "GIT_SSH_COMMAND", "PROMPT_COMMAND", "PS4", "LD_PRELOAD", "JUREUMA_USER_HOME", "JUREUMA_CONFIG", "bash_env"} {
 			if _, err := BuildEnv(Options{Doc: d, Format: format, EnvName: name, Environ: []string{}}, "/dev/fd/3"); xerr.CodeOf(err) != xerr.CodeRun {
 				t.Errorf("%s %s: want exit 125, got %v", format, name, err)
 			}
@@ -269,6 +269,29 @@ func TestBuildEnvRejectsDenylistedEnvName(t *testing.T) {
 	}
 	if _, err := BuildEnv(Options{Doc: d, EnvName: DefaultEnvName, Environ: []string{}}, ""); err != nil {
 		t.Fatalf("default name refused: %v", err)
+	}
+}
+
+// The document lands in JUREUMA_ by default; the former default name is now
+// an ordinary denylisted JUREUMA_* name.
+func TestBuildEnvDefaultEnvName(t *testing.T) {
+	d := parse(t, `{"a":"b"}`)
+	if DefaultEnvName != "JUREUMA_" {
+		t.Fatalf("DefaultEnvName = %q", DefaultEnvName)
+	}
+	env, err := BuildEnv(Options{Doc: d, Environ: []string{}}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(env, "\n")
+	if !strings.Contains(joined, `JUREUMA_={"a":"b"}`) {
+		t.Fatalf("default injection not in JUREUMA_: %v", env)
+	}
+	if strings.Contains(joined, "JUREUMA_CONFIG=") {
+		t.Fatalf("former default name still injected: %v", env)
+	}
+	if _, err := BuildEnv(Options{Doc: d, Format: FormatJSON, EnvName: "JUREUMA_CONFIG", Environ: []string{}}, ""); xerr.CodeOf(err) != xerr.CodeRun {
+		t.Fatalf("former default name must be refused as denylisted: %v", err)
 	}
 }
 
@@ -287,13 +310,13 @@ func TestFlattenDenylistCoversCodeExecutingNames(t *testing.T) {
 func TestBuildEnvDocumentVariableAlwaysSet(t *testing.T) {
 	d := parse(t, `{"a":"b"}`)
 	for _, format := range []string{FormatJSON, FormatFile} {
-		env, err := BuildEnv(Options{Doc: d, Format: format, Environ: []string{"JUREUMA_CONFIG={\"stale\":1}"}}, "/dev/fd/3")
+		env, err := BuildEnv(Options{Doc: d, Format: format, Environ: []string{"JUREUMA_={\"stale\":1}"}}, "/dev/fd/3")
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, kv := range env {
 			if strings.Contains(kv, "stale") {
-				t.Fatalf("%s: inherited JUREUMA_CONFIG won: %v", format, env)
+				t.Fatalf("%s: inherited JUREUMA_ won: %v", format, env)
 			}
 		}
 	}

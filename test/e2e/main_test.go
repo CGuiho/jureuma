@@ -374,11 +374,11 @@ func (p *project) encMeta(rel string) map[string]any {
 }
 
 // revealConfig runs the child with the bypass flag and returns the exact
-// JUREUMA_CONFIG text the child received.
+// JUREUMA_ text the child received.
 func (p *project) revealConfig(extra ...string) string {
 	p.t.Helper()
 	args := append([]string{"run", "--dangerously-bypass-protections"}, extra...)
-	args = append(args, "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
+	args = append(args, "--", "sh", "-c", `printf '%s' "$JUREUMA_"`)
 	r := p.expect(0, args...)
 	return r.stdout
 }

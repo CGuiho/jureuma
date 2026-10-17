@@ -51,7 +51,7 @@ const (
 	FormatFile    = "file"
 
 	DefaultFormat  = FormatJSON
-	DefaultEnvName = "JUREUMA_CONFIG"
+	DefaultEnvName = "JUREUMA_"
 )
 
 // maxConfigSize bounds what is read from a configuration file.

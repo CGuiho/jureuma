@@ -6,6 +6,10 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 
 ## Unreleased
 
+### Changed
+
+- `jureuma run` injects the document into `JUREUMA_` by default (with `--format json|file`) instead of `JUREUMA_CONFIG`: the CLI default, the denylist exception and every documented surface now agree on the name `auth-ui` already configures. `JUREUMA_CONFIG` is no longer excepted from the denylist and is refused as `--env-name` / `run.envName` like any other `JUREUMA_*` name.
+
 ## 0.2.0 - 2026-10-17
 
 ### Added

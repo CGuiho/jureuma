@@ -8,7 +8,7 @@ pairs:
     unencrypted: ./production.unencrypted.json
 run:
   format: json
-  envName: JUREUMA_CONFIG
+  envName: JUREUMA_
   prefix: ""
   override: false
 agent:

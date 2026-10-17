@@ -1,6 +1,6 @@
 ---
 name: guiho-s-jureuma
-description: Use whenever a project uses jureuma (or its juju alias) or needs configuration or secrets handled safely by an agent - installing, initializing, upgrading, or uninstalling jureuma; reading the shape of configuration with list/status/check; setting or unsetting values without seeing them; running commands with injected configuration (JUREUMA_CONFIG); writing or refining config.schema.json(c) JSON Schemas; rotating keys; or reporting jureuma bugs and improvements.
+description: Use whenever a project uses jureuma (or its juju alias) or needs configuration or secrets handled safely by an agent - installing, initializing, upgrading, or uninstalling jureuma; reading the shape of configuration with list/status/check; setting or unsetting values without seeing them; running commands with injected configuration (JUREUMA_); writing or refining config.schema.json(c) JSON Schemas; rotating keys; or reporting jureuma bugs and improvements.
 metadata:
   version: "0.2.0"
 ---
@@ -97,33 +97,33 @@ jureuma run -- python -m app
 jureuma run --name production -- ./server
 ```
 
-By default the child receives the **whole decrypted document, JSON-stringified, in `JUREUMA_CONFIG`**:
+By default the child receives the **whole decrypted document, JSON-stringified, in `JUREUMA_`**:
 
 ```js
-const config = JSON.parse(process.env.JUREUMA_CONFIG); // Node / Bun
+const config = JSON.parse(process.env.JUREUMA_); // Node / Bun
 ```
 
 ```python
-config = json.loads(os.environ["JUREUMA_CONFIG"])  # Python
+config = json.loads(os.environ["JUREUMA_"])  # Python
 ```
 
 ```go
 var cfg Config
-err := json.Unmarshal([]byte(os.Getenv("JUREUMA_CONFIG")), &cfg) // Go
+err := json.Unmarshal([]byte(os.Getenv("JUREUMA_")), &cfg) // Go
 ```
 
 Other mappings:
 
 | Flag | Effect |
 | --- | --- |
-| `--format json` (default) | Whole document as JSON in `--env-name` (default `JUREUMA_CONFIG`). |
+| `--format json` (default) | Whole document as JSON in `--env-name` (default `JUREUMA_`). |
 | `--format flatten` | One variable per leaf: `/database/url` becomes `DATABASE_URL`; `--prefix APP_` prepends a prefix. Names that collide, and names that load or run code or belong to jureuma (`LD_*`, `DYLD_*`, `GIT_*`, `JAVA_*`, `NODE_OPTIONS`, `PYTHONPATH`, `BASH_ENV`, `PAGER`, `EDITOR`, `PATH`, `JUREUMA_*`, ...), are refused; map one explicitly with `--env` only when the human asked for it. `null` and empty containers are not set. |
 | `--format file` | `--env-name` holds a path to the whole document (a memfd on Linux, a `0600` temp file elsewhere, deleted when the child exits). |
 | `--env-name NAME` | Variable name for `json` and `file` formats (always set, replacing an inherited value; denylisted names are refused). |
 | `--env NAME=/pointer` | Also inject one value (repeatable). |
 | `--override` | Flattened and `--env` values win over variables already in the environment (default: existing variables win). |
 
-`run` removes every `JUREUMA_PRIVATE_KEY*` variable from the child, redacts config values (and their common encodings) and private keys in the child's stdout and stderr as `[REDACTED]`, and returns the child's exit code. Exit `125` with a `[JUREUMA:...]` prefix means jureuma failed before or around the child. Seeing `[REDACTED]` is expected; do not try to recover what was redacted. Make the application read `JUREUMA_CONFIG` (or flattened variables) rather than adding `.env` files.
+`run` removes every `JUREUMA_PRIVATE_KEY*` variable from the child, redacts config values (and their common encodings) and private keys in the child's stdout and stderr as `[REDACTED]`, and returns the child's exit code. Exit `125` with a `[JUREUMA:...]` prefix means jureuma failed before or around the child. Seeing `[REDACTED]` is expected; do not try to recover what was redacted. Make the application read `JUREUMA_` (or flattened variables) rather than adding `.env` files.
 
 **Human edit cycle** (tell the human; do not do it yourself): `jureuma decrypt` (human-only; deletes `config.encrypted.json`) → edit `config.unencrypted.json` → `jureuma encrypt` (deletes `config.unencrypted.json`). Only one side of a pair exists at a time unless `--keep-both` is passed; while a pair is decrypted, `set`, `run` and `list` report the encrypted file as missing, so ask the human to finish with `jureuma encrypt`. An agent may run `jureuma encrypt` when the human asks, because jureuma reads the plaintext internally; it refuses paths in `conflict` unless `--force` is given, and an agent must not pass `--force` without the human's approval.
 
@@ -168,7 +168,7 @@ pairs:
     schema: ./config.schema.json
 run:
   format: json
-  envName: JUREUMA_CONFIG
+  envName: JUREUMA_
   prefix: ""
   override: false
 agent:

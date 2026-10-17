@@ -69,9 +69,9 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 		{args: []string{"key", "export"}},                                                                                    // refused
 		{args: []string{"key", "export", keyID}},                                                                             // refused
 		{args: []string{"key", "show", "--private"}},                                                                         // refused
-		{args: []string{"run", "--", "sh", "-c", `printf '%s\n' "$JUREUMA_CONFIG"; printf '%s' "$JUREUMA_CONFIG" | base64`}}, // redacted
+		{args: []string{"run", "--", "sh", "-c", `printf '%s\n' "$JUREUMA_"; printf '%s' "$JUREUMA_" | base64`}}, // redacted
 		{args: []string{"run", "--format", "flatten", "--", "sh", "-c", `echo "$DB_URL $FLAGS_0 $TOKEN" >&2`}},
-		{args: []string{"run", "--format", "file", "--", "sh", "-c", `cat "$JUREUMA_CONFIG"`}},
+		{args: []string{"run", "--format", "file", "--", "sh", "-c", `cat "$JUREUMA_"`}},
 		{args: []string{"run", "--env", "U=/db/url", "--", "sh", "-c", `printf '%s' "$U"; printf '%s' "$U" | od -c | head -1 >/dev/null`}},
 		{args: []string{"run", "--env", "U=" + sentinelC, "--", "true"}}, // bad pointer in --env
 		{args: []string{"status"}},
