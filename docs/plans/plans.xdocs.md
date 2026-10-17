@@ -5,6 +5,7 @@ parent: jureuma-docs
 children:
   - jureuma-docs-plans-release-0.1.0
   - jureuma-docs-plans-release-0.2.0
+  - jureuma-docs-plans-run-envname-and-opencode-deny-rules
 files: {}
 documents: {}
 tags:
@@ -14,6 +15,8 @@ keywords:
   - "implementation plans"
   - "release 0.1.0"
   - "release 0.2.0"
+  - "run env name"
+  - "opencode deny rules"
   - "worker handoffs"
 flags: []
 status: stable

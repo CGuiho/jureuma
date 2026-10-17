@@ -13,12 +13,17 @@
 | Status | Count |
 | --- | ---: |
 | todo | 0 |
-| in progress | 0 |
+| in progress | 2 |
 | testing | 5 |
 | stopped | 0 |
 | completed | 0 |
 
 ## Tasks
+
+### Run env name and OpenCode deny rules
+
+- [ ] [Change the default run env name from JUREUMA_CONFIG to JUREUMA_](https://github.com/CGuiho/jureuma/issues/10) — in progress
+- [ ] [Add OpenCode deny rules to jureuma init alongside the Claude Code ones](https://github.com/CGuiho/jureuma/issues/11) — in progress
 
 ### Release 0.1.0
 
