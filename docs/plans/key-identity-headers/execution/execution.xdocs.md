@@ -1,6 +1,6 @@
 ---
 subject: jureuma-docs-plans-key-identity-headers-execution
-description: "Execution artifacts of the key-identity plan: three worker handoff briefs dispatched as native background subagents."
+description: "Execution artifacts of the key-identity plan: four worker handoff briefs dispatched as native background subagents."
 parent: jureuma-docs-plans-key-identity-headers
 children:
   - jureuma-docs-plans-key-identity-headers-execution-handoffs

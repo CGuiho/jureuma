@@ -74,6 +74,15 @@ selection on `init`; schema restore on `decrypt` and refresh on
 `schema infer`; status/check reporting across all states. Brief:
 `execution/handoffs/w3-single-file-flows-and-init.md`.
 
+### W4 — project key binding in `jureuma.yaml` (issue #14, CG directive 2026-10-17)
+
+An optional top-level `key:` (full key ID) names the one key the project uses;
+every pair must agree with it (mismatch exit 5, never a silent re-encrypt).
+`init` uses the bound key when a pair records no identity and adds the binding
+through a byte-preserving one-line splice; `key rotate` updates it the same
+way. Labels stay display metadata and are not accepted in the binding. Brief:
+`execution/handoffs/w4-project-key-binding.md`.
+
 ## Sequencing
 
 Planned and packet-validated by UltraCode (session
