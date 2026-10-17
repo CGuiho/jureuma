@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/CGuiho/jureuma/internal/crypt"
 	"github.com/CGuiho/jureuma/internal/doc"
 	"github.com/CGuiho/jureuma/internal/pair"
 	"github.com/CGuiho/jureuma/internal/paths"
@@ -136,12 +137,76 @@ the key it is the actual JSON type. Values are never printed.`,
 
 // ---- status ----
 
+// The four pair states a read-only report covers. "encrypted-missing" is the
+// only-unencrypted state (first class since set/unset can rebuild the sibling
+// from the plaintext identity); "unencrypted-missing" is the only-encrypted
+// state agent and CI machines live in.
+const (
+	stateEncryptedMissing = "encrypted-missing"
+	stateUnencryptedOnly  = "unencrypted-only"
+)
+
 var stateHints = map[string]string{
 	pair.StateUnencryptedNewer:   "run jureuma encrypt",
 	pair.StateEncryptedNewer:     "a human runs jureuma decrypt",
 	pair.StateConflict:           "a human resolves it, then encrypt --force or decrypt --force",
 	pair.StateUnencryptedMissing: "normal on agent and CI machines",
 	pair.StateKeyUnavailable:     "normal on agent machines; only encrypted-side changes are detected",
+	stateEncryptedMissing:        "run jureuma set to rebuild the encrypted sibling, or jureuma encrypt",
+}
+
+// schemaNote reports the pair's schema metadata without values: the $schema
+// pointer of the unencrypted file and the schema copy embedded in the
+// encrypted file. It returns a compact description and value-free warnings.
+func schemaNote(e *env, p *pair.Pair, pf *pair.PlainFile, enc *pair.Encrypted, sk *crypt.PrivateKey) (string, []string) {
+	var warns []string
+	pointer := "present"
+	switch {
+	case pf == nil:
+		pointer = "no unencrypted file"
+	case pf.Schema == "":
+		pointer = "missing"
+		warns = append(warns, p.Rel(p.UnencryptedPath)+" has no "+pair.SchemaKey+" pointer; "+pair.RepairHint)
+	default:
+		got := filepath.Clean(filepath.Join(filepath.Dir(p.UnencryptedPath), filepath.FromSlash(pf.Schema)))
+		if !sameFilePath(got, p.SchemaPath) {
+			pointer = "points elsewhere"
+			warns = append(warns, p.Rel(p.UnencryptedPath)+" "+pair.SchemaKey+" does not point at "+p.Rel(p.SchemaPath))
+		}
+	}
+	state := schemaCopyState(e, p, enc, sk)
+	switch state {
+	case "differs":
+		warns = append(warns, "the schema copy embedded in the encrypted file differs from "+p.Rel(p.SchemaPath)+" (run jureuma schema infer to refresh it)")
+	case "none":
+		if enc != nil {
+			warns = append(warns, "the encrypted file carries no embedded schema copy (run jureuma encrypt or jureuma init to add it)")
+		}
+	}
+	if enc != nil && enc.Meta.SchemaCopy != "" {
+		if id, ok := crypt.CiphertextKeyID(enc.Meta.SchemaCopy); ok && id != enc.Meta.KeyID {
+			warns = append(warns, "the embedded schema copy is encrypted under "+id+", not the file's key (run jureuma encrypt to migrate it)")
+		}
+	}
+	return "pointer " + pointer + ", embedded copy " + state, warns
+}
+
+func sameFilePath(a, b string) bool {
+	if filepath.Clean(a) == filepath.Clean(b) {
+		return true
+	}
+	ra, errA := filepath.EvalSymlinks(a)
+	rb, errB := filepath.EvalSymlinks(b)
+	return errA == nil && errB == nil && ra == rb
+}
+
+// legacyNote reports whether a pair file carries old jureuma state (format 1
+// or malformed): the message is the repair pointer, without values.
+func legacyNote(file string, format int) string {
+	if format == 0 || format == pair.FormatVersion {
+		return ""
+	}
+	return file + ": legacy " + pair.MetaKey + " header (format " + itoa(format) + "); " + pair.RepairHint
 }
 
 func (a *app) cmdStatus() *cobra.Command {
@@ -150,9 +215,12 @@ func (a *app) cmdStatus() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "status",
 		Short: "show the sync state of the pair, per path (read-only)",
-		Long: `Compares the unencrypted and encrypted files with the last sync and reports, per path and
-overall: in-sync, unencrypted-newer, encrypted-newer, conflict, unencrypted-missing or
-key-unavailable. Never modifies anything and never prints values.`,
+		Long: `Reports the pair's state across all four file states (only the unencrypted file, only the
+encrypted file, both, or legacy jureuma state) and, when both files exist, compares them
+with the last sync per path and overall: in-sync, unencrypted-newer, encrypted-newer,
+conflict, unencrypted-missing or key-unavailable. Reports the $schema pointer and the
+embedded schema copy, warns when both files exist and when a file carries a legacy
+$jureuma header. Never modifies anything and never prints values.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkOutput(output); err != nil {
@@ -166,25 +234,73 @@ key-unavailable. Never modifies anything and never prints values.`,
 			if err != nil {
 				return err
 			}
-			enc, err := pair.ReadEncrypted(p.EncryptedPath)
+			plainFile, err := readPlainIfExists(p)
 			if err != nil {
 				return err
 			}
-			sk, _, err := e.findKey(enc.Meta.KeyID)
+			var enc *pair.Encrypted
+			if fileExists(p.EncryptedPath) {
+				if enc, err = pair.ReadEncrypted(p.EncryptedPath); err != nil {
+					return err
+				}
+			}
+			if enc == nil && plainFile == nil {
+				return xerr.Failure("%s: not found (run jureuma encrypt if the configuration is decrypted, or jureuma init)", p.Rel(p.EncryptedPath))
+			}
+			if err := checkIdentity(cmd, plainFile, enc); err != nil {
+				return err
+			}
+			keyID := ""
+			if enc != nil {
+				keyID = enc.Meta.KeyID
+			} else if plainFile.Header != nil {
+				keyID = plainFile.Header.KeyID
+			}
+			sk, _, err := e.findKey(keyID)
 			if err != nil {
 				return err
 			}
-			if sk != nil && sk.Public().String() != enc.Meta.PublicKey {
+			if enc != nil && sk != nil && sk.Public().String() != enc.Meta.PublicKey {
 				return xerr.Key("the private key does not match $jureuma.publicKey")
 			}
-			plain, err := readPlainIfExists(p)
-			if err != nil {
-				return err
+			overall := stateEncryptedMissing
+			var rep pair.Report
+			if enc != nil {
+				var plain *doc.Value
+				if plainFile != nil {
+					plain = plainFile.Body
+				}
+				rep = pair.Status(p, enc, plain, sk)
+				overall = rep.Overall
+			} else {
+				for k := range pair.LeafMap(plainFile.Body) {
+					rep.Paths = append(rep.Paths, pair.PathState{Pointer: k, State: stateUnencryptedOnly})
+				}
 			}
-			rep := pair.Status(p, enc, plain, sk)
 			headWarn := ""
-			if hp, ok := pair.HeadPublicKey(p.EncryptedPath); ok && hp != enc.Meta.PublicKey {
-				headWarn = "$jureuma.publicKey differs from the version at git HEAD; verify the recipient key before encrypting new values"
+			if enc != nil {
+				if hp, ok := pair.HeadPublicKey(p.EncryptedPath); ok && hp != enc.Meta.PublicKey {
+					headWarn = "$jureuma.publicKey differs from the version at git HEAD; verify the recipient key before encrypting new values"
+				}
+			}
+			schNote, schWarns := schemaNote(e, p, plainFile, enc, sk)
+			var stateWarns []string
+			if enc != nil {
+				if n := legacyNote(p.Rel(p.EncryptedPath), enc.Meta.Format); n != "" {
+					stateWarns = append(stateWarns, n)
+				}
+			}
+			if plainFile != nil && plainFile.Header != nil {
+				if n := legacyNote(p.Rel(p.UnencryptedPath), plainFile.Header.Format); n != "" {
+					stateWarns = append(stateWarns, n)
+				}
+			}
+			if enc == nil && plainFile != nil && plainFile.Header == nil {
+				stateWarns = append(stateWarns, p.Rel(p.UnencryptedPath)+": no "+pair.MetaKey+" identity; "+pair.RepairHint)
+			}
+			bothWarn := ""
+			if enc != nil && plainFile != nil {
+				bothWarn = "both files exist (the riskiest state): run jureuma encrypt or jureuma decrypt to keep only one side"
 			}
 			if output == "json" {
 				type ps struct {
@@ -195,33 +311,62 @@ key-unavailable. Never modifies anything and never prints values.`,
 				for _, x := range rep.Paths {
 					list = append(list, ps{x.Pointer, x.State})
 				}
-				out := map[string]any{"pair": p.Name, "overall": rep.Overall, "paths": list, "pending": pair.SortedUnique(enc.Meta.Pending), "keyId": enc.Meta.KeyID}
+				out := map[string]any{"pair": p.Name, "overall": overall, "paths": list, "keyId": keyID, "schema": schNote}
+				if enc != nil {
+					out["pending"] = pair.SortedUnique(enc.Meta.Pending)
+				}
+				var warnings []string
+				warnings = append(warnings, stateWarns...)
+				if bothWarn != "" {
+					warnings = append(warnings, bothWarn)
+				}
+				warnings = append(warnings, schWarns...)
 				if headWarn != "" {
-					out["warnings"] = []string{headWarn}
+					warnings = append(warnings, headWarn)
+				}
+				if len(warnings) > 0 {
+					out["warnings"] = warnings
 				}
 				return writeJSON(cmd, out)
 			}
-			outf(cmd, "%s: %s\n", p.Name, rep.Overall)
-			if h, ok := stateHints[rep.Overall]; ok {
+			outf(cmd, "%s: %s\n", p.Name, overall)
+			if h, ok := stateHints[overall]; ok {
 				outf(cmd, "  (%s)\n", h)
 			}
-			outf(cmd, "  encrypted:   %s\n", p.Rel(p.EncryptedPath))
-			outf(cmd, "  unencrypted: %s", p.Rel(p.UnencryptedPath))
-			if plain == nil {
+			outf(cmd, "  encrypted:   %s", p.Rel(p.EncryptedPath))
+			if enc == nil {
 				outf(cmd, " (missing)")
 			}
-			outf(cmd, "\n  key:         %s (%s)\n", enc.Meta.KeyID, map[bool]string{true: "available", false: "not available"}[sk != nil])
-			outf(cmd, "  paths:       %d in-sync", rep.Count(pair.StateInSync))
-			for _, st := range []string{pair.StateUnencryptedNewer, pair.StateEncryptedNewer, pair.StateConflict, pair.StateKeyUnavailable} {
-				if n := rep.Count(st); n > 0 {
-					outf(cmd, ", %d %s", n, st)
-				}
+			outf(cmd, "\n  unencrypted: %s", p.Rel(p.UnencryptedPath))
+			if plainFile == nil {
+				outf(cmd, " (missing)")
 			}
-			outf(cmd, "\n")
-			for _, x := range rep.Paths {
-				if x.State != pair.StateInSync && x.State != pair.StateKeyUnavailable {
-					outf(cmd, "  %-18s %s\n", x.State, x.Pointer)
+			outf(cmd, "\n  key:         %s (%s)\n", keyID, map[bool]string{true: "available", false: "not available"}[sk != nil])
+			outf(cmd, "  schema:      %s (%s)\n", p.Rel(p.SchemaPath), schNote)
+			if enc != nil {
+				outf(cmd, "  paths:       %d in-sync", rep.Count(pair.StateInSync))
+				for _, st := range []string{pair.StateUnencryptedNewer, pair.StateEncryptedNewer, pair.StateConflict, pair.StateKeyUnavailable} {
+					if n := rep.Count(st); n > 0 {
+						outf(cmd, ", %d %s", n, st)
+					}
 				}
+				outf(cmd, "\n")
+				for _, x := range rep.Paths {
+					if x.State != pair.StateInSync && x.State != pair.StateKeyUnavailable {
+						outf(cmd, "  %-18s %s\n", x.State, x.Pointer)
+					}
+				}
+			} else {
+				outf(cmd, "  paths:       %d %s\n", len(rep.Paths), stateUnencryptedOnly)
+			}
+			for _, n := range stateWarns {
+				errf(cmd, "warning: %s\n", n)
+			}
+			if bothWarn != "" {
+				errf(cmd, "warning: %s\n", bothWarn)
+			}
+			for _, w := range schWarns {
+				errf(cmd, "warning: %s\n", w)
 			}
 			if headWarn != "" {
 				errf(cmd, "warning: %s\n", headWarn)
@@ -265,13 +410,17 @@ func (a *app) cmdCheck() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "check",
 		Short: "check schema, gitignore, tracked plaintext, keys, env names and deny rules",
-		Long: `Checks every configured pair (or the selected one): the encrypted file and its keyId,
-the .gitignore block, that no unencrypted file is tracked by git, the schema (present,
-supported, still the starter, secret paths carrying default/examples/const/enum), the
-structure of the encrypted file, and with the private key the whole decrypted document.
-Also warns when $jureuma.publicKey differs from git HEAD, when values are encrypted under
-other keys, when flattened env names collide, and when the agent-tool deny rules are
-absent. Exit 5 for key problems, 4 for validation problems, 1 for anything else.`,
+		Long: `Checks every configured pair (or the selected one) in each of its four file states (only
+the unencrypted file, only the encrypted file, both, or legacy jureuma state): the
+encrypted file and its keyId, the $jureuma identity headers, the $schema pointer and the
+embedded schema copy (presence, path match, drift), the .gitignore block, that no
+unencrypted file is tracked by git, the schema (present, supported, still the starter,
+secret paths carrying default/examples/const/enum), the structure of the encrypted file,
+and with the private key the whole decrypted document. Also warns when both files exist
+(the riskiest state), when a file carries a legacy $jureuma header, when $jureuma.publicKey
+differs from git HEAD, when values are encrypted under other keys, when flattened env names
+collide, and when the agent-tool deny rules are absent. Exit 5 for key problems, 4 for
+validation problems, 1 for anything else.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := loadEnv()
@@ -317,12 +466,55 @@ absent. Exit 5 for key problems, 4 for validation problems, 1 for anything else.
 
 func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 	label := p.Name
-	enc, err := pair.ReadEncrypted(p.EncryptedPath)
+	pf, err := readPlainIfExists(p)
 	if err != nil {
 		ch.fail(xerr.CodeOf(err), "%s: %v", label, err)
 		return
 	}
-	ch.ok("%s: %s is valid (keyId matches publicKey)", label, p.Rel(p.EncryptedPath))
+	var enc *pair.Encrypted
+	var encErr error
+	if fileExists(p.EncryptedPath) {
+		enc, encErr = pair.ReadEncrypted(p.EncryptedPath)
+	}
+	switch {
+	case encErr != nil:
+		ch.fail(xerr.CodeOf(encErr), "%s: %v", label, encErr)
+	case enc == nil && pf == nil:
+		ch.fail(xerr.CodeFailure, "%s: neither %s nor %s exists (run jureuma init)", label, p.Rel(p.EncryptedPath), p.Rel(p.UnencryptedPath))
+	case enc == nil:
+		ch.info("%s: %s is missing (normal while the pair is decrypted; jureuma set rebuilds it, or jureuma encrypt)", label, p.Rel(p.EncryptedPath))
+	default:
+		ch.ok("%s: %s is valid (keyId matches publicKey)", label, p.Rel(p.EncryptedPath))
+	}
+	if enc != nil {
+		if n := legacyNote(p.Rel(p.EncryptedPath), enc.Meta.Format); n != "" {
+			ch.fail(xerr.CodeFailure, "%s: %s", label, n)
+		}
+	}
+	if pf != nil && pf.Header != nil {
+		if n := legacyNote(p.Rel(p.UnencryptedPath), pf.Header.Format); n != "" {
+			ch.fail(xerr.CodeFailure, "%s: %s", label, n)
+		}
+	}
+	if pf != nil && pf.Header == nil {
+		if enc == nil {
+			// The single-file identity paths need the header to rebuild the
+			// sibling; the repair pointer is the way out.
+			ch.fail(xerr.CodeFailure, "%s: %v", label, pair.MissingPlainIdentity(p.Rel(p.UnencryptedPath)))
+		} else {
+			ch.warn("%s: %s carries no %s identity header; %s", label, p.Rel(p.UnencryptedPath), pair.MetaKey, pair.RepairHint)
+		}
+	}
+	if enc != nil && pf != nil {
+		ch.warn("%s: both files exist (the riskiest state): run jureuma encrypt or jureuma decrypt to keep only one side", label)
+	}
+	if ws, err := pair.CheckIdentity(pf, enc); err != nil {
+		ch.fail(xerr.CodeOf(err), "%s: %v", label, err)
+	} else {
+		for _, w := range ws {
+			ch.warn("%s: %s", label, w)
+		}
+	}
 	if fileExists(p.UnencryptedPath) {
 		tracked, _ := pair.TrackedByGit(e.root, p.UnencryptedPath)
 		if tracked {
@@ -338,6 +530,21 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 	for _, stale := range staleTemps(p.UnencryptedPath) {
 		ch.warn("%s: %s is a temporary file left by an interrupted write and may hold plaintext; delete it", label, p.Rel(stale))
 	}
+	keyID := ""
+	if enc != nil {
+		keyID = enc.Meta.KeyID
+	} else if pf != nil && pf.Header != nil {
+		keyID = pf.Header.KeyID
+	}
+	sk, src, err := e.findKey(keyID)
+	if err != nil {
+		ch.fail(xerr.CodeKey, "%s: %v", label, err)
+		return
+	}
+	schNote, schWarns := schemaNote(e, p, pf, enc, sk)
+	for _, w := range schWarns {
+		ch.warn("%s: %s", label, w)
+	}
 	var sch *schema.Schema
 	if !fileExists(p.SchemaPath) {
 		ch.fail(xerr.CodeValidation, "%s: schema %s is missing (run jureuma schema infer)", label, p.Rel(p.SchemaPath))
@@ -345,20 +552,25 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 		ch.fail(xerr.CodeValidation, "%s: %v", label, err)
 	} else {
 		sch = s
-		ch.ok("%s: schema %s is supported", label, p.Rel(p.SchemaPath))
+		ch.ok("%s: schema %s is supported (%s)", label, p.Rel(p.SchemaPath), schNote)
 		if schema.IsStarter(s.Raw()) {
 			ch.warn("%s: %s is still the permissive starter schema (run jureuma schema infer, then refine it)", label, p.Rel(p.SchemaPath))
 		}
 		for _, is := range s.SecretValueKeywords() {
 			ch.warn("%s: schema %s", label, is.String())
 		}
-		if issues := s.ValidateStructure(enc.Body); len(issues) > 0 {
-			for _, is := range issues {
-				ch.fail(xerr.CodeValidation, "%s: %s", label, is.String())
+		if enc != nil {
+			if issues := s.ValidateStructure(enc.Body); len(issues) > 0 {
+				for _, is := range issues {
+					ch.fail(xerr.CodeValidation, "%s: %s", label, is.String())
+				}
+			} else {
+				ch.ok("%s: the encrypted structure matches the schema", label)
 			}
-		} else {
-			ch.ok("%s: the encrypted structure matches the schema", label)
 		}
+	}
+	if enc == nil {
+		return
 	}
 	if hp, ok := pair.HeadPublicKey(p.EncryptedPath); ok && hp != enc.Meta.PublicKey {
 		ch.warn("%s: $jureuma.publicKey differs from the version at git HEAD; verify the recipient key", label)
@@ -386,20 +598,15 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 			ch.warn("%s: %s (only matters for --format flatten)", label, pr)
 		}
 	}
-	sk, src, err := e.findKey(enc.Meta.KeyID)
-	if err != nil {
-		ch.fail(xerr.CodeKey, "%s: %v", label, err)
-		return
-	}
 	if sk == nil {
-		ch.info("%s: private key %s not available (expected on agent and CI machines)", label, enc.Meta.KeyID)
+		ch.info("%s: private key %s not available (expected on agent and CI machines)", label, keyID)
 		return
 	}
 	if sk.Public().String() != enc.Meta.PublicKey {
 		ch.fail(xerr.CodeKey, "%s: the private key does not match $jureuma.publicKey", label)
 		return
 	}
-	ch.ok("%s: private key %s available (%s)", label, enc.Meta.KeyID, src)
+	ch.ok("%s: private key %s available (%s)", label, keyID, src)
 	plain, err := pair.DecryptDocKeys(pair.StoreKeys(sk, e.store), enc.Body)
 	if err != nil {
 		ch.fail(xerr.CodeKey, "%s: %v", label, err)
@@ -414,10 +621,8 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 			ch.ok("%s: the decrypted document is valid", label)
 		}
 	}
-	if pl, err := readPlainIfExists(p); err != nil {
-		ch.fail(xerr.CodeOf(err), "%s: %v", label, err)
-	} else if pl != nil {
-		rep := pair.Status(p, enc, pl, sk)
+	if pf != nil {
+		rep := pair.Status(p, enc, pf.Body, sk)
 		ch.info("%s: sync state %s", label, rep.Overall)
 	}
 }

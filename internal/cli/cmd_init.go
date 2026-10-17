@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,7 +90,7 @@ func askEvolution(cmd *cobra.Command, ev *config.Evolution) bool {
 
 func (a *app) cmdInit() *cobra.Command {
 	var evolution string
-	var denyRulesFlag string
+	var denyRulesFlag, keyID, keyLabel string
 	c := &cobra.Command{
 		Use:   "init",
 		Short: "initialize or reconcile jureuma for this project (idempotent)",
@@ -97,13 +98,21 @@ func (a *app) cmdInit() *cobra.Command {
 ~/.guiho/jureuma/jureuma.global.yaml and the project's jureuma.yaml exist and are valid, asks
 the agent-evolution policy questions when an interactive terminal is present (defaults to
 always-ask otherwise), and for every configured pair:
-  - with an existing encrypted file: never generates keys; reports key availability;
-  - without one: generates a key pair (~/.guiho/jureuma/keys/), an empty encrypted file and an
-    empty, git-ignored unencrypted file;
+  - with an existing encrypted file: never generates keys; reports key availability; repairs
+    the $jureuma identity header (format 2), the schema metadata and the embedded schema copy
+    in place, keeping every value, sync and pending state;
+  - without one, with the identity recorded in the unencrypted file's $jureuma header: builds
+    the encrypted sibling from that document under that key (no private key needed);
+  - without one and with no recorded identity: chooses the pair key — a stored key picked in
+    a terminal (or named with --key-id / --key-label), a new key otherwise — then creates an
+    empty encrypted file and an empty, git-ignored unencrypted file;
+  - adds or repairs the unencrypted file's $jureuma identity header and $schema pointer,
+    keeping its body exactly;
   - ensures the .gitignore block and the schema (a permissive starter when missing);
   - offers deny rules for *.unencrypted.* in the agent tools' settings (Claude Code, OpenCode).
-Fails unless the .gitignore block is present, no unencrypted file is tracked by git, every
-schema is present and supported, and every keyId matches its publicKey.`,
+Init is idempotent: an already-repaired pair is left byte-identical. Fails unless the
+.gitignore block is present, no unencrypted file is tracked by git, every schema is present
+and supported, and every keyId matches its publicKey.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if evolution != "" && !config.ValidPolicy(evolution) {
@@ -270,7 +279,7 @@ schema is present and supported, and every keyId matches its publicKey.`,
 				r.step("updated   %s (jureuma managed block)", filepath.Join(root, ".gitignore"))
 			}
 			for _, p := range pairs {
-				if err := initPair(r, e, p); err != nil {
+				if err := initPair(r, e, p, keyID, keyLabel); err != nil {
 					return err
 				}
 			}
@@ -353,6 +362,8 @@ schema is present and supported, and every keyId matches its publicKey.`,
 	}
 	c.Flags().StringVar(&evolution, "agent-evolution", "", "set every unset agent.evolution policy (disabled, always-ask, always-proceed) without asking")
 	c.Flags().StringVar(&denyRulesFlag, "agent-deny-rules", "", "add (yes) or skip (no) the agent-tool deny rules without asking")
+	c.Flags().StringVar(&keyID, "key-id", "", "use this stored key (full or short key ID) for a pair with no recorded identity")
+	c.Flags().StringVar(&keyLabel, "key-label", "", "use the stored key carrying this label for a pair with no recorded identity")
 	return c
 }
 
@@ -366,7 +377,7 @@ func (a *app) configVersion() string {
 	return "0.0.0"
 }
 
-func initPair(r *initReport, e *env, p *pair.Pair) error {
+func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error {
 	outf(r.cmd, "pair %s\n", p.Name)
 	if err := pair.CheckSchemaName(p.SchemaPath); err != nil {
 		return err
@@ -376,13 +387,32 @@ func initPair(r *initReport, e *env, p *pair.Pair) error {
 		// point outside the project.
 		return xerr.Usage("--schema-file must stay inside the project root for init")
 	}
+	// Both sides are read before anything is written: a file jureuma cannot
+	// parse is reported and left untouched, never overwritten blindly.
+	pf, err := readPlainIfExists(p)
+	if err != nil {
+		return xerr.Failure("%v; fix or remove the %s block by hand, then re-run jureuma init", err, pair.MetaKey)
+	}
+	var enc *pair.Encrypted
 	if fileExists(p.EncryptedPath) {
-		enc, err := pair.ReadEncrypted(p.EncryptedPath)
-		if err != nil {
-			return err
+		if enc, err = pair.ReadEncrypted(p.EncryptedPath); err != nil {
+			return xerr.Failure("%v; fix or remove the %s block by hand, then re-run jureuma init", err, pair.MetaKey)
 		}
+	}
+	warns, err := pair.CheckIdentity(pf, enc)
+	if err != nil {
+		return err
+	}
+	r.notes = append(r.notes, warns...)
+
+	var h *pair.Header // the identity the pair keeps
+	var sk *crypt.PrivateKey
+	if enc != nil {
+		// An existing pair never gets a new key (key rotate does that).
+		h1 := enc.Meta.Identity()
+		h = &h1
 		r.step("exists    %s (%s)", p.EncryptedPath, enc.Meta.KeyID)
-		sk, _, err := e.findKey(enc.Meta.KeyID)
+		sk, _, err = e.findKey(enc.Meta.KeyID)
 		switch {
 		case err != nil:
 			r.step("key       %v", err)
@@ -391,34 +421,51 @@ func initPair(r *initReport, e *env, p *pair.Pair) error {
 		default:
 			r.step("key       private key %s available", enc.Meta.KeyID)
 		}
+		if keyID != "" || keyLabel != "" {
+			r.notes = append(r.notes, "--key-id/--key-label were not applied: the pair already has a key (jureuma key rotate changes it)")
+		}
 	} else {
-		sk, err := crypt.GenerateKey()
-		if err != nil {
-			return xerr.Failure("cannot generate a key")
+		// No encrypted file: the identity comes from the unencrypted file's
+		// $jureuma header when it has one, else from a stored key chosen for
+		// this pair (picker in a terminal, --key-id / --key-label, or a new
+		// key by default).
+		if pf != nil && pf.Header != nil && (keyID != "" || keyLabel != "") {
+			return xerr.Usage("the pair key is recorded in %s; drop --key-id/--key-label (jureuma key rotate changes the key)", p.Rel(p.UnencryptedPath))
 		}
-		path, err := e.store.Save(sk)
-		if err != nil {
-			return xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+		if pf != nil && pf.Header != nil {
+			h1 := *pf.Header
+			h = &h1
+			r.step("identity  %s (from %s)", h.KeyID, p.Rel(p.UnencryptedPath))
+		} else {
+			chosen, created, err := chooseInitKey(r, e, p, keyID, keyLabel)
+			if err != nil {
+				return err
+			}
+			sk = &chosen
+			pk := chosen.Public()
+			h = &pair.Header{Format: pair.FormatVersion, PublicKey: pk.String(), KeyID: crypt.KeyID(pk), Home: pair.HomeRef}
+			if created != "" {
+				r.step("generated %s", created)
+			}
+			r.step("identity  %s", h.KeyID)
 		}
-		r.step("generated %s", path)
-		ref := ""
-		if p.SchemaSource != pair.SchemaFromDefault {
-			ref = p.SchemaRef()
+		if h.Home == "" {
+			h.Home = pair.HomeRef
 		}
-		enc := pair.NewEncrypted(sk.Public(), ref)
-		if err := pair.WriteEncrypted(p.EncryptedPath, enc); err != nil {
-			return err
+		if sk == nil {
+			if k, _, err := e.findKey(h.KeyID); err != nil {
+				r.notes = append(r.notes, err.Error())
+			} else {
+				sk = k
+			}
 		}
-		r.step("created   %s", p.EncryptedPath)
 	}
-	if !fileExists(p.UnencryptedPath) {
-		if err := pair.WritePlain(p.UnencryptedPath, doc.NewObject()); err != nil {
-			return err
-		}
-		r.step("created   %s (empty, git-ignored)", p.UnencryptedPath)
-	} else {
-		r.step("exists    %s", p.UnencryptedPath)
+	if h.Format == 0 {
+		h.Format = pair.FormatVersion
 	}
+
+	// The schema is ensured once the pair identity is resolved: the pair files
+	// written below point at it and embed its document.
 	if !fileExists(p.SchemaPath) {
 		if err := paths.AtomicWrite(p.SchemaPath, doc.Marshal(schema.Starter()), 0o644); err != nil {
 			return xerr.Failure("%s: cannot write file", p.SchemaPath)
@@ -427,7 +474,169 @@ func initPair(r *initReport, e *env, p *pair.Pair) error {
 	} else {
 		r.step("exists    %s", p.SchemaPath)
 	}
+
+	// The encrypted side: created (empty, or built from the unencrypted
+	// document when there is one) or repaired in place, never re-keyed.
+	if enc == nil {
+		enc = plainIdentity(h, p)
+		body := doc.NewObject()
+		if pf != nil && len(pf.Body.Keys) > 0 {
+			body = pf.Body.Clone()
+		}
+		next, err := buildSibling(e, h, p, body, nil, sk)
+		if err != nil {
+			return err
+		}
+		if err := pair.RepairEncrypted(p.EncryptedPath, next); err != nil {
+			return err
+		}
+		if len(body.Keys) > 0 {
+			r.step("created   %s (built from %s)", p.EncryptedPath, p.Rel(p.UnencryptedPath))
+		} else {
+			r.step("created   %s", p.EncryptedPath)
+		}
+	} else {
+		next := &pair.Encrypted{Meta: enc.Meta, Body: enc.Body}
+		changed := enc.Meta.Format != pair.FormatVersion
+		if next.Meta.Home == "" {
+			next.Meta.Home = pair.HomeRef
+			changed = true
+		}
+		if next.Meta.Schema != p.SchemaRef() {
+			next.Meta.Schema = p.SchemaRef()
+			changed = true
+		}
+		if err := setSchemaCopy(e, next, p, false); err != nil {
+			return err
+		}
+		if next.Meta.SchemaCopy != enc.Meta.SchemaCopy {
+			changed = true
+		}
+		if changed {
+			if err := pair.RepairEncrypted(p.EncryptedPath, next); err != nil {
+				return err
+			}
+			r.step("repaired  %s (%s identity header and schema metadata)", p.EncryptedPath, pair.MetaKey)
+		}
+	}
+
+	// The unencrypted side: the body is kept exactly; the $jureuma identity
+	// header and the $schema pointer are added or repaired.
+	if pf == nil {
+		pf = &pair.PlainFile{Body: doc.NewObject()}
+	}
+	hadPlain := fileExists(p.UnencryptedPath)
+	schemaRef := p.SchemaRef()
+	need := !hadPlain || pf.Header == nil || pf.Header.Format != pair.FormatVersion || pf.Header.Home == "" || pf.Schema != schemaRef
+	if need {
+		write := &pair.PlainFile{Body: pf.Body}
+		if pf.Header != nil {
+			hh := *pf.Header
+			write.Header = &hh
+		} else {
+			hh := *h
+			write.Header = &hh
+		}
+		write.Header.Format = pair.FormatVersion
+		if write.Header.Home == "" {
+			write.Header.Home = pair.HomeRef
+		}
+		write.Schema = schemaRef
+		if err := pair.RepairPlainFile(p.UnencryptedPath, write); err != nil {
+			return err
+		}
+		if !hadPlain {
+			r.step("created   %s (empty, git-ignored)", p.UnencryptedPath)
+		} else {
+			r.step("repaired  %s (%s identity header and %s pointer)", p.UnencryptedPath, pair.MetaKey, pair.SchemaKey)
+		}
+	} else {
+		r.step("exists    %s", p.UnencryptedPath)
+	}
 	return nil
+}
+
+// chooseInitKey resolves the key for a pair with no recorded identity. An
+// explicit --key-id or --key-label names a stored key; a terminal offers the
+// stored keys through the picker plus a "create a new key" choice; without a
+// terminal a new key is created. New keys carry the default repository-name
+// label. The path of a created key is returned so init can report it.
+func chooseInitKey(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) (crypt.PrivateKey, string, error) {
+	entries, err := e.store.List()
+	if err != nil {
+		return crypt.PrivateKey{}, "", xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+	}
+	if keyID != "" && keyLabel != "" {
+		return crypt.PrivateKey{}, "", xerr.Usage("--key-id and --key-label name one key; give only one of them")
+	}
+	if keyID != "" || keyLabel != "" {
+		var match *keystore.Entry
+		matches := 0
+		for i := range entries {
+			en := &entries[i]
+			if keyID != "" {
+				if en.KeyID == keyID || shortKeyID(en.KeyID) == keyID {
+					match = en
+					break
+				}
+				continue
+			}
+			if oneLine(en.Label) == oneLine(keyLabel) {
+				matches++
+				match = en
+			}
+		}
+		if match == nil {
+			if keyID != "" {
+				return crypt.PrivateKey{}, "", xerr.Key("no stored key %s", keyID)
+			}
+			return crypt.PrivateKey{}, "", xerr.Key("no stored key carries the label %q", keyLabel)
+		}
+		if matches > 1 {
+			return crypt.PrivateKey{}, "", xerr.Usage("%d stored keys carry the label %q; select one with --key-id", matches, keyLabel)
+		}
+		sk, _, err := e.findKey(match.KeyID)
+		if err != nil {
+			return crypt.PrivateKey{}, "", err
+		}
+		if sk == nil {
+			return crypt.PrivateKey{}, "", xerr.Key("private key %s is not available", match.KeyID)
+		}
+		return *sk, "", nil
+	}
+	const newKeyChoice = "create a new key"
+	if interactive() {
+		listed := append(append([]keystore.Entry{}, entries...), keystore.Entry{Label: newKeyChoice})
+		en, perr := pickKey(listed, os.Stdin, r.cmd.ErrOrStderr(), true)
+		switch {
+		case perr == nil && en.KeyID != "":
+			sk, _, err := e.findKey(en.KeyID)
+			if err != nil {
+				return crypt.PrivateKey{}, "", err
+			}
+			if sk == nil {
+				return crypt.PrivateKey{}, "", xerr.Key("private key %s is not available", en.KeyID)
+			}
+			return *sk, "", nil
+		case perr == nil:
+			// "create a new key" — fall through to creation.
+		case errors.Is(perr, ErrNoKeySelected):
+			return crypt.PrivateKey{}, "", xerr.Failure("no key selected; nothing was written for %s", p.Name)
+		case errors.Is(perr, ErrNoStoredKeys):
+			// Nothing to choose from: a new key.
+		default:
+			return crypt.PrivateKey{}, "", perr
+		}
+	}
+	sk, err := crypt.GenerateKey()
+	if err != nil {
+		return crypt.PrivateKey{}, "", xerr.Failure("cannot generate a key")
+	}
+	path, err := e.store.SaveLabeled(sk, defaultKeyLabel(e.root, gitOriginURL))
+	if err != nil {
+		return crypt.PrivateKey{}, "", xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)
+	}
+	return sk, path, nil
 }
 
 func verifyPair(r *initReport, e *env, p *pair.Pair) {
@@ -452,7 +661,11 @@ func verifyPair(r *initReport, e *env, p *pair.Pair) {
 	}
 	if sk, _, err := e.findKey(enc.Meta.KeyID); err == nil && sk != nil {
 		plain, _ := readPlainIfExists(p)
-		rep := pair.Status(p, enc, plain, sk)
+		var body *doc.Value
+		if plain != nil {
+			body = plain.Body
+		}
+		rep := pair.Status(p, enc, body, sk)
 		outf(r.cmd, "  %s: sync state %s\n", p.Name, rep.Overall)
 	} else {
 		outf(r.cmd, "  %s: private key not available (expected on agent and CI machines)\n", p.Name)
