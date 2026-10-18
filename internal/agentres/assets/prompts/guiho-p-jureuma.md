@@ -3,7 +3,7 @@ name: guiho-p-jureuma
 purpose: Set up jureuma in a project so its configuration and secrets are encrypted in git and safe for agents to use.
 description: Use when an agent must install, initialize and verify jureuma for a project end to end.
 created: 2026-10-13
-version: "0.3.0"
+version: "0.3.1"
 owner: jureuma-prompts
 flags: []
 tags:
@@ -15,7 +15,7 @@ keywords:
   - init
   - encrypted configuration
 metadata:
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
