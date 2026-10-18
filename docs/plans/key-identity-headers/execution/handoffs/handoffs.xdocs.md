@@ -9,6 +9,7 @@ documents:
   "w2-pair-identity-headers.md": "Workhorse brief for unit W2 (issue #13, part 2): format-2 `$jureuma` identity header on both files, the always-present `$schema` pointer and embedded encrypted schema, consistency checks and legacy-repair behavior."
   "w3-single-file-flows-and-init.md": "Workhorse brief for unit W3 (issue #13, parts 3-4): only-unencrypted/only-encrypted flows, `init` header and `$schema` repair, stored-key selection and the schema lifecycle (embed, restore, refresh)."
   "w4-project-key-binding.md": "Workhorse brief for unit W4 (issue #14): the optional top-level `key:` binding in `jureuma.yaml`, its enforcement against pair headers, and the byte-preserving write used by `init` and `key rotate`."
+  "w5-picker-enter-default.md": "Workhorse brief for the 0.3.1 fix (issue #15): make Enter select the picker's default `create a new key` entry and render that entry honestly."
 tags:
   - "handoffs"
   - "workers"
