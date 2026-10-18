@@ -4,6 +4,7 @@ description: "Review records: technical self-review findings under implementatio
 parent: jureuma-docs
 children:
   - jureuma-docs-reviews-handoff
+  - jureuma-docs-reviews-human
   - jureuma-docs-reviews-implementation
 files: {}
 documents: {}

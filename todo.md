@@ -13,26 +13,12 @@
 | Status | Count |
 | --- | ---: |
 | todo | 0 |
-| in progress | 1 |
-| testing | 8 |
+| in progress | 0 |
+| testing | 5 |
 | stopped | 0 |
 | completed | 0 |
 
 ## Tasks
-
-### Run env name and OpenCode deny rules
-
-- [ ] [Default run env name: `JUREUMA_CONFIG` (restore after the `JUREUMA_` experiment)](https://github.com/CGuiho/jureuma/issues/10) — testing
-- [ ] [Add OpenCode deny rules to jureuma init alongside the Claude Code ones](https://github.com/CGuiho/jureuma/issues/11) — testing
-
-### JSONC write support
-
-- [ ] [Support writing `.jsonc` files with preserved comments (JSON stays the default)](https://github.com/CGuiho/jureuma/issues/12) — testing
-
-### Key identity headers and single-file pairs
-
-- [ ] [Single-file pairs: `$jureuma` header on both files, key labels and key selection](https://github.com/CGuiho/jureuma/issues/13) — testing
-- [ ] [Bind the project key pair in `jureuma.yaml` (`key:`)](https://github.com/CGuiho/jureuma/issues/14) — testing
 
 ### Release 0.1.0
 

@@ -42,7 +42,7 @@ touches no stored data.
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q2 — `key list` shows short key IDs only. How does a human get the full key ID?
 
@@ -56,7 +56,7 @@ long-format option is additive.
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q3 — What happens when a key is saved again with a different label?
 
@@ -68,7 +68,7 @@ untouched, as before.
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q4 — `key list` needs labels, but `List` used to "not read contents". What is the contract now?
 
@@ -81,7 +81,7 @@ material cannot materialise during listing.
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q5 — What does `key list` print for an empty store?
 
@@ -91,7 +91,7 @@ parsers and for agents reading metadata. `key list` stays machine-readable.
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q6 — What do `key show` and `key list` display when a key has no label?
 
@@ -101,7 +101,7 @@ all. The placeholder is display-only.
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q7 — How does the stored-key picker decide it may prompt, and what may it read?
 
@@ -115,7 +115,7 @@ explicit `--key-id` / `--key-label` (W3 wires `init` to that rule).
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q8 — Where does the default label come from, and what if git is absent?
 
@@ -128,7 +128,7 @@ name. The lookup is injectable for tests.
 
 - **confidence:** high
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
-- **human-review:** pending
+- **human-review:** done
 
 ## W2 — `$jureuma` identity headers on both pair files
 
@@ -193,7 +193,7 @@ already owns keystore lookups.
 - **action taken:** implemented in W2 (`internal/pair/header.go`, the pair
   write paths, `header_test.go`); Q9–Q12 change no behaviour the untouched
   suite pins.
-- **human-review:** pending
+- **human-review:** done
 
 ## W3 — single-file flows, `init` repair and `init` key selection
 
@@ -334,7 +334,7 @@ they read byte-identically and never add metadata.
   `cmd_key.go` migration of Q22, `test/e2e/lifecycle_test.go` plus three
   flipped assertions in `lifecycle_test.go`, `values_test.go` and
   `cli_test.go`); the Q20 pair-API need is recorded here, not implemented.
-- **human-review:** pending
+- **human-review:** done
 
 ## Issue #10 follow-up — restore `JUREUMA_CONFIG` as the default run env name
 (W3 of the run-envname train, 2026-10-17)
@@ -359,7 +359,7 @@ keyword is metadata only, so the choice is trivially reversible.
   descriptors' run-focused context).
 - **action taken:** both keyword lists updated to `JUREUMA_CONFIG`; no other
   descriptor changed (no file lists changed).
-- **human-review:** pending
+- **human-review:** done
 
 ### Q26 — How is the `## Unreleased` CHANGELOG entry corrected?
 
@@ -372,7 +372,7 @@ released sections are untouched.
 - **confidence:** high (explicit brief instruction).
 - **action taken:** the `### Changed` entry under `## Unreleased` now states
   the restored default and the denylist exception rule.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q27 — How is the new refusal coverage asserted in `test/e2e`?
 
@@ -388,7 +388,7 @@ private-key-strip and exit-code assertions are unchanged.
   before the assertions were written).
 - **action taken:** added to `TestRunDefaultJSON` in `test/e2e/run_test.go`;
   the config/runner unit tables were flipped in place.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q28 — Does `internal/keystore/keystore_test.go`'s `"JUREUMA_CONFIG": false`
 case change with the default?
@@ -400,7 +400,7 @@ untouched on purpose.
 
 - **confidence:** high.
 - **action taken:** none for that test.
-- **human-review:** pending
+- **human-review:** done
 
 ## W4 — project key binding in `jureuma.yaml` (issue #14)
 
@@ -431,7 +431,7 @@ when the project records other keys) is unchanged and stays green.
   leaves CG's directive unrealised for multi-pair projects).
 - **action taken:** `TestNamedPairsAndFileFlags` flipped in
   `test/e2e/lifecycle_test.go`; every other pinned assertion kept.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q30 — `init` must not write a binding other pairs would immediately
 contradict. Add it anyway (brief: "absent → add it"), refuse (exit 5), or
@@ -455,7 +455,7 @@ or chosen is never overwritten and fails with exit 5.
 - **action taken:** `ensureKeyBinding` in `internal/cli/cmd_init.go` with the
   conflict scan and the note; `TestEnsureKeyBindingNeverOverwrites` pins the
   exit-5 case.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q31 — How is the "byte-preserving one-line splice" implemented?
 
@@ -481,7 +481,7 @@ byte-identical", and matches this repository's comment-preservation rule.
   used by `init` and `key rotate`; `config.SaveProject` is never used for the
   binding (it rewrites the whole document) but now round-trips the field so a
   later whole-document save cannot drop it.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q32 — The brief's proof (b) says a binding disagreement "fails `run`/`set`
 with exit 5". `run` maps every jureuma-side failure to 125. Which wins?
@@ -497,7 +497,7 @@ document, the command help and the suite; special-casing one key error inside
 - **action taken:** none in code; both exit codes captured in the manual
   proof and asserted (`run` 125 `[JUREUMA:KEY]`, `set` 5) in
   `internal/cli/projectkey_test.go` and `test/e2e/projectkey_test.go`.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q33 — `key rotate` updates the binding even when other pairs still use the
 old key. Is that not a fresh disagreement? *(superseded in the fix wave)*
@@ -519,7 +519,7 @@ kept the old key) is gone: it left those pairs at exit 5 — including for
   `TestProjectKeyBindingRotateRotatesWholeProject`).
 - **action taken:** `rotateProject` in `internal/cli/cmd_key.go` (bound
   projects with configured pairs); the single-pair path is untouched.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q34 — Flag resolution order when `--key-id` both names no stored key and
 contradicts the binding: exit 2 (usage) or exit 5 (key)?
@@ -535,7 +535,7 @@ the binding are a usage error".
 - **confidence:** high (both pinned outcomes preserved).
 - **action taken:** `checkInitKeyFlags` in `internal/cli/cmd_init.go`;
   `TestProjectKeyBindingFlagContradiction`.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q35 — `status` on a plaintext-only headerless pair exits 5 with
 "invalid key ID". *(fixed in the fix wave)*
@@ -562,7 +562,7 @@ recommendation for a later unit is a `keyID != ""` guard before `findKey`.
 - **action taken:** `internal/cli/cmd_info.go` (status and `checkPair`) now
   call `findKey` only with a non-empty key ID; both call sites keep every
   other report unchanged.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q36 — "Empty or malformed values are validation errors (exit 4 on load)".
 Only the `key:` field, or every configuration validation error?
@@ -584,7 +584,7 @@ jureuma-side failure to 125.
 - **action taken:** `fieldErr` and `validateSchema` return typed exit-4
   errors in `internal/config`; `loadEnv` and `init` preserve the carried code
   instead of forcing exit 1. Pinned by `TestConfigErrorsAreValidationErrors`.
-- **human-review:** pending
+- **human-review:** done
 
 ## W4 fix wave — project-wide rotation and the empty key lookup (2026-10-17)
 
@@ -614,7 +614,7 @@ selected, because there is nothing of theirs to re-encrypt.
 - **action taken:** `rotateProject` phase 1 (`internal/cli/cmd_key.go`);
   `TestProjectKeyBindingRotateSkipsIdentitylessPair` and
   `TestProjectKeyBindingRotateRefusesMixedKeys`.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q38 — What happens to recorded identities that are not the encrypted file
 (headered unencrypted siblings, plaintext-only pairs)?
@@ -637,7 +637,7 @@ record of this pair's identity says the new key".
   only; it uses the ordinary pair writer (`pair.WritePlainFile`), so `.jsonc`
   keeps its comments and a `.json` plaintext is normalised the same way
   `init` repair normalises it.
-- **human-review:** pending
+- **human-review:** done
 
 ### Q39 — "Rotation is all-or-nothing" — what is guaranteed, and what about
 the single-pair path?
@@ -676,4 +676,4 @@ truthful, value-free line when the sibling identity is re-keyed.
 - **action taken:** the preparation/write split in `rotateProject` and the
   sibling identity refresh with its preflight in the single-pair path
   (`internal/cli/cmd_key.go`).
-- **human-review:** pending
+- **human-review:** done
