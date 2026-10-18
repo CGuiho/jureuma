@@ -4,7 +4,7 @@
 
 All notable changes to jureuma are recorded here. Versions are planned and applied with GUIHO Mirror (`mirror.yaml`); entries are written at release time.
 
-## Unreleased
+## 0.3.0 - 2026-10-18
 
 ### Added
 
