@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 
@@ -144,6 +145,160 @@ func TestPickKeyCancel(t *testing.T) {
 			var out bytes.Buffer
 			if _, err := pickKey(entries, strings.NewReader(input), &out, true); !errors.Is(err, ErrNoKeySelected) {
 				t.Fatalf("err = %v, want ErrNoKeySelected", err)
+			}
+		})
+	}
+}
+
+// syntheticEntry builds the picker's synthetic "create a new key" entry: an
+// action, not a stored key, so it carries a label and no key ID.
+func syntheticEntry(label string) keystore.Entry {
+	return keystore.Entry{Label: label}
+}
+
+// defaultEntries lists two stored keys plus the synthetic default entry.
+func defaultEntries() []keystore.Entry {
+	return []keystore.Entry{
+		testEntry("k_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "one", "jureuma-pk-1:"+strings.Repeat("A", 43), false),
+		testEntry("k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "two", "jureuma-pk-1:"+strings.Repeat("B", 43), true),
+		syntheticEntry("create a new key"),
+	}
+}
+
+func TestRenderKeyLinesWithDefaultMarksSyntheticDefault(t *testing.T) {
+	entries := defaultEntries()
+	lines := renderKeyLinesWithDefault(entries, 2)
+	if len(lines) != 3 {
+		t.Fatalf("got %d lines, want 3", len(lines))
+	}
+	def := lines[2]
+	if def != "create a new key (default)" {
+		t.Fatalf("default line = %q, want %q", def, "create a new key (default)")
+	}
+	for _, unwanted := range []string{"—", "active", "retired", "k_", "jureuma-pk-1:"} {
+		if strings.Contains(def, unwanted) {
+			t.Errorf("default line renders %q as a key column: %q", unwanted, def)
+		}
+	}
+	// Real entries keep the current columns (label column padded to the
+	// widest label in the listing) and gain no marker.
+	width := len("create a new key")
+	wantOne := "one" + strings.Repeat(" ", width-len("one")) + "  k_aaaaaaaaaaaa  jureuma-pk-1:" + strings.Repeat("A", shortKeyRunes) + "  active"
+	wantTwo := "two" + strings.Repeat(" ", width-len("two")) + "  k_bbbbbbbbbbbb  jureuma-pk-1:" + strings.Repeat("B", shortKeyRunes) + "  retired"
+	if lines[0] != wantOne {
+		t.Errorf("real line = %q\nwant     %q", lines[0], wantOne)
+	}
+	if lines[1] != wantTwo {
+		t.Errorf("real line = %q\nwant     %q", lines[1], wantTwo)
+	}
+}
+
+func TestRenderKeyLinesWithDefaultNoDefaultMarksNothing(t *testing.T) {
+	lines := renderKeyLinesWithDefault([]keystore.Entry{syntheticEntry("create a new key")}, -1)
+	if len(lines) != 1 || lines[0] != "create a new key" {
+		t.Fatalf("lines = %q, want the plain label", lines)
+	}
+}
+
+func TestPickKeyDefaultEnterSelectsDefault(t *testing.T) {
+	entries := defaultEntries()
+	for name, input := range map[string]string{"enter": "\n", "whitespace-only line": " \t\n"} {
+		t.Run(name, func(t *testing.T) {
+			var out bytes.Buffer
+			got, err := pickKeyWithDefault(entries, strings.NewReader(input), &out, true, 2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.KeyID != "" || got.Label != "create a new key" {
+				t.Fatalf("picked %#v, want the synthetic default entry", got)
+			}
+			if strings.Contains(out.String(), "enter a number") {
+				t.Fatalf("Enter printed the number hint: %q", out.String())
+			}
+			if !strings.Contains(out.String(), "Which one do you want to use? (Enter = create a new key) ") {
+				t.Fatalf("prompt does not name the default: %q", out.String())
+			}
+			if !strings.Contains(out.String(), "create a new key (default)") {
+				t.Fatalf("listing does not mark the default: %q", out.String())
+			}
+		})
+	}
+}
+
+func TestPickKeyDefaultEOFCancels(t *testing.T) {
+	var out bytes.Buffer
+	if _, err := pickKeyWithDefault(defaultEntries(), strings.NewReader(""), &out, true, 2); !errors.Is(err, ErrNoKeySelected) {
+		t.Fatalf("err = %v, want ErrNoKeySelected", err)
+	}
+}
+
+func TestPickKeyDefaultSelectionsUnchanged(t *testing.T) {
+	entries := defaultEntries()
+	cases := []struct {
+		name  string
+		input string
+		want  keystore.Entry
+	}{
+		{"by number", "1\n", entries[0]},
+		{"number selects the default entry", "3\n", entries[2]},
+		{"by key ID", "k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n", entries[1]},
+		{"by short key ID", "k_aaaaaaaaaaaa\n", entries[0]},
+		{"reprompts on garbage", "x\n2\n", entries[1]},
+		{"reprompts on out-of-range", "9\n1\n", entries[0]},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			got, err := pickKeyWithDefault(entries, strings.NewReader(c.input), &out, true, 2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.KeyID != c.want.KeyID || got.Label != c.want.Label {
+				t.Fatalf("picked %q (%s), want %q (%s)", got.Label, got.KeyID, c.want.Label, c.want.KeyID)
+			}
+		})
+	}
+}
+
+func TestPickKeyDefaultNonTTYNeverReads(t *testing.T) {
+	var out bytes.Buffer
+	got, err := pickKeyWithDefault(defaultEntries(), panicReader{}, &out, false, 2)
+	if !errors.Is(err, ErrNoInteractiveSelection) {
+		t.Fatalf("err = %v, want ErrNoInteractiveSelection", err)
+	}
+	if got.KeyID != "" || out.Len() != 0 {
+		t.Fatalf("non-TTY pick returned %q and wrote %q", got.KeyID, out.String())
+	}
+}
+
+func TestPickKeyDefaultNoEntries(t *testing.T) {
+	var out bytes.Buffer
+	if _, err := pickKeyWithDefault(nil, panicReader{}, &out, true, 2); !errors.Is(err, ErrNoStoredKeys) {
+		t.Fatalf("err = %v, want ErrNoStoredKeys", err)
+	}
+}
+
+func TestPickKeyNoDefaultEmptyLineReprompts(t *testing.T) {
+	// Without a default the empty line keeps today's behavior: the number
+	// hint, a re-prompt, and cancellation only at EOF.
+	entries := []keystore.Entry{testEntry(testKeyID, "one", "jureuma-pk-1:"+strings.Repeat("A", 43), false)}
+	for name, pick := range map[string]func([]keystore.Entry, io.Reader, io.Writer, bool) (keystore.Entry, error){
+		"pickKey": pickKey,
+		"out-of-range index": func(en []keystore.Entry, in io.Reader, out io.Writer, tty bool) (keystore.Entry, error) {
+			return pickKeyWithDefault(en, in, out, tty, 99)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var out bytes.Buffer
+			if _, err := pick(entries, strings.NewReader("\n"), &out, true); !errors.Is(err, ErrNoKeySelected) {
+				t.Fatalf("err = %v, want ErrNoKeySelected", err)
+			}
+			s := out.String()
+			if !strings.Contains(s, "enter a number between 1 and 1, or a key ID") {
+				t.Fatalf("number hint missing: %q", s)
+			}
+			if strings.Contains(s, "(Enter =") {
+				t.Fatalf("prompt names a default without one: %q", s)
 			}
 		})
 	}

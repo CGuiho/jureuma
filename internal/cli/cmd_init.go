@@ -605,7 +605,7 @@ func chooseInitKey(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) 
 	const newKeyChoice = "create a new key"
 	if interactive() {
 		listed := append(append([]keystore.Entry{}, entries...), keystore.Entry{Label: newKeyChoice})
-		en, perr := pickKey(listed, os.Stdin, r.cmd.ErrOrStderr(), true)
+		en, perr := pickKeyWithDefault(listed, os.Stdin, r.cmd.ErrOrStderr(), true, len(listed)-1)
 		switch {
 		case perr == nil && en.KeyID != "":
 			sk, _, err := e.findKey(en.KeyID)

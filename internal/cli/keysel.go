@@ -82,8 +82,18 @@ func shortPublicKey(pk string) string {
 
 // renderKeyLines renders one line per stored key: label, short key ID,
 // public-key prefix and state. The label column is padded to the widest label
-// in the listing so the columns stay aligned.
+// in the listing so the columns stay aligned. No entry is marked as the
+// picker default.
 func renderKeyLines(entries []keystore.Entry) []string {
+	return renderKeyLinesWithDefault(entries, -1)
+}
+
+// renderKeyLinesWithDefault renders the picker listing like renderKeyLines
+// and marks the entry at defaultIndex (a negative index marks none) as the
+// picker default. A synthetic entry — an entry with no key ID, like "create a
+// new key" — names an action, not a stored key: it renders as its label alone,
+// without the empty key-ID and public-key columns or a key state.
+func renderKeyLinesWithDefault(entries []keystore.Entry, defaultIndex int) []string {
 	width := 0
 	for _, en := range entries {
 		if n := len(keyLabel(en.Label)); n > width {
@@ -91,12 +101,22 @@ func renderKeyLines(entries []keystore.Entry) []string {
 		}
 	}
 	out := make([]string, 0, len(entries))
-	for _, en := range entries {
-		state := "active"
-		if en.Retired {
-			state = "retired"
+	for i, en := range entries {
+		line := ""
+		switch {
+		case en.KeyID == "":
+			line = keyLabel(en.Label)
+		default:
+			state := "active"
+			if en.Retired {
+				state = "retired"
+			}
+			line = fmt.Sprintf("%-*s  %s  %s  %s", width, keyLabel(en.Label), shortKeyID(en.KeyID), shortPublicKey(en.PublicKey), state)
 		}
-		out = append(out, fmt.Sprintf("%-*s  %s  %s  %s", width, keyLabel(en.Label), shortKeyID(en.KeyID), shortPublicKey(en.PublicKey), state))
+		if i == defaultIndex {
+			line += " (default)"
+		}
+		out = append(out, line)
 	}
 	return out
 }
@@ -114,31 +134,56 @@ func stdinIsTTY() bool {
 
 // pickKey asks a human to choose one of the stored keys and returns it. It
 // prints the keys in the `key list` format and prompts "Which one do you want
-// to use?"; the answer is a line number or a key ID.
+// to use?"; the answer is a line number or a key ID. It has no default: an
+// empty line re-prompts and a cancelled input ends the selection. It
+// delegates to pickKeyWithDefault with no default, so its behavior is
+// unchanged.
 //
 // in, out and isTTY are injected for tests; the CLI passes os.Stdin, the
 // command's error stream and stdinIsTTY(). When isTTY is false it never reads
 // in and returns ErrNoInteractiveSelection, so a non-interactive caller can
 // never block on this helper.
 func pickKey(entries []keystore.Entry, in io.Reader, out io.Writer, isTTY bool) (keystore.Entry, error) {
+	return pickKeyWithDefault(entries, in, out, isTTY, -1)
+}
+
+// pickKeyWithDefault is pickKey with a default choice: the entry at
+// defaultIndex (a 0-based index; any negative or out-of-range index means no
+// default) that an empty line — Enter — selects immediately. The listing marks
+// that entry as the default and the prompt names it ("Which one do you want to
+// use? (Enter = create a new key) "). A line with no answer at all (EOF) still
+// cancels with ErrNoKeySelected; any other line that names no entry re-prompts.
+func pickKeyWithDefault(entries []keystore.Entry, in io.Reader, out io.Writer, isTTY bool, defaultIndex int) (keystore.Entry, error) {
 	if len(entries) == 0 {
 		return keystore.Entry{}, ErrNoStoredKeys
 	}
 	if !isTTY {
 		return keystore.Entry{}, ErrNoInteractiveSelection
 	}
-	for _, line := range renderKeyLines(entries) {
+	hasDefault := defaultIndex >= 0 && defaultIndex < len(entries)
+	if !hasDefault {
+		defaultIndex = -1
+	}
+	for _, line := range renderKeyLinesWithDefault(entries, defaultIndex) {
 		fmt.Fprintln(out, line)
+	}
+	prompt := "Which one do you want to use? "
+	if hasDefault {
+		prompt = fmt.Sprintf("Which one do you want to use? (Enter = %s) ", keyLabel(entries[defaultIndex].Label))
 	}
 	r := bufio.NewReader(in)
 	for {
-		fmt.Fprint(out, "Which one do you want to use? ")
+		fmt.Fprint(out, prompt)
 		line, err := r.ReadString('\n')
 		if err != nil && line == "" {
 			fmt.Fprintln(out)
 			return keystore.Entry{}, ErrNoKeySelected
 		}
-		if en, ok := matchKeyChoice(entries, strings.TrimSpace(line)); ok {
+		sel := strings.TrimSpace(line)
+		if sel == "" && hasDefault {
+			return entries[defaultIndex], nil
+		}
+		if en, ok := matchKeyChoice(entries, sel); ok {
 			return en, nil
 		}
 		fmt.Fprintf(out, "enter a number between 1 and %d, or a key ID\n", len(entries))

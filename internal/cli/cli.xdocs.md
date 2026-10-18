@@ -12,7 +12,7 @@ files:
   "cmd_run.go": "run: inject configuration into a child process with redacted output."
   "cmd_info.go": "list, status and check: pair state across the four file states, identity headers and $schema/embedded-copy reporting; a missing key ID is reported as state, never a key error."
   "cmd_key.go": "key show, list, export, rotate (project-wide with a binding: every bound pair to one new key — values, embedded schema copies and recorded identities — plus the jureuma.yaml binding update) and retire."
-  "keysel.go": "Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker."
+  "keysel.go": "Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker (Enter selects the default choice)."
   "cmd_schema.go": "schema infer (optional $schema property, $schema pointer and embedded copy refresh)."
   "cmd_juju.go": "juju-enable and juju-disable (alias ownership by SHA-256)."
   "cmd_agent.go": "agent skill, instruction and prompt commands."
@@ -23,7 +23,7 @@ files:
   "detach_unix.go": "Detached background update worker on Unix (Setsid)."
   "detach_windows.go": "Detached background update worker on Windows (DETACHED_PROCESS)."
   "cli_test.go": "In-process CLI tests, including the marker-value leak test."
-  "keysel_test.go": "Rendering, picker and default-label tests."
+  "keysel_test.go": "Rendering, picker (including the Enter-default path) and default-label tests."
   "cmd_key_list_test.go": "key list, key show and key rotate label tests."
   "projectkey_test.go": "Project key-binding tests (disagreement exit 5, init binding writes and the bound key, flag contradiction exit 2, rotate update, malformed binding exit 4, never-overwritten binding)."
   "upgrade_tx.go": "Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command."
@@ -63,7 +63,7 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `cmd_run.go`: run: inject configuration into a child process with redacted output.
 - `cmd_info.go`: list, status and check: pair state across the four file states, identity headers and $schema/embedded-copy reporting; a missing key ID is reported as state, never a key error.
 - `cmd_key.go`: key show, list, export, rotate (project-wide with a binding: every bound pair to one new key — values, embedded schema copies and recorded identities — plus the jureuma.yaml binding update) and retire.
-- `keysel.go`: Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker.
+- `keysel.go`: Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker (Enter selects the default choice).
 - `cmd_schema.go`: schema infer (optional $schema property, $schema pointer and embedded copy refresh).
 - `cmd_juju.go`: juju-enable and juju-disable (alias ownership by SHA-256).
 - `cmd_agent.go`: agent skill, instruction and prompt commands.
@@ -74,7 +74,7 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `detach_unix.go`: Detached background update worker on Unix (Setsid).
 - `detach_windows.go`: Detached background update worker on Windows (DETACHED_PROCESS).
 - `cli_test.go`: In-process CLI tests, including the marker-value leak test.
-- `keysel_test.go`: Rendering, picker and default-label tests.
+- `keysel_test.go`: Rendering, picker (including the Enter-default path) and default-label tests.
 - `cmd_key_list_test.go`: key list, key show and key rotate label tests.
 - `projectkey_test.go`: Project key-binding tests (disagreement exit 5, init binding writes and the bound key, flag contradiction exit 2, rotate update, malformed binding exit 4, never-overwritten binding).
 - `upgrade_tx.go`: Synchronous upgrade transaction (staging, verification, versions/<v>, skills, current.json, launcher check, journal rollback) and the hidden __self-test command.
