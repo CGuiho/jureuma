@@ -703,7 +703,7 @@ from the explicit brief would surprise the parent's release step.
 - **action taken:** `CHANGELOG.md` `## Unreleased` / `### Fixed` section as
   mandated. Flag to CG at review: convention 0009 would name it
   `### Patches` (its bullets already start with "Fixed").
-- **human-review:** pending
+- **human-review:** done
 
 ### Q41 — Underspecified picker edges: whitespace-only line, out-of-range
 default index, and the `(default)` marker on a non-synthetic default.
@@ -728,4 +728,4 @@ a default (`init`) always passes the synthetic entry.
   `TestPickKeyNoDefaultEmptyLineReprompts`).
 - **action taken:** `pickKeyWithDefault` / `renderKeyLinesWithDefault` in
   `internal/cli/keysel.go` (the four-argument `pickKey` delegates with -1).
-- **human-review:** pending
+- **human-review:** done

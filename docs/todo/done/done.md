@@ -12,7 +12,7 @@
 
 | Status | Count |
 | --- | ---: |
-| completed | 6 |
+| completed | 7 |
 
 ## Completed Tasks
 
@@ -106,4 +106,19 @@
   - [w4-project-key-binding.md](../../plans/key-identity-headers/execution/handoffs/w4-project-key-binding.md) - Worker brief for the binding unit.
   - [2026-10-17-dnd-decisions.md](../../questions/key-identity-headers/2026-10-17-dnd-decisions.md) - Question ledger Q25-Q39.
   - [0.3.0-train-review.md](../../reviews/implementation/0.3.0-train-review.md) - Self-review acceptance and residual risk.
+- Original index: [../../../todo.md](../../../todo.md)
+
+### 7. Init key picker: Enter creates a new key (default)
+
+- Status: completed
+- Created: `2026-10-18`
+- Updated: `2026-10-18`
+- Completed: `2026-10-18`
+- Archived: `2026-10-18`
+- Outcome: Pressing Enter in the `init` stored-key picker selects the synthetic `create a new key` entry immediately; it renders as `create a new key (default)` without empty key-ID/`active` columns, and the prompt names the default. Numbers, key IDs, garbage re-prompt, EOF-cancel and the non-TTY refusal are unchanged. Delivered in `df103b5` and `84a336a`, released in 0.3.1 (tag `v0.3.1` at `bfae325`).
+- GitHub project item: [Issue #15](https://github.com/CGuiho/jureuma/issues/15)
+- GitHub component: `jureuma`
+- Related files:
+  - [w5-picker-enter-default.md](../../plans/key-identity-headers/execution/handoffs/w5-picker-enter-default.md) - Worker brief for the picker fix.
+  - [2026-10-18-0.3.1-picker.md](../../reviews/human/2026-10-18-0.3.1-picker.md) - Human verdict and release evidence.
 - Original index: [../../../todo.md](../../../todo.md)

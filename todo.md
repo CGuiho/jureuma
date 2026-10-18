@@ -13,16 +13,12 @@
 | Status | Count |
 | --- | ---: |
 | todo | 0 |
-| in progress | 1 |
+| in progress | 0 |
 | testing | 5 |
 | stopped | 0 |
 | completed | 0 |
 
 ## Tasks
-
-### Init key picker
-
-- [ ] [Init key picker: Enter creates a new key (default)](https://github.com/CGuiho/jureuma/issues/15) — in progress
 
 ### Release 0.1.0
 
