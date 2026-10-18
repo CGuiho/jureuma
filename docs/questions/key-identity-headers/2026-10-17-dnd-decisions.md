@@ -677,3 +677,55 @@ truthful, value-free line when the sibling identity is re-keyed.
   sibling identity refresh with its preflight in the single-pair path
   (`internal/cli/cmd_key.go`).
 - **human-review:** done
+
+## W5 — init key picker defaults to "create a new key" (issue #15, 2026-10-18)
+
+CG reported that pressing Enter in `jureuma init`'s stored-key picker
+re-prompts instead of selecting the synthetic "create a new key" entry. The
+judgment calls below were made unattended (Mode: dnd).
+
+### Q40 — The brief mandates `## Unreleased` with one `### Fixed` bullet in
+`CHANGELOG.md`, but GUIHO convention 0009 (and this file's own sections) call
+fixes `### Patches` under a `## [<version>] - <date>` title. Which shape?
+
+**Answer: the brief's exact shape — `## Unreleased` with one `### Fixed`
+bullet — because it is an explicit, twice-stated parent instruction (the task
+brief and the handoff) and the parent renames the section at the 0.3.1
+release; the convention conflict is flagged here rather than silently
+resolved.** Convention 0009 governs released-version sections and does not
+define an `Unreleased` section at all, so the unreleased placement is out of
+its scope; only the section name (`### Fixed` vs `### Patches`) conflicts. A
+heading rename at release is trivially reversible, whereas silently deviating
+from the explicit brief would surprise the parent's release step.
+
+- **confidence:** high on following the brief (explicit instruction), medium
+  on the parent keeping `### Fixed` at release.
+- **action taken:** `CHANGELOG.md` `## Unreleased` / `### Fixed` section as
+  mandated. Flag to CG at review: convention 0009 would name it
+  `### Patches` (its bullets already start with "Fixed").
+- **human-review:** pending
+
+### Q41 — Underspecified picker edges: whitespace-only line, out-of-range
+default index, and the `(default)` marker on a non-synthetic default.
+
+**Answer: (a) a whitespace-only line is Enter — it selects the default (it
+carries no selection and `matchKeyChoice` already trims before matching);
+(b) a negative or out-of-range default index means "no default", so the
+generic `pickKey` four-argument behavior stays byte-identical, including the
+empty-line number hint and the `ErrNoKeySelected` cancel at EOF; (c) the
+`(default)` marker is appended to whichever listing line is the picker
+default — for the synthetic entry that yields exactly `create a new key
+(default)`, and a real default line would keep its columns and gain the
+marker, though no current caller passes a real default.** The real-entry
+rendering is unchanged in every existing and new usage: the only caller with
+a default (`init`) always passes the synthetic entry.
+
+- **confidence:** high (each choice is the conservative reading; the required
+  strings and the unchanged paths are pinned by
+  `TestPickKeyDefaultEnterSelectsDefault`,
+  `TestPickKeyDefaultSelectionsUnchanged`, `TestPickKeyDefaultEOFCancels`,
+  `TestPickKeyDefaultNonTTYNeverReads` and
+  `TestPickKeyNoDefaultEmptyLineReprompts`).
+- **action taken:** `pickKeyWithDefault` / `renderKeyLinesWithDefault` in
+  `internal/cli/keysel.go` (the four-argument `pickKey` delegates with -1).
+- **human-review:** pending

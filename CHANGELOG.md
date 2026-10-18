@@ -4,6 +4,12 @@
 
 All notable changes to jureuma are recorded here. Versions are planned and applied with GUIHO Mirror (`mirror.yaml`); entries are written at release time.
 
+## Unreleased
+
+### Fixed
+
+- Fixed the `jureuma init` stored-key picker ignoring Enter: an empty line now selects the `create a new key` default entry immediately (no second prompt), that entry renders as `create a new key (default)` instead of showing empty key-ID and `active` columns, and the prompt names the default (`Which one do you want to use? (Enter = create a new key) `). Numbers, full and short key IDs, garbage re-prompts, EOF-cancel and the non-TTY refusal are unchanged.
+
 ## 0.3.0 - 2026-10-18
 
 ### Added
