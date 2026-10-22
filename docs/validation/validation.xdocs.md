@@ -7,6 +7,7 @@ files: {}
 documents:
   "release-0.1.0-validation.md": "Commands, captured results, skipped checks and readiness for the zeze 0.1.0 delivery."
   "0.3.0-train-validation.md": "Commands, captured results, skipped checks and readiness for the zeze 0.3.0 train (issues #10-#14)."
+  "2026-10-22-rename-validation.md": "Pre-tag gate for the rename to the ZeZe identity: command exit codes, completeness gates, history, tag and release integrity, the pinned-schema transient and the zero-compatibility spot checks."
 tags:
   - "validation"
 keywords:
@@ -26,3 +27,4 @@ statement handed to the human review.
 
 - [release-0.1.0-validation.md](release-0.1.0-validation.md): Commands, captured results, skipped checks and readiness for the zeze 0.1.0 delivery.
 - [0.3.0-train-validation.md](0.3.0-train-validation.md): Commands, captured results, skipped checks and readiness for the zeze 0.3.0 train (issues #10-#14).
+- [2026-10-22-rename-validation.md](2026-10-22-rename-validation.md): Pre-tag gate for the rename to the ZeZe identity: command exit codes, completeness gates, history, tag and release integrity, the pinned-schema transient and the zero-compatibility spot checks.
