@@ -5,7 +5,8 @@ parent: jureuma-docs
 children:
   - jureuma-docs-todo-done
 files: {}
-documents: {}
+documents:
+  "rename-to-zeze.md": "Task spec of the rename-to-ZeZé run: scoped units, the zero-backward-compatibility decision, acceptance signals and the single-exemption token policy for release 0.4.0."
 tags:
   - "todo"
 keywords:

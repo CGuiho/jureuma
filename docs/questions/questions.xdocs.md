@@ -5,6 +5,7 @@ parent: jureuma-docs
 children:
   - jureuma-docs-questions-release-0.1.0
   - jureuma-docs-questions-key-identity-headers
+  - zeze-docs-questions-rename-to-zeze
 files: {}
 documents: {}
 tags:
