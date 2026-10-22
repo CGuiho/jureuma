@@ -2,7 +2,7 @@
 name: guiho-s-zeze
 description: Use whenever a project uses zeze or needs configuration or secrets handled safely by an agent - installing, initializing, upgrading, or uninstalling zeze; reading the shape of configuration with list/status/check; setting or unsetting values without seeing them; running commands with injected configuration (ZEZE_CONFIG); writing or refining config.schema.json(c) JSON Schemas; rotating keys; or reporting zeze bugs and improvements.
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
 ---
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.

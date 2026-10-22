@@ -3,7 +3,7 @@ name: guiho-i-zeze
 purpose: Provide the bounded zeze managed block for a project's AGENTS.md.
 description: Repository instructions that keep project configuration and secrets agent-safe under zeze; applied as the managed AGENTS.md block with its metadata frontmatter stripped.
 created: 2026-10-13
-version: "0.3.1"
+version: "0.4.0"
 owner: zeze
 flags: []
 tags:
@@ -15,7 +15,7 @@ keywords:
   - agent-safe configuration
   - ZEZE_CONFIG
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
 ---
 
 ## zeze (agent-safe configuration and secrets)

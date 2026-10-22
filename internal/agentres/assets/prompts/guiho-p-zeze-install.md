@@ -3,7 +3,7 @@ name: guiho-p-zeze-install
 purpose: Install the zeze CLI without initializing a project.
 description: Use when an agent must install and verify zeze while keeping project initialization as a separate explicit task.
 created: 2026-10-13
-version: "0.3.1"
+version: "0.4.0"
 owner: zeze-prompts
 flags: []
 tags:
@@ -15,7 +15,7 @@ keywords:
   - checksums
   - stable launcher
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
 ---
 
 Install zeze, the GUIHO agent-safe configuration CLI (https://github.com/CGuiho/zeze).

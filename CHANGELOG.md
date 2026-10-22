@@ -4,6 +4,34 @@
 
 All notable changes to zeze are recorded here. Versions are planned and applied with GUIHO Mirror (`mirror.yaml`); entries are written at release time.
 
+## 0.4.0 - 2026-10-22
+
+### Changed
+
+- The project, the CLI, every artifact and the tool's home directory moved to
+  the ZeZé / `zeze` identity in one breaking release. The CLI binary and the
+  stable launcher are now `zeze`, the environment-variable prefix is `ZEZE_`,
+  the CLI home is `~/.guiho/zeze/`, the project and global configuration files
+  are `zeze.yaml` and `zeze.global.yaml`, the error-tag prefix is
+  `[ZEZE:<KIND>]`, the managed-block markers name `zeze`, and the shipped agent
+  artifacts are `guiho-s-zeze`, `guiho-p-zeze`, `guiho-p-zeze-install` and
+  `guiho-p-zeze-uninstall`.
+
+### Removed
+
+- The obsolete alias command surface is gone. There is **zero backward
+  compatibility**: no alias, no shim, no fallback and no deprecation window.
+  Nothing recognises the former binary name, environment-variable prefix, CLI
+  home path, managed-block markers or agent artifact IDs, and configuration
+  pairs keep their names and contents unchanged.
+- An old installation cannot upgrade in place. Reinstall with the current
+  installer and follow
+  [docs/2026-10-22-zeze-migration-instruction.md](docs/2026-10-22-zeze-migration-instruction.md),
+  which is the single exemption where the former names are still recorded.
+  **Carry the private keys over from the old home first**: every
+  `*.encrypted.json` in every project is encrypted to those X25519 keys, and
+  without them every encrypted value becomes permanently undecryptable.
+
 ## 0.3.1 - 2026-10-18
 
 ### Patches

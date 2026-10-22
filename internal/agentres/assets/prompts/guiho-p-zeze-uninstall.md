@@ -3,7 +3,7 @@ name: guiho-p-zeze-uninstall
 purpose: Uninstall zeze through its ownership-safe lifecycle interface.
 description: Use when an agent must uninstall zeze while preserving keys, configuration and data according to the user's choices.
 created: 2026-10-13
-version: "0.3.1"
+version: "0.4.0"
 owner: zeze-prompts
 flags: []
 tags:
@@ -16,7 +16,7 @@ keywords:
   - preserve-data
   - keys
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
 ---
 
 Uninstall zeze, the GUIHO agent-safe configuration CLI (https://github.com/CGuiho/zeze).

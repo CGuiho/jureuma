@@ -3,7 +3,7 @@ name: guiho-p-zeze
 purpose: Set up zeze in a project so its configuration and secrets are encrypted in git and safe for agents to use.
 description: Use when an agent must install, initialize and verify zeze for a project end to end.
 created: 2026-10-13
-version: "0.3.1"
+version: "0.4.0"
 owner: zeze-prompts
 flags: []
 tags:
@@ -15,7 +15,7 @@ keywords:
   - init
   - encrypted configuration
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
 ---
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
