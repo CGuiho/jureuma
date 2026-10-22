@@ -90,9 +90,6 @@ review; largely deliberate safety or already-confirmed design decisions):
   Deleting keys destroys the ability to decrypt committed ciphertext — an
   irreversible data-loss risk — so safety wins over the literal `--yes`
   contract. Kept; documented in the README.
-- **`juju` alias** writes `~/.guiho/bin/juju`: a designed, user-invoked
-  feature with checksum-tracked ownership and refusal of unowned files.
-  Kept.
 - **Binary-replacement mechanics** (`.old` pre-clean list, Windows detached
   helper): jureuma meets the mandated goal (stale-backup-proof replacement,
   verification-gated activation, idempotent reruns) through staging-only
@@ -137,7 +134,7 @@ dogfooding question stays open above.
   and two artifacts that can be installed together onto the same path
   (overlapping platforms; the same path across distinct platforms stays
   legal, as the real manifest requires for payloads and launchers);
-  `9d988c4` refreshes the `juju-enable` help (the alias copies the launcher,
+  `9d988c4` refreshes the launcher-copy help (the copy tracks the launcher,
   so ordinary upgrades do not invalidate it) and the W4 brief.
 - **W4 dispatched** once W1 had landed: issue #8 flipped to In Progress on
   the Project (read back), session `ses_ebdf4e448ffeiMNcNtrjnxJAPS`, brief

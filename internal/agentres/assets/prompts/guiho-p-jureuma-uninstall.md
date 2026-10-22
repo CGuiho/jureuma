@@ -55,7 +55,7 @@ What uninstall does not touch: the jureuma block in the project `.gitignore` (it
 `*.unencrypted.json` files out of git and stays on purpose), the `*.encrypted.json`,
 `*.unencrypted.json`, and `*.schema.json` files, `AGENTS.md` content outside jureuma's managed
 block (only the block is removed), the shared `~/.guiho/`, `~/.guiho/bin/`, and
-`~/.guiho/.temp/` directories, and the `PATH` entry. The `juju` alias, the `guiho-s-jureuma`
+`~/.guiho/.temp/` directories, and the `PATH` entry. The `guiho-s-jureuma`
 skill copies, and agent-tool deny rules added by jureuma (Claude Code and OpenCode) are removed.
 
 Finally, verify that `jureuma` is no longer found on the `PATH` (open a new shell if needed)

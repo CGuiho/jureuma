@@ -36,7 +36,7 @@ the installers download the released launcher.
   `devops/release-verify.sh`, `devops/cross-build.sh`, `devops/build.sh`,
   `devops/e2e-installers.sh`;
 - `internal/update/release.go` (manifest parsing), `internal/cli/upgrade_tx.go`
-  (activation/verification), `internal/cli/cmd_juju.go` (alias copies the launcher),
+  (activation/verification),
   `internal/paths/paths.go` (home resolution, `JUREUMA_USER_HOME`);
 - Reference implementations to port from:
   `/root/swe/runx/cmd/runx-launcher/{main.go,delegate_unix.go,delegate_windows.go}`,
@@ -71,8 +71,8 @@ the installers download the released launcher.
    must not replace the running launcher (adjust `internal/cli/upgrade_tx.go`
    activation accordingly; payloads install only into `versions/<v>/` with the
    atomic `current.json` swap). First release — no legacy migration needed.
-5. `internal/cli/cmd_juju.go`: the alias copy must still work when the
-   launcher is a binary (executable permissions, checksum ownership).
+5. The launcher copy in `~/.guiho/bin`: it must still work when the launcher is
+   a binary (executable permissions, checksum ownership).
 6. `devops/e2e-installers.sh`: adapt all checks to the new asset set (launcher
    downloaded and installed, fallback-to-previous still proven, Windows
    fixture includes the launcher) — keep equal or stronger coverage. The

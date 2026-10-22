@@ -229,16 +229,14 @@ if (cd "$neutral" && env HOME="$A" PATH="$clean_path" JUREUMA_RELEASE_ASSET_DIR=
 fi
 ok 'install.sh JUREUMA_RELEASE_ASSET_DIR installs the released launcher from a local release directory'
 
-# Project integration, juju alias, uninstall.sh.
+# Project integration and uninstall.sh.
 P="$work/project"; mkdir -p "$P"; git -C "$P" init -q
 printf '# Project\n\nKeep this line.\n' > "$P/AGENTS.md"
 (cd "$P" && env HOME="$H" PATH="$clean_path" JUREUMA_RELEASES_URL="$base/releases-good.json" sh "$root/devops/install.sh" >/dev/null)
 grep -qF '<!-- >>> jureuma managed block >>> -->' "$P/AGENTS.md" || fail 'AGENTS.md block not applied'
 ok 'install.sh applies the AGENTS.md block from a project root'
 (cd "$P" && env HOME="$H" PATH="$H/.guiho/bin:$clean_path" jureuma init --agent-evolution always-ask --agent-deny-rules no >/dev/null)
-(cd "$P" && env HOME="$H" PATH="$H/.guiho/bin:$clean_path" jureuma juju-enable >/dev/null)
-[ "$(env HOME="$H" "$H/.guiho/bin/juju" --version)" = 0.1.0 ] || fail 'juju alias does not dispatch'
-ok 'jureuma init and the juju alias work through the launcher'
+ok 'jureuma init works through the launcher'
 
 out=$(cd "$P" && run_uninstall "$H" --dry-run)
 printf '%s\n' "$out" | grep -q 'REMOVE' || fail 'uninstall dry run printed no plan'
@@ -249,7 +247,7 @@ if (cd "$P" && run_uninstall "$H" </dev/null >/dev/null 2>&1); then fail 'non-in
 ok 'uninstall.sh without --yes refuses non-interactively'
 
 (cd "$P" && run_uninstall "$H" --preserve-config --preserve-data --yes </dev/null >/dev/null)
-[ ! -e "$H/.guiho/bin/jureuma" ] && [ ! -e "$H/.guiho/bin/juju" ] || fail 'launcher or alias not removed'
+[ ! -e "$H/.guiho/bin/jureuma" ] || fail 'launcher not removed'
 [ -f "$P/jureuma.yaml" ] && [ -f "$H/.guiho/jureuma/jureuma.global.yaml" ] || fail 'configuration not preserved'
 [ -d "$H/.guiho/jureuma/keys" ] && [ -d "$H/.guiho/jureuma/state" ] || fail 'data not preserved'
 [ ! -e "$H/.guiho/jureuma/versions" ] && [ ! -e "$H/.guiho/jureuma/current.json" ] || fail 'payloads not removed'

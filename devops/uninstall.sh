@@ -6,7 +6,7 @@
 #   curl -fsSL .../uninstall.sh | sh -s -- --preserve-config --preserve-data --yes
 #
 # Same contract as `jureuma uninstall`: by default every jureuma-owned artifact
-# is removed (launcher, juju alias, versioned payloads, ~/.guiho/jureuma with
+# is removed (launcher, versioned payloads, ~/.guiho/jureuma with
 # configuration, state, audit log and caches, the guiho-s-jureuma skill copies,
 # the jureuma block in the project's AGENTS.md, the deny rules jureuma added
 # and the project's jureuma.yaml). Private keys (~/.guiho/jureuma/keys) are
@@ -117,11 +117,6 @@ find_up() {
 }
 ROOT=$(find_up jureuma.yaml || find_up .git || printf '%s\n' "$PWD")
 
-sha256() {
-  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{print $1}'
-  elif command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | awk '{print $1}'
-  else printf 'unavailable\n'; fi
-}
 is_agent() {
   for m in $AGENT_MARKERS; do
     eval "v=\${$m:-}"
@@ -144,19 +139,6 @@ deny_state="$JHOME/state/deny-rules.json"
 if [ -f "$deny_state" ] && grep -q "\"$ROOT\"" "$deny_state" 2>/dev/null; then
   add P deny "$ROOT/.claude/settings.json" 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
   add P deny "$ROOT/opencode.json" 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
-fi
-alias_state="$JHOME/state/alias.json"
-if [ -f "$alias_state" ]; then
-  alias_path=$(sed -n 's/.*"path": *"\([^"]*\)".*/\1/p' "$alias_state" | head -n 1)
-  alias_sum=$(sed -n 's/.*"sha256": *"\([0-9a-f]*\)".*/\1/p' "$alias_state" | head -n 1)
-  if [ -n "$alias_path" ] && [ -f "$alias_path" ]; then
-    case "$alias_path" in
-      "$BIN/juju")
-        if [ "$(sha256 "$alias_path")" = "$alias_sum" ]; then add R file "$alias_path" 'juju alias'
-        else add P file "$alias_path" 'juju alias changed since jureuma installed it; not removed'; fi ;;
-      *) add P file "$alias_path" 'recorded juju alias is outside ~/.guiho/bin; not removed' ;;
-    esac
-  fi
 fi
 skill_roots="$USER_HOME/.agents/skills"
 [ -d "$USER_HOME/.claude" ] && skill_roots="$USER_HOME/.claude/skills $skill_roots"
@@ -239,7 +221,7 @@ failed=0
 printf '%s' "$plan" | awk -F "$TAB" '$1 == "R" && $2 != "keys" { print $2 "\t" $3 }' > "${TMPDIR:-/tmp}/jureuma-uninstall-plan.$$"
 while IFS="$TAB" read -r kind path; do
   case "$path" in
-    "$JHOME"/?*|"$BIN/jureuma"|"$BIN/juju"|"$ROOT/jureuma.yaml"|"$ROOT/AGENTS.md"|*/skills/"$SKILL_ID") ;;
+    "$JHOME"/?*|"$BIN/jureuma"|"$ROOT/jureuma.yaml"|"$ROOT/AGENTS.md"|*/skills/"$SKILL_ID") ;;
     *) printf 'error: refusing to remove unexpected path %s\n' "$path" >&2; failed=$((failed + 1)); continue ;;
   esac
   if case "$kind" in block) remove_block "$path" ;; *) rm -rf -- "$path" ;; esac; then

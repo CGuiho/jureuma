@@ -231,8 +231,6 @@ Exit codes: 0 ok, 1 failure, 2 usage, 3 protected operation refused, 4 validatio
 		a.cmdCheck(),
 		a.cmdKey(),
 		a.cmdSchema(),
-		a.cmdEnableJuju(),
-		a.cmdDisableJuju(),
 		a.cmdAgent(),
 		a.cmdUpgrade(),
 		a.cmdUninstall(),

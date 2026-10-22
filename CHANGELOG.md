@@ -44,7 +44,7 @@ All notable changes to jureuma are recorded here. Versions are planned and appli
 
 ### Added
 
-- The agent-safe configuration CLI: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key show|export|rotate|retire`, `schema infer`, `juju-enable`, `juju-disable`, `agent skill|instruction|prompt`, `upgrade check|list` and `uninstall`, with the convention help flags (`--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`).
+- The agent-safe configuration CLI: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key show|export|rotate|retire`, `schema infer`, `agent skill|instruction|prompt`, `upgrade check|list` and `uninstall`, with the convention help flags (`--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`).
 - Configuration pairs plus a schema: the gitignored `<stem>.unencrypted.json` plaintext, the committed `<stem>.encrypted.json` whose every value is X25519-encrypted with readable field names, and a committed JSON or JSONC JSON Schema draft 2020-12 (`schema infer` generates it); dedicated locks keep the pair in sync.
 - Agent-safe injection: `jureuma run -- <cmd>` injects the decrypted document (JSON by default; `--format flatten|file`, `--env-name`) into `JUREUMA_CONFIG`, private keys stripped, the document hardened through memfd or a 0600 temp file, and child output redacted.
 - The human-only gate: `decrypt`, `get`, `key show --private` and `key export` require a real terminal and a typed confirmation word, refuse agent markers, and audit `--dangerously-bypass-protections`.

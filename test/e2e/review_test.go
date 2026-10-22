@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -177,34 +176,6 @@ func TestDecryptKeepsEmptyContainerEdits(t *testing.T) {
 	}
 	if !strings.Contains(p.read("config.unencrypted.json"), "features") {
 		t.Fatal("decrypt dropped the structural edit")
-	}
-}
-
-func TestUninstallKeepsForeignJuju(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX alias")
-	}
-	p := newProject(t)
-	p.expect(0, "juju-enable")
-	alias := filepath.Join(p.home, ".guiho", "bin", "juju")
-	os.WriteFile(alias, []byte("#!/bin/sh\necho canonical juju\n"), 0o755)
-	// A state file pointing elsewhere is never followed.
-	outsideFile := filepath.Join(t.TempDir(), "precious")
-	p.writeAbs(outsideFile, "keep")
-	state := filepath.Join(p.jhome(), "state", "alias.json")
-	data, _ := os.ReadFile(state)
-	var st map[string]any
-	json.Unmarshal(data, &st)
-	st["path"] = outsideFile
-	data, _ = json.Marshal(st)
-	os.WriteFile(state, data, 0o600)
-
-	r := p.expect(0, "uninstall", "--yes")
-	if _, err := os.Stat(alias); err != nil {
-		t.Fatalf("uninstall removed a juju jureuma does not own\n%s", r)
-	}
-	if _, err := os.Stat(outsideFile); err != nil {
-		t.Fatalf("uninstall followed the path recorded in alias.json\n%s", r)
 	}
 }
 

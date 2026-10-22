@@ -4,7 +4,7 @@ description: "End-to-end tests that build jureuma and drive it as a subprocess i
 parent: jureuma-test
 children: []
 files:
-  "cli_test.go": "Command-surface tests (init, pairs, JSON output, schema infer, version, help, juju, key rotation and the plaintext sibling identity it refreshes)."
+  "cli_test.go": "Command-surface tests (init, pairs, JSON output, schema infer, version, help, key rotation and the plaintext sibling identity it refreshes)."
   "inject_test.go": "inject alias of run (issue #9): identical injection, flags, redaction and exit codes, and help discoverability."
   "lifecycle_test.go": "Lifecycle tests (encrypt/decrypt round trips and order, single-file flows, init repair and key selection, $schema pointer and embedded copy, four-state reporting, gitignore invariant, status)."
   "onefile_test.go": "Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both."
@@ -32,7 +32,7 @@ End-to-end tests that build jureuma and drive it as a subprocess in throw-away h
 
 ## Files
 
-- `cli_test.go`: Command-surface tests (init, pairs, JSON output, schema infer, version, help, juju, key rotation and the plaintext sibling identity it refreshes).
+- `cli_test.go`: Command-surface tests (init, pairs, JSON output, schema infer, version, help, key rotation and the plaintext sibling identity it refreshes).
 - `inject_test.go`: inject alias of run (issue #9): identical injection, flags, redaction and exit codes, and help discoverability.
 - `lifecycle_test.go`: Lifecycle tests (encrypt/decrypt round trips and order, single-file flows, init repair and key selection, $schema pointer and embedded copy, four-state reporting, gitignore invariant, status).
 - `onefile_test.go`: Default one-file lifecycle: encrypt deletes the plaintext, decrypt deletes the encrypted file, key and ciphertext restore from the saved copy or git HEAD, --keep-both.

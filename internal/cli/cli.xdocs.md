@@ -1,12 +1,12 @@
 ---
 subject: jureuma-cli
-description: "The Cobra command tree: every command, help flags (--help-docs, --help-tree), exit codes, the human-only gate and bypass handling, init, agent, juju alias, upgrade, uninstall and the bare-invocation update check."
+description: "The Cobra command tree: every command, help flags (--help-docs, --help-tree), exit codes, the human-only gate and bypass handling, init, agent, upgrade, uninstall and the bare-invocation update check."
 parent: jureuma-internal
 children: []
 files:
   "cli.go": "Root command, Execute, global flags and exit-code mapping."
   "helpdocs.go": "--help-docs and --help-tree rendering."
-  "context.go": "Shared command environment (project root, configuration, pair resolution with the jureuma.yaml key-binding enforcement), the single plaintext reader with identity metadata, and the embedded schema-copy helpers."
+  "context.go": "Shared command environment (project root, configuration, pair resolution with the jureuma.yaml key-binding enforcement), the single plaintext reader with identity metadata, the embedded schema-copy helpers and the small file/executable helpers."
   "stash.go": "Saved copy of an encrypted file removed by decrypt, and its restore (saved copy, then git HEAD) for encrypt."
   "cmd_values.go": "encrypt, decrypt, set, unset and get, including the only-unencrypted sibling builds and the schema-copy restore on decrypt."
   "cmd_run.go": "run: inject configuration into a child process with redacted output."
@@ -14,7 +14,6 @@ files:
   "cmd_key.go": "key show, list, export, rotate (project-wide with a binding: every bound pair to one new key — values, embedded schema copies and recorded identities — plus the jureuma.yaml binding update) and retire."
   "keysel.go": "Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker (Enter selects the default choice)."
   "cmd_schema.go": "schema infer (optional $schema property, $schema pointer and embedded copy refresh)."
-  "cmd_juju.go": "juju-enable and juju-disable (alias ownership by SHA-256)."
   "cmd_agent.go": "agent skill, instruction and prompt commands."
   "cmd_upgrade.go": "upgrade, upgrade check and upgrade list with the reinstall recovery block."
   "cmd_uninstall.go": "uninstall with the REMOVE/PRESERVE plan and key protection."
@@ -44,20 +43,19 @@ keywords:
   - "decrypt"
   - "uninstall"
   - "upgrade"
-  - "juju-enable"
 flags: []
 status: stable
 ---
 
 # jureuma-cli
 
-The Cobra command tree: every command, help flags (--help-docs, --help-tree), exit codes, the human-only gate and bypass handling, init, agent, juju alias, upgrade, uninstall and the bare-invocation update check.
+The Cobra command tree: every command, help flags (--help-docs, --help-tree), exit codes, the human-only gate and bypass handling, init, agent, upgrade, uninstall and the bare-invocation update check.
 
 ## Files
 
 - `cli.go`: Root command, Execute, global flags and exit-code mapping.
 - `helpdocs.go`: --help-docs and --help-tree rendering.
-- `context.go`: Shared command environment (project root, configuration, pair resolution with the jureuma.yaml key-binding enforcement), the single plaintext reader with identity metadata, and the embedded schema-copy helpers.
+- `context.go`: Shared command environment (project root, configuration, pair resolution with the jureuma.yaml key-binding enforcement), the single plaintext reader with identity metadata, the embedded schema-copy helpers and the small file/executable helpers.
 - `stash.go`: Saved copy of an encrypted file removed by decrypt, and its restore (saved copy, then git HEAD) for encrypt.
 - `cmd_values.go`: encrypt, decrypt, set, unset and get, including the only-unencrypted sibling builds and the schema-copy restore on decrypt.
 - `cmd_run.go`: run: inject configuration into a child process with redacted output.
@@ -65,7 +63,6 @@ The Cobra command tree: every command, help flags (--help-docs, --help-tree), ex
 - `cmd_key.go`: key show, list, export, rotate (project-wide with a binding: every bound pair to one new key — values, embedded schema copies and recorded identities — plus the jureuma.yaml binding update) and retire.
 - `keysel.go`: Key labels, short ID and public-key prefix rendering, default label derivation and the TTY-safe stored-key picker (Enter selects the default choice).
 - `cmd_schema.go`: schema infer (optional $schema property, $schema pointer and embedded copy refresh).
-- `cmd_juju.go`: juju-enable and juju-disable (alias ownership by SHA-256).
 - `cmd_agent.go`: agent skill, instruction and prompt commands.
 - `cmd_upgrade.go`: upgrade, upgrade check and upgrade list with the reinstall recovery block.
 - `cmd_uninstall.go`: uninstall with the REMOVE/PRESERVE plan and key protection.

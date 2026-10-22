@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -188,7 +187,7 @@ func TestUsageAndHelp(t *testing.T) {
 		t.Fatalf("help-docs: %s", out)
 	}
 	tree := h.expect(0, "", "--help-tree")
-	for _, want := range []string{"init", "encrypt", "decrypt", "set", "unset", "get", "run", "list", "status", "check", "key", "rotate", "retire", "export", "schema", "infer", "juju-enable", "juju-disable", "agent", "skill", "instruction", "prompt", "upgrade", "uninstall", "--value-stdin", "--dangerously-bypass-protections"} {
+	for _, want := range []string{"init", "encrypt", "decrypt", "set", "unset", "get", "run", "list", "status", "check", "key", "rotate", "retire", "export", "schema", "infer", "agent", "skill", "instruction", "prompt", "upgrade", "uninstall", "--value-stdin", "--dangerously-bypass-protections"} {
 		if !strings.Contains(tree, want) {
 			t.Errorf("help tree lacks %s", want)
 		}
@@ -206,7 +205,7 @@ func TestUsageAndHelp(t *testing.T) {
 	}
 }
 
-func TestAgentCommandsAndJuju(t *testing.T) {
+func TestAgentCommands(t *testing.T) {
 	h := newHarness(t)
 	out := h.expect(0, "", "agent", "prompt", "list")
 	if !strings.Contains(out, "guiho-p-jureuma (default)") {
@@ -233,25 +232,6 @@ func TestAgentCommandsAndJuju(t *testing.T) {
 	h.expect(0, "", "agent", "instruction", "remove")
 	h.expect(1, "", "agent", "instruction", "upgrade")
 	h.expect(0, "", "agent", "skill", "uninstall")
-
-	bin := filepath.Join(h.home, ".guiho", "bin")
-	os.MkdirAll(bin, 0o755)
-	foreign := filepath.Join(bin, exeName("juju"))
-	os.WriteFile(foreign, []byte("not ours"), 0o755)
-	h.expect(1, "", "juju-enable")
-	os.Remove(foreign)
-	h.expect(0, "", "juju-enable")
-	h.expect(0, "", "juju-enable")
-	var st aliasState
-	data, _ := os.ReadFile(filepath.Join(h.home, ".guiho", "jureuma", "state", aliasStateFile))
-	if json.Unmarshal(data, &st) != nil || st.Path != foreign {
-		t.Fatalf("alias state: %s", data)
-	}
-	h.expect(0, "", "juju-disable")
-	if _, err := os.Stat(foreign); err == nil {
-		t.Fatal("alias not removed")
-	}
-	h.expect(1, "", "juju-disable")
 }
 
 func TestUninstallPlan(t *testing.T) {

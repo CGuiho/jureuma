@@ -3,10 +3,14 @@ package cli
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -205,6 +209,28 @@ func loadSchema(p *pair.Pair) (*schema.Schema, error) {
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
 	return err == nil
+}
+
+// exeName appends the platform's executable suffix to a binary name.
+func exeName(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".exe"
+	}
+	return name
+}
+
+// fileSHA256 returns the lowercase hex SHA-256 of a file.
+func fileSHA256(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 // readPlainIfExists returns nil when the unencrypted file is missing. The

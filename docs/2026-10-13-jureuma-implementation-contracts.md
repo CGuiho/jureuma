@@ -315,7 +315,7 @@ type Options struct {
     Args []string; Stdin io.Reader; Stdout, Stderr io.Writer; Home string
 }
 // Run builds the environment (strip JUREUMA_PRIVATE_KEY*, inject per Format), starts the
-// child, redacts output, and returns the child's exit code. juju-side failures return
+// child, redacts output, and returns the child's exit code. jureuma-side failures return
 // (125, err).
 func Run(ctx context.Context, o Options) (int, error)
 func Flatten(v *doc.Value, prefix string) (map[string]string, error)   // rules + denylist + collisions
@@ -351,7 +351,7 @@ func SkillInstalledCurrent(s Skill, dest string) bool
 
 ## `internal/cli`
 
-Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, list, export, rotate, retire}`, `schema {infer}`, `juju-enable`, `juju-disable`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Keys carry a non-secret label (default: the repository name from the `origin` remote, else the project directory name); `key list` shows `label  short key ID  public-key prefix  active|retired`, and stored-key selection prompts "Which one do you want to use?" only in a TTY. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/jureuma/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
+Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, list, export, rotate, retire}`, `schema {infer}`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Keys carry a non-secret label (default: the repository name from the `origin` remote, else the project directory name); `key list` shows `label  short key ID  public-key prefix  active|retired`, and stored-key selection prompts "Which one do you want to use?" only in a TTY. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/jureuma/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
 
 ## Exit codes
 

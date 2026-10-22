@@ -98,9 +98,9 @@ follow `guiho-convention-0001-cli.md`; `ci-check` (format, vet, tests, smoke,
 docs, xdocs, config checks) exits 0. Deliberate deviations are recorded in
 the question ledger (`docs/questions/release-0.1.0/2026-10-16-dnd-decisions.md`,
 Q6): the human-only gate extended to deleting the only private key, the
-`juju` alias, the installed-binary replacement mechanics, the root
-`XDOCS.md` index, and the two convention-text conflicts where 0001 wins
-(B-6 prompt naming escalated to the human; managed-block placement).
+installed-binary replacement mechanics, the root `XDOCS.md` index, and the
+two convention-text conflicts where 0001 wins (B-6 prompt naming escalated
+to the human; managed-block placement).
 
 ## Fixes applied during self-review
 
@@ -109,7 +109,7 @@ Q6): the human-only gate extended to deleting the only private key, the
   the same path (overlapping platforms; the same path across distinct
   platforms stays legal, as the real manifest requires). Closes the gap W2
   reported with two GAP-documenting tests; those tests now assert rejection.
-- `9d988c4` — `juju-enable` help corrected (the alias copies the launcher,
+- `9d988c4` — launcher-copy help corrected (the copy tracks the launcher,
   so ordinary upgrades do not invalidate it); the W4 brief refreshed.
 - `16ad31a` — the two stale process-termination design-note bullets updated
   to the shipped behavior (W4 residue).

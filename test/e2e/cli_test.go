@@ -3,9 +3,7 @@ package e2e
 import (
 	"encoding/json"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -139,7 +137,7 @@ func TestHelpTreeOnSubcommand(t *testing.T) {
 			t.Fatalf("key --help-tree lacks %s:\n%s", want, r.stdout)
 		}
 	}
-	for _, not := range []string{"── encrypt", "── juju-enable", "── uninstall", "── infer", "── init"} {
+	for _, not := range []string{"── encrypt", "── uninstall", "── infer", "── init"} {
 		if strings.Contains(r.stdout, not) {
 			t.Fatalf("key --help-tree shows %s outside the subtree:\n%s", not, r.stdout)
 		}
@@ -175,78 +173,6 @@ func TestHelpTreeOnSubcommand(t *testing.T) {
 	}
 	if r := p.run("list", "--nope"); r.code != 2 {
 		t.Fatalf("unknown flag: want exit 2\n%s", r)
-	}
-}
-
-func TestEnableDisableJuju(t *testing.T) {
-	p := newProject(t)
-	p.setup(`{"a":"juju-value"}`)
-	binDir := filepath.Join(p.home, ".guiho", "bin")
-	alias := filepath.Join(binDir, "juju")
-	if runtime.GOOS == "windows" {
-		alias += ".exe"
-	}
-	// A juju that jureuma does not own is never overwritten.
-	p.writeAbs(alias, "#!/bin/sh\necho foreign\n")
-	os.Chmod(alias, 0o755)
-	if r := p.run("juju-enable"); r.code == 0 {
-		t.Fatalf("juju-enable overwrote a foreign juju\n%s", r)
-	}
-	if data, _ := os.ReadFile(alias); !strings.Contains(string(data), "foreign") {
-		t.Fatal("foreign juju was modified")
-	}
-	if r := p.run("juju-disable"); r.code == 0 {
-		t.Fatalf("juju-disable removed a juju it does not own\n%s", r)
-	}
-	if _, err := os.Stat(alias); err != nil {
-		t.Fatal("foreign juju was removed")
-	}
-	os.Remove(alias)
-
-	p.expect(0, "juju-enable")
-	p.expect(0, "juju-enable") // idempotent
-	if _, err := os.Stat(filepath.Join(p.jhome(), "state", "alias.json")); err != nil {
-		t.Fatalf("alias not recorded in state/alias.json: %v", err)
-	}
-	// juju behaves exactly like jureuma.
-	cmd := exec.Command(alias, "--version")
-	cmd.Dir = p.dir
-	cmd.Env = p.env
-	out, err := cmd.CombinedOutput()
-	if err != nil || string(out) != testVersion+"\n" {
-		t.Fatalf("juju --version: %v %q", err, out)
-	}
-	cmd = exec.Command(alias, "status", "--output", "json")
-	cmd.Dir = p.dir
-	cmd.Env = p.env
-	out, err = cmd.CombinedOutput()
-	if err != nil || !strings.Contains(string(out), `"overall": "in-sync"`) {
-		t.Fatalf("juju status: %v %s", err, out)
-	}
-	cmd = exec.Command(alias, "get", "/a")
-	cmd.Dir = p.dir
-	cmd.Env = p.env
-	out, _ = cmd.CombinedOutput()
-	if cmd.ProcessState.ExitCode() != 3 || strings.Contains(string(out), "juju-value") {
-		t.Fatalf("juju get must be gated like jureuma get: %d %s", cmd.ProcessState.ExitCode(), out)
-	}
-
-	p.expect(0, "juju-disable")
-	if _, err := os.Stat(alias); err == nil {
-		t.Fatal("juju-disable left the alias")
-	}
-	if r := p.run("juju-disable"); r.code == 0 {
-		t.Fatalf("juju-disable without an alias must fail\n%s", r)
-	}
-	// A changed alias is not removed without --force.
-	p.expect(0, "juju-enable")
-	os.WriteFile(alias, []byte("#!/bin/sh\necho changed\n"), 0o755)
-	if r := p.run("juju-disable"); r.code == 0 {
-		t.Fatalf("juju-disable removed a changed alias without --force\n%s", r)
-	}
-	p.expect(0, "juju-disable", "--force")
-	if _, err := os.Stat(alias); err == nil {
-		t.Fatal("juju-disable --force left the alias")
 	}
 }
 

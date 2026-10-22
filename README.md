@@ -16,7 +16,6 @@ The plaintext and the schema may also be `config.unencrypted.jsonc` and `config.
 - `jureuma run -- <command>` (`inject` is an alias of `run`) decrypts in memory and passes the whole document to the child as JSON in `JUREUMA_CONFIG`. `--format flatten` (one variable per value) and `--format file` (a path to the document) are the alternatives. The child's output is redacted.
 - Only one side of a pair exists at a time: `encrypt` deletes the unencrypted file and `decrypt` deletes the encrypted file (keeping a ciphertext copy under `~/.guiho/jureuma/state/` so the next `encrypt` reuses the key). Pass `--keep-both` to keep both.
 - `decrypt`, `get`, `key show --private` and `key export` are human-only: they need an interactive terminal, no agent markers in the environment, and a typed confirmation word.
-- `juju` is an optional short alias.
 
 Built under the GUIHO CLI Convention: Go and Cobra, with versioned payloads behind a stable launcher in `~/.guiho/bin`.
 
@@ -50,7 +49,7 @@ The installers choose the latest stable release by default. `--version <semver>`
 
 ## Uninstall
 
-> **Uninstalling removes all jureuma-owned data by default.** That covers the launcher and every installed version, `~/.guiho/jureuma/` (global configuration, state, audit log, caches), the `guiho-s-jureuma` skill copies, the jureuma block in `AGENTS.md`, the deny rules jureuma added, the `juju` alias and the project's `jureuma.yaml`. Private keys in `~/.guiho/jureuma/keys/` are deleted only after a human confirms in an interactive terminal; a non-interactive uninstall keeps them. Back them up first with `jureuma key export`.
+> **Uninstalling removes all jureuma-owned data by default.** That covers the launcher and every installed version, `~/.guiho/jureuma/` (global configuration, state, audit log, caches), the `guiho-s-jureuma` skill copies, the jureuma block in `AGENTS.md`, the deny rules jureuma added and the project's `jureuma.yaml`. Private keys in `~/.guiho/jureuma/keys/` are deleted only after a human confirms in an interactive terminal; a non-interactive uninstall keeps them. Back them up first with `jureuma key export`.
 
 Windows (PowerShell):
 
@@ -144,16 +143,6 @@ run:
 - Exit codes: `0` ok, `1` failure, `2` usage, `3` human-only, `4` validation, `5` key. `run` returns the child's code, or `125` with a `[JUREUMA:<KIND>]` prefix when jureuma itself failed.
 
 This protects against accidental disclosure to agents. It does not protect against a hostile process that runs as the same user. See the design document for the honest limits.
-
-## The `juju` alias
-
-```sh
-jureuma juju-enable    # installs ~/.guiho/bin/juju, which dispatches to the active jureuma
-juju status
-jureuma juju-disable   # removes only the alias jureuma installed
-```
-
-`juju-enable` refuses to overwrite a `juju` it does not own, such as Canonical's Juju, and warns when another `juju` comes earlier on `PATH`.
 
 ## Command reference
 

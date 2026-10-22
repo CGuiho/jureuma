@@ -9,7 +9,7 @@ Windows (PowerShell):
   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/uninstall.ps1))) -PreserveConfig -PreserveData
 
 Same contract as `jureuma uninstall` and devops/uninstall.sh: by default every
-jureuma-owned artifact is removed (stable command, juju alias, versioned
+jureuma-owned artifact is removed (stable command, versioned
 payloads, ~/.guiho/jureuma with configuration, state, audit log and caches, the
 guiho-s-jureuma skill copies, the jureuma block in the project's AGENTS.md, the
 deny rules jureuma added and the project's jureuma.yaml). Private keys
@@ -69,7 +69,6 @@ $BinDir = Join-Path $Guiho 'bin'
 $JHome = Join-Path $Guiho 'jureuma'
 $ExeName = if ($OnWindows) { 'jureuma.exe' } else { 'jureuma' }
 $Launcher = Join-Path $BinDir $ExeName
-$JujuPath = Join-Path $BinDir $(if ($OnWindows) { 'juju.exe' } else { 'juju' })
 
 # --- Delegate to the installed payload when it runs --------------------------
 $payload = $null
@@ -134,22 +133,6 @@ if ((Test-Path -LiteralPath $denyState) -and ([IO.File]::ReadAllText($denyState)
   Add-Item $false 'deny' (Join-Path (Join-Path $Root '.claude') 'settings.json') 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
   Add-Item $false 'deny' (Join-Path $Root 'opencode.json') 'jureuma deny rules need the jureuma payload to be removed exactly; remove the *.unencrypted.* deny entries jureuma added by hand'
 }
-$aliasState = Join-Path (Join-Path $JHome 'state') 'alias.json'
-if (Test-Path -LiteralPath $aliasState) {
-  try {
-    $alias = [IO.File]::ReadAllText($aliasState) | ConvertFrom-Json
-    $ap = [string]$alias.path
-    if ($ap -and (Test-Path -LiteralPath $ap -PathType Leaf)) {
-      if ([IO.Path]::GetFullPath($ap) -ne [IO.Path]::GetFullPath($JujuPath)) {
-        Add-Item $false 'file' $ap 'recorded juju alias is outside ~/.guiho/bin; not removed'
-      } elseif ((Get-FileHash -Algorithm SHA256 -LiteralPath $ap).Hash.ToLowerInvariant() -eq ([string]$alias.sha256).ToLowerInvariant()) {
-        Add-Item $true 'file' $ap 'juju alias'
-      } else {
-        Add-Item $false 'file' $ap 'juju alias changed since jureuma installed it; not removed'
-      }
-    }
-  } catch { Write-Warning 'state/alias.json is unreadable; the juju alias was not checked' }
-}
 $skillRoots = @()
 if (Test-Path -LiteralPath (Join-Path $UserHome '.claude') -PathType Container) { $skillRoots += (Join-Path (Join-Path $UserHome '.claude') 'skills') }
 $skillRoots += (Join-Path (Join-Path $UserHome '.agents') 'skills')
@@ -212,7 +195,7 @@ if (-not $Yes) {
 }
 
 $jhomePrefix = [IO.Path]::GetFullPath($JHome).TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
-$allowed = @([IO.Path]::GetFullPath($Launcher), [IO.Path]::GetFullPath($JujuPath), [IO.Path]::GetFullPath($projCfg), [IO.Path]::GetFullPath($agents))
+$allowed = @([IO.Path]::GetFullPath($Launcher), [IO.Path]::GetFullPath($projCfg), [IO.Path]::GetFullPath($agents))
 $failed = 0
 foreach ($i in @($plan | Where-Object { $_.Remove -and $_.Kind -ne 'keys' })) {
   $full = [IO.Path]::GetFullPath($i.Path)

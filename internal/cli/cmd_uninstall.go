@@ -30,7 +30,7 @@ func (a *app) cmdUninstall() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "uninstall",
 		Short: "remove jureuma: launcher, home directory, skills, AGENTS.md block and jureuma.yaml",
-		Long: `Removes every jureuma-owned artifact by default: the launcher and juju alias in ~/.guiho/bin,
+		Long: `Removes every jureuma-owned artifact by default: the launcher in ~/.guiho/bin,
 ~/.guiho/jureuma (configuration, state, audit log, caches), the installed skill copies, the
 jureuma block in the project's AGENTS.md, the agent-tool deny rules jureuma added, and the
 project's jureuma.yaml. The project .gitignore block is always kept (plaintext files may
@@ -73,14 +73,6 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 						return err
 					})
 				}
-			}
-			if dst, recorded, owned := aliasOwned(home); owned {
-				add(true, dst, "juju alias", func() error {
-					_, err := removeAlias(home, false)
-					return err
-				})
-			} else if recorded && fileExists(dst) {
-				add(false, dst, "juju changed since jureuma installed it, or is not jureuma's; left in place", nil)
 			}
 			if dests, err := skillDests(); err == nil {
 				for _, s := range agentres.Skills() {

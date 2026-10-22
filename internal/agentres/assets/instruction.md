@@ -20,7 +20,7 @@ metadata:
 
 ## jureuma (agent-safe configuration and secrets)
 
-This project's configuration and secrets are owned by **jureuma** (https://github.com/CGuiho/jureuma). `juju` may be installed as an alias; prefer `jureuma`.
+This project's configuration and secrets are owned by **jureuma** (https://github.com/CGuiho/jureuma).
 
 - Configuration lives in pairs: `<stem>.encrypted.json` (committed; field names readable, every value encrypted), `<stem>.unencrypted.json` or `.jsonc` (gitignored plaintext, human-owned), and `<stem>.schema.json` or `.schema.jsonc` (committed JSON Schema, no values). The default stem is `config`; pairs may be declared in `jureuma.yaml`.
 - Reach for jureuma for any configuration value or secret instead of `.env` files, hard-coded values, or ad hoc scripts.

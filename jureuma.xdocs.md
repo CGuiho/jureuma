@@ -16,7 +16,7 @@ files:
   "xdocs.yaml": "XDocs configuration: descriptor extension, excluded build output and embedded assets, frontmatter opt-outs."
   ".gitignore": "Ignores build output (bin/, dist/)."
 documents:
-  "README.md": "User-facing overview: install, uninstall, quick start, agent-safety model, juju alias and command reference pointer."
+  "README.md": "User-facing overview: install, uninstall, quick start, agent-safety model and command reference pointer."
   "AGENTS.md": "Instructions for AI agents working in this repository (project scope, governing convention, tooling rules, Mandume coordination section)."
   "CHANGELOG.md": "Release notes maintained at release time under Mirror (agents.write_changelog)."
   "todo.md": "GitHub-first task index: the bound GUIHO Project (GitHub component jureuma) mirrored locally; every task is a real issue in CGuiho/jureuma."
@@ -30,7 +30,6 @@ tags:
   - "agent-safety"
 keywords:
   - "jureuma"
-  - "juju"
   - "encrypt"
   - "JUREUMA_CONFIG"
   - "JSON Schema"
@@ -54,7 +53,7 @@ Repository root of jureuma, the GUIHO agent-safe configuration CLI written in Go
 
 ## Documents
 
-- [README.md](README.md): User-facing overview: install, uninstall, quick start, agent-safety model, juju alias and command reference pointer.
+- [README.md](README.md): User-facing overview: install, uninstall, quick start, agent-safety model and command reference pointer.
 - [AGENTS.md](AGENTS.md): Instructions for AI agents working in this repository (project scope, governing convention, tooling rules, Mandume coordination section).
 - [CHANGELOG.md](CHANGELOG.md): Release notes maintained at release time under Mirror (agents.write_changelog).
 - [todo.md](todo.md): GitHub-first task index: the bound GUIHO Project (GitHub component jureuma) mirrored locally; every task is a real issue in CGuiho/jureuma.

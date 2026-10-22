@@ -64,7 +64,6 @@ ever reading them.
    variable `JUREUMA_PRIVATE_KEY_<KEYID>` (the name is shown by `jureuma key show`); the user
    obtains the key with `jureuma key export` themselves.
 9. Report what you set up, the files created, and anything the user still has to do.
-   Optionally offer `jureuma juju-enable` for the short `juju` alias.
 
 Follow the effective `agent.evolution` policy for upgrades and GitHub issues as described in the
 skill's "CLI Evolution and Feedback" section, and give the user the URL of any issue you create.
