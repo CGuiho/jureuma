@@ -13,8 +13,8 @@
 | Status | Count |
 | --- | ---: |
 | todo | 0 |
-| in progress | 1 |
-| testing | 5 |
+| in progress | 0 |
+| testing | 6 |
 | stopped | 0 |
 | completed | 0 |
 
@@ -25,7 +25,7 @@
 The whole tree moves to the ZeZé identity in one breaking release with zero
 backward compatibility.
 
-- Status: in progress
+- Status: testing
 - Created: `2026-10-22T05:48:44Z`
 - Updated: `2026-10-22`
 - Outcome: Release `0.4.0` exists as `ZeZé 0.4.0` and the working tree speaks with one identity: machine identifiers `zeze`, prose and titles `ZeZé`, environment prefix `ZEZE_`, ASCII-only filenames, with exactly one named exemption file.
