@@ -1,4 +1,4 @@
-// Package xerr carries jureuma's exit-code classification on errors.
+// Package xerr carries zeze's exit-code classification on errors.
 //
 // Messages built here must never contain configuration values, plaintext, or
 // key material; callers pass only paths, JSON Pointers, and fixed phrases.
@@ -17,11 +17,11 @@ const (
 	CodeProtected  = 3
 	CodeValidation = 4
 	CodeKey        = 5
-	// CodeRun is returned by run for any jureuma-side failure.
+	// CodeRun is returned by run for any zeze-side failure.
 	CodeRun = 125
 )
 
-// Kinds name the failure class; run prints them as "[JUREUMA:<KIND>]".
+// Kinds name the failure class; run prints them as "[ZEZE:<KIND>]".
 const (
 	KindFailure    = "ERROR"
 	KindUsage      = "USAGE"

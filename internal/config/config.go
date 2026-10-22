@@ -1,6 +1,6 @@
-// Package config loads, validates, merges, and saves jureuma's YAML
-// configuration: the project file jureuma.yaml and the global file
-// ~/.guiho/jureuma/jureuma.global.yaml.
+// Package config loads, validates, merges, and saves zeze's YAML
+// configuration: the project file zeze.yaml and the global file
+// ~/.guiho/zeze/zeze.global.yaml.
 //
 // Both files are validated against embedded JSON Schemas (the same schemas
 // published with every release) and then decoded strictly into Go structs.
@@ -19,21 +19,21 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"go.yaml.in/yaml/v3"
 )
 
 // File names.
 const (
-	ProjectFile = "jureuma.yaml"
-	GlobalFile  = "jureuma.global.yaml"
+	ProjectFile = "zeze.yaml"
+	GlobalFile  = "zeze.global.yaml"
 
 	// ProjectSchemaFile and GlobalSchemaFile are the release asset names of
 	// the published schemas.
-	ProjectSchemaFile = "jureuma.schema.json"
-	GlobalSchemaFile  = "jureuma.global.schema.json"
+	ProjectSchemaFile = "zeze.schema.json"
+	GlobalSchemaFile  = "zeze.global.schema.json"
 )
 
 // Agent evolution policies.
@@ -53,13 +53,13 @@ const (
 	FormatFile    = "file"
 
 	DefaultFormat  = FormatJSON
-	DefaultEnvName = "JUREUMA_CONFIG"
+	DefaultEnvName = "ZEZE_CONFIG"
 )
 
 // maxConfigSize bounds what is read from a configuration file.
 const maxConfigSize = 1 << 20
 
-// Project is jureuma.yaml.
+// Project is zeze.yaml.
 type Project struct {
 	// Key is the full key ID of the one key pair every configured pair of
 	// this project uses. "" means the project binds no key. A label is
@@ -79,7 +79,7 @@ type PairConfig struct {
 	Unencrypted string `yaml:"unencrypted"`
 }
 
-// RunConfig holds defaults for "jureuma run". Empty Format and EnvName mean
+// RunConfig holds defaults for "zeze run". Empty Format and EnvName mean
 // DefaultFormat and DefaultEnvName (see Effective).
 type RunConfig struct {
 	Format   string `yaml:"format"`
@@ -88,7 +88,7 @@ type RunConfig struct {
 	Override bool   `yaml:"override"`
 }
 
-// Global is jureuma.global.yaml.
+// Global is zeze.global.yaml.
 type Global struct {
 	Protections Protections `yaml:"protections"`
 	Agent       AgentConfig `yaml:"agent"`
@@ -133,9 +133,9 @@ type EffectiveConfig struct {
 	Protections Protections
 }
 
-// ErrProtectionsInProject is returned (wrapped) when jureuma.yaml contains a
+// ErrProtectionsInProject is returned (wrapped) when zeze.yaml contains a
 // top-level protections key.
-var ErrProtectionsInProject = errors.New("jureuma.yaml: protections is only allowed in jureuma.global.yaml")
+var ErrProtectionsInProject = errors.New("zeze.yaml: protections is only allowed in zeze.global.yaml")
 
 // ValidPolicy reports whether s is disabled, always-ask or always-proceed.
 func ValidPolicy(s string) bool {
@@ -219,7 +219,7 @@ func (p *Project) Validate() error {
 		return fieldErr(ProjectFile, "/run/envName", "must match ^[A-Za-z_][A-Za-z0-9_]*$")
 	}
 	if p.Run.EnvName != "" && DeniedRunEnvName(p.Run.EnvName) {
-		return fieldErr(ProjectFile, "/run/envName", "names a denylisted variable (one that loads or runs code, or belongs to jureuma)")
+		return fieldErr(ProjectFile, "/run/envName", "names a denylisted variable (one that loads or runs code, or belongs to zeze)")
 	}
 	if p.Run.Prefix != "" && !ValidEnvName(p.Run.Prefix) {
 		return fieldErr(ProjectFile, "/run/prefix", "must match ^[A-Za-z_][A-Za-z0-9_]*$")
@@ -327,7 +327,7 @@ func mergePolicy(project, global string) string {
 	return DefaultPolicy
 }
 
-// LoadProject reads <root>/jureuma.yaml. A missing file returns an empty
+// LoadProject reads <root>/zeze.yaml. A missing file returns an empty
 // Project and false. The file is validated against the embedded schema and
 // decoded strictly; a top-level protections key is rejected with
 // ErrProtectionsInProject.
@@ -343,8 +343,8 @@ func LoadProject(root string) (*Project, bool, error) {
 	return p, true, nil
 }
 
-// LoadGlobal reads <home>/jureuma.global.yaml, where home is the jureuma home
-// (~/.guiho/jureuma). A missing file returns an empty Global and false.
+// LoadGlobal reads <home>/zeze.global.yaml, where home is the zeze home
+// (~/.guiho/zeze). A missing file returns an empty Global and false.
 func LoadGlobal(home string) (*Global, bool, error) {
 	data, ok, err := readConfig(filepath.Join(home, GlobalFile), GlobalFile)
 	if err != nil || !ok {
@@ -357,7 +357,7 @@ func LoadGlobal(home string) (*Global, bool, error) {
 	return g, true, nil
 }
 
-// ParseProject validates and decodes jureuma.yaml content.
+// ParseProject validates and decodes zeze.yaml content.
 func ParseProject(data []byte) (*Project, error) {
 	raw, err := decodeRaw(data, ProjectFile)
 	if err != nil {
@@ -381,7 +381,7 @@ func ParseProject(data []byte) (*Project, error) {
 	return p, nil
 }
 
-// ParseGlobal validates and decodes jureuma.global.yaml content.
+// ParseGlobal validates and decodes zeze.global.yaml content.
 func ParseGlobal(data []byte) (*Global, error) {
 	raw, err := decodeRaw(data, GlobalFile)
 	if err != nil {
@@ -491,7 +491,7 @@ func classifyYAML(msg string) string {
 	return reason
 }
 
-// SaveProject validates p and atomically writes <root>/jureuma.yaml with a
+// SaveProject validates p and atomically writes <root>/zeze.yaml with a
 // schema reference pinned to version (for example "0.1.0" or "v0.1.0").
 func SaveProject(root string, p *Project, version string) error {
 	if p == nil {
@@ -513,7 +513,7 @@ func SaveProject(root string, p *Project, version string) error {
 	return nil
 }
 
-// SaveGlobal validates g and atomically writes <home>/jureuma.global.yaml with
+// SaveGlobal validates g and atomically writes <home>/zeze.global.yaml with
 // a schema reference pinned to version.
 func SaveGlobal(home string, g *Global, version string) error {
 	if g == nil {
@@ -554,7 +554,7 @@ func SchemaURL(version, schemaFile string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "https://github.com/CGuiho/jureuma/releases/download/v" + v + "/" + schemaFile, nil
+	return "https://github.com/CGuiho/zeze/releases/download/v" + v + "/" + schemaFile, nil
 }
 
 // SchemaHeader returns the yaml-language-server comment line (with newline).

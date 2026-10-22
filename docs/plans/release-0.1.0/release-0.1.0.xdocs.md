@@ -1,9 +1,9 @@
 ---
-subject: jureuma-docs-plans-release-0.1.0
+subject: zeze-docs-plans-release-0.1.0
 description: "Execution plan of the release 0.1.0 implementation-completion and release run of 2026-10-16, with worker handoff briefs under execution/handoffs/."
-parent: jureuma-docs-plans
+parent: zeze-docs-plans
 children:
-  - jureuma-docs-plans-release-0.1.0-execution
+  - zeze-docs-plans-release-0.1.0-execution
 files: {}
 documents:
   "plan.md": "Sequenced work units for the release 0.1.0 run: implementation completion, full validation and the first public release."
@@ -17,7 +17,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-release-0.1.0
+# zeze-docs-plans-release-0.1.0
 
 Execution plan for the release 0.1.0 run (2026-10-16): implementation
 completion, validation and the first public release. Worker handoff briefs

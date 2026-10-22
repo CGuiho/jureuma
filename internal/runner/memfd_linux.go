@@ -26,7 +26,7 @@ func memfdDocument(data []byte) (*os.File, error) {
 	if nr < 0 {
 		return nil, errors.ErrUnsupported
 	}
-	name, err := syscall.BytePtrFromString("jureuma-document")
+	name, err := syscall.BytePtrFromString("zeze-document")
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func memfdDocument(data []byte) (*os.File, error) {
 	if errno != 0 {
 		return nil, errno
 	}
-	f := os.NewFile(fd, "jureuma-document")
+	f := os.NewFile(fd, "zeze-document")
 	if _, err := f.Write(data); err != nil {
 		f.Close()
 		return nil, err

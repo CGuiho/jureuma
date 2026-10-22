@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.3.1/jureuma.global.schema.json
+# yaml-language-server: $schema=https://github.com/CGuiho/zeze/releases/download/v0.3.1/zeze.global.schema.json
 protections:
   allowBypass: true
   agentEnvMarkers: []

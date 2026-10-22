@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/paths"
 )
 
 // releaseRunningImage lets uninstall remove the executable that is running
 // it. Windows refuses to delete a running image but allows renaming it, so
 // when the running executable is one of the paths uninstall removes (the
 // stable launcher in ~/.guiho/bin or a payload under home), it is moved into
-// a unique ~/.guiho/.temp/jureuma-uninstall-* directory. The returned
+// a unique ~/.guiho/.temp/zeze-uninstall-* directory. The returned
 // function schedules that directory's deletion once this process has exited.
 func releaseRunningImage(home, launcher string) func() {
 	exe, err := os.Executable()
@@ -39,7 +39,7 @@ func releaseRunningImage(home, launcher string) func() {
 	if err := os.MkdirAll(tempRoot, 0o755); err != nil {
 		return func() {}
 	}
-	dir, err := os.MkdirTemp(tempRoot, "jureuma-uninstall-")
+	dir, err := os.MkdirTemp(tempRoot, "zeze-uninstall-")
 	if err != nil {
 		return func() {}
 	}

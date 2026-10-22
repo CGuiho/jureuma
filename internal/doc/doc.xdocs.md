@@ -1,7 +1,7 @@
 ---
-subject: jureuma-doc
+subject: zeze-doc
 description: "Ordered JSON value tree with JSON Pointer operations and canonical serialisation, shared by every package."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "doc.go": "Document model, JSON Pointer get/set/delete and marshalling."
@@ -17,7 +17,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-doc
+# zeze-doc
 
 Ordered JSON value tree with JSON Pointer operations and canonical serialisation, shared by every package.
 

@@ -1,9 +1,9 @@
 ---
-subject: jureuma-docs-plans-jsonc-support
+subject: zeze-docs-plans-jsonc-support
 description: "Execution plan of the JSONC write-support unit (issue #12), with the worker handoff brief under execution/handoffs/."
-parent: jureuma-docs-plans
+parent: zeze-docs-plans
 children:
-  - jureuma-docs-plans-jsonc-support-execution
+  - zeze-docs-plans-jsonc-support-execution
 files: {}
 documents:
   "plan.md": "Plan for the comment-preserving JSONC writer: full two-way `.jsonc` support for plaintext mirrors, decrypt and schema writes, JSON staying the default."
@@ -16,7 +16,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-jsonc-support
+# zeze-docs-plans-jsonc-support
 
 Execution plan for the JSONC write-support unit (2026-10-17): issue #12. The
 worker handoff brief dispatched through the OpenCode native background harness

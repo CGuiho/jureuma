@@ -7,41 +7,41 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // SchemaKey is the reserved top-level key of the unencrypted file that points
 // at the local schema, in the "./x.schema.json" form.
 const SchemaKey = "$schema"
 
-// HomeRef is the global directory reference stored in $jureuma/home, in
+// HomeRef is the global directory reference stored in $zeze/home, in
 // conventional portable form. It is never a machine-specific absolute path.
 const HomeRef = "~/.guiho/" + paths.CLIName + "/"
 
 // SchemaCopyPointer is the JSON Pointer the embedded schema copy envelope is
 // bound to; opening the copy needs exactly this pointer.
-const SchemaCopyPointer = "/$jureuma/schema/c"
+const SchemaCopyPointer = "/$zeze/schema/c"
 
 // RepairHint names the command that repairs pair files. Every refusal caused
 // by old pair state ends with it.
-const RepairHint = "run jureuma init to repair"
+const RepairHint = "run zeze init to repair"
 
 // Typed refusals. Messages built from them carry file names and fixed phrases
 // only, never configuration values or key material.
 var (
-	// ErrLegacyHeader marks a pair file whose $jureuma block is old jureuma
+	// ErrLegacyHeader marks a pair file whose $zeze block is old zeze
 	// state: format 1, or present but malformed. Reads keep working where
-	// they can; mutations refuse and point at jureuma init.
+	// they can; mutations refuse and point at zeze init.
 	ErrLegacyHeader = errors.New("legacy " + MetaKey + " header")
-	// ErrUnsupportedFormat marks a $jureuma block with a format generation
-	// this jureuma does not know. Reads and writes reject it explicitly.
+	// ErrUnsupportedFormat marks a $zeze block with a format generation
+	// this zeze does not know. Reads and writes reject it explicitly.
 	ErrUnsupportedFormat = errors.New("unsupported " + MetaKey + " format")
 	// ErrMissingPlainIdentity marks an unencrypted file without the
-	// $jureuma identity a single-file flow needs to rebuild its sibling.
+	// $zeze identity a single-file flow needs to rebuild its sibling.
 	ErrMissingPlainIdentity = errors.New("missing " + MetaKey + " identity")
 )
 
@@ -58,28 +58,28 @@ func refuse(msg string, class error) error {
 }
 
 // LegacyHeader returns the typed, value-free refusal for a pair file whose
-// $jureuma block is format 1 or malformed.
+// $zeze block is format 1 or malformed.
 func LegacyHeader(file string) error {
 	return refuse(file+": legacy "+MetaKey+" header (format 1 or malformed); "+RepairHint, ErrLegacyHeader)
 }
 
-// UnsupportedFormat returns the explicit rejection for a $jureuma format
-// generation outside the ones this jureuma reads.
+// UnsupportedFormat returns the explicit rejection for a $zeze format
+// generation outside the ones this zeze reads.
 func UnsupportedFormat(file string) error {
-	return refuse(file+": unsupported "+MetaKey+"/format (this jureuma writes format 2 and reads formats 1 and 2)", ErrUnsupportedFormat)
+	return refuse(file+": unsupported "+MetaKey+"/format (this zeze writes format 2 and reads formats 1 and 2)", ErrUnsupportedFormat)
 }
 
 // MissingPlainIdentity returns the typed repair refusal for an unencrypted
-// file with no $jureuma identity. Single-file identity paths return it when
+// file with no $zeze identity. Single-file identity paths return it when
 // they cannot rebuild the sibling without the pair key.
 func MissingPlainIdentity(file string) error {
 	return refuse(file+": no "+MetaKey+" identity; "+RepairHint, ErrMissingPlainIdentity)
 }
 
-// Header is the pair identity both files carry under the reserved $jureuma
+// Header is the pair identity both files carry under the reserved $zeze
 // key: the format generation, the pair public key, its key ID and the global
 // directory reference. The unencrypted header is exactly this; the encrypted
-// $jureuma block carries it plus the schema, sync and pending state.
+// $zeze block carries it plus the schema, sync and pending state.
 type Header struct {
 	Format           int
 	PublicKey, KeyID string
@@ -96,7 +96,7 @@ func (m Meta) Identity() Header {
 	return Header{Format: m.Format, PublicKey: m.PublicKey, KeyID: m.KeyID, Home: m.Home}
 }
 
-// formatValue renders the format generation this jureuma writes. Reads accept
+// formatValue renders the format generation this zeze writes. Reads accept
 // format 1 (legacy) and 2; every write renders FormatVersion, so the Format
 // fields of Header and Meta record the generation that was read.
 func formatValue() *doc.Value {
@@ -112,7 +112,7 @@ func putIdentity(m *doc.Value, h Header) {
 	m.Put("home", doc.NewString(h.Home))
 }
 
-// parseGeneration reads $jureuma/format: "1" (legacy) or "2". Any other
+// parseGeneration reads $zeze/format: "1" (legacy) or "2". Any other
 // number is an unknown future generation; a missing or non-number field is a
 // malformed header.
 func parseGeneration(name string, v *doc.Value) (int, error) {
@@ -129,7 +129,7 @@ func parseGeneration(name string, v *doc.Value) (int, error) {
 	}
 }
 
-// parseHeader parses the $jureuma identity block of an unencrypted file. The
+// parseHeader parses the $zeze identity block of an unencrypted file. The
 // block carries exactly format, publicKey, keyId and home; anything else is a
 // present-but-malformed header. A keyId that contradicts publicKey is the
 // key mismatch rule and fails with exit 5.
@@ -179,7 +179,7 @@ func parseHeader(name string, mv *doc.Value) (*Header, error) {
 	return h, nil
 }
 
-// marshalHeader renders the $jureuma identity block of an unencrypted file.
+// marshalHeader renders the $zeze identity block of an unencrypted file.
 // The result always carries FormatVersion; h.Format records the generation
 // that was read.
 func marshalHeader(h *Header) *doc.Value {
@@ -189,7 +189,7 @@ func marshalHeader(h *Header) *doc.Value {
 }
 
 // SetSchemaCopy stores the schema document encrypted to the pair key as a
-// single envelope in $jureuma.schema, turning the schema reference into the
+// single envelope in $zeze.schema, turning the schema reference into the
 // { path, c } form. Encryption needs only the public key.
 func (e *Encrypted) SetSchemaCopy(schemaText []byte) error {
 	pk, err := e.Meta.PublicKeyValue()
@@ -249,13 +249,13 @@ func CheckIdentity(plain *PlainFile, enc *Encrypted) (warnings []string, err err
 }
 
 // checkMutable refuses a mutation through the pair files named by paths when
-// the pair carries old jureuma state. The refusal keys on format state, never
-// on plaintext header absence: a $jureuma block with format 1, or a
+// the pair carries old zeze state. The refusal keys on format state, never
+// on plaintext header absence: a $zeze block with format 1, or a
 // present-but-malformed block, on either side is refused with the init repair
-// pointer, while a headerless plaintext stays fully mutable. A $jureuma
-// format outside the ones this jureuma reads is always refused, even by the
-// repair path: jureuma never overwrites a file it cannot read. repair lets
-// format 1 and malformed blocks through, because the jureuma init repair path
+// pointer, while a headerless plaintext stays fully mutable. A $zeze
+// format outside the ones this zeze reads is always refused, even by the
+// repair path: zeze never overwrites a file it cannot read. repair lets
+// format 1 and malformed blocks through, because the zeze init repair path
 // is what replaces them.
 func checkMutable(repair bool, paths ...string) error {
 	for _, path := range paths {
@@ -268,8 +268,8 @@ func checkMutable(repair bool, paths ...string) error {
 	return nil
 }
 
-// checkFileState classifies the $jureuma state of one pair file's content.
-// Content jureuma cannot parse at all has no header it can see and keeps the
+// checkFileState classifies the $zeze state of one pair file's content.
+// Content zeze cannot parse at all has no header it can see and keeps the
 // overwrite behaviour it always had.
 func checkFileState(path string, repair bool) error {
 	name := filepath.Base(path)

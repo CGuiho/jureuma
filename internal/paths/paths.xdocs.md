@@ -1,7 +1,7 @@
 ---
-subject: jureuma-paths
-description: "Platform-native locations (~/.guiho/jureuma, ~/.guiho/bin, ~/.guiho/.temp, JUREUMA_USER_HOME override), atomic writes, locks and process liveness."
-parent: jureuma-internal
+subject: zeze-paths
+description: "Platform-native locations (~/.guiho/zeze, ~/.guiho/bin, ~/.guiho/.temp, ZEZE_USER_HOME override), atomic writes, locks and process liveness."
+parent: zeze-internal
 children: []
 files:
   "paths.go": "Path resolution, atomic writes and locks."
@@ -13,15 +13,15 @@ tags:
   - "go"
   - "filesystem"
 keywords:
-  - "JUREUMA_USER_HOME"
+  - "ZEZE_USER_HOME"
   - "AtomicWrite"
 flags: []
 status: stable
 ---
 
-# jureuma-paths
+# zeze-paths
 
-Platform-native locations (~/.guiho/jureuma, ~/.guiho/bin, ~/.guiho/.temp, JUREUMA_USER_HOME override), atomic writes, locks and process liveness.
+Platform-native locations (~/.guiho/zeze, ~/.guiho/bin, ~/.guiho/.temp, ZEZE_USER_HOME override), atomic writes, locks and process liveness.
 
 ## Files
 

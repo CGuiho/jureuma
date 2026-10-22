@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ read into the schema. Refuses to overwrite an existing schema (other than the in
 without --force. A .jsonc schema is merged in place, keeping the comments and formatting of
 surviving keys. The unencrypted file's $schema pointer and the copy embedded in the
 encrypted file are refreshed to match. Refine the result by hand: formats, ranges,
-descriptions and "x-jureuma-secret": true.`,
+descriptions and "x-zeze-secret": true.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := loadEnv()
@@ -100,7 +100,7 @@ descriptions and "x-jureuma-secret": true.`,
 				return xerr.Failure("%s: cannot write file", p.Rel(p.SchemaPath))
 			}
 			outf(cmd, "wrote %s from %s\n", p.Rel(p.SchemaPath), source)
-			outf(cmd, "next: refine it (formats, ranges, descriptions, \"x-jureuma-secret\": true), then run jureuma check\n")
+			outf(cmd, "next: refine it (formats, ranges, descriptions, \"x-zeze-secret\": true), then run zeze check\n")
 			// The schema reference metadata follows: the $schema pointer in the
 			// unencrypted file and the copy embedded in the encrypted file.
 			if err := refreshSchemaMeta(e, p, !bytes.Equal(before, data)); err != nil {
@@ -116,7 +116,7 @@ descriptions and "x-jureuma-secret": true.`,
 
 // withSchemaProperty adds the optional top-level $schema string property to
 // an inferred schema. The unencrypted document always carries the pointer (so
-// editors validate and autocomplete), and it is reserved metadata jureuma
+// editors validate and autocomplete), and it is reserved metadata zeze
 // never treats as a value: declared, never required.
 func withSchemaProperty(inferred *doc.Value) {
 	props := inferred.Get("properties")
@@ -203,7 +203,7 @@ func schemaBytes(path string, inferred *doc.Value) ([]byte, error) {
 	}
 	current, err := jsonc.Parse(orig, false)
 	if err != nil {
-		return nil, xerr.Validation("%s: %v (fix it by hand; jureuma will not rewrite it)", name, err)
+		return nil, xerr.Validation("%s: %v (fix it by hand; zeze will not rewrite it)", name, err)
 	}
 	data, err := jsonc.Edit(orig, current, inferred)
 	if err != nil {

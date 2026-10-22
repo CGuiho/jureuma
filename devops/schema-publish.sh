@@ -1,8 +1,8 @@
 #!/bin/sh
 # Publish (or refresh) the configuration JSON Schemas on the existing GitHub
-# release v<version>, the URLs pinned by jureuma.yaml and jureuma.global.yaml:
-#   https://github.com/CGuiho/jureuma/releases/download/v<version>/jureuma.schema.json
-#   https://github.com/CGuiho/jureuma/releases/download/v<version>/jureuma.global.schema.json
+# release v<version>, the URLs pinned by zeze.yaml and zeze.global.yaml:
+#   https://github.com/CGuiho/zeze/releases/download/v<version>/zeze.schema.json
+#   https://github.com/CGuiho/zeze/releases/download/v<version>/zeze.global.schema.json
 #
 # usage: devops/schema-publish.sh
 # Requires an authenticated gh CLI and explicit authorization to publish. The
@@ -14,5 +14,5 @@ root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 version=$("$root/devops/version.sh" --release)
 "$root/devops/version-sync.sh" --check "$version"
 gh release upload "v$version" --clobber \
-  "$root/internal/config/schemas/jureuma.schema.json" \
-  "$root/internal/config/schemas/jureuma.global.schema.json"
+  "$root/internal/config/schemas/zeze.schema.json" \
+  "$root/internal/config/schemas/zeze.global.schema.json"

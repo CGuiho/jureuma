@@ -18,7 +18,7 @@ import (
 const dummySHA = "0000000000000000000000000000000000000000000000000000000000000000"
 
 func TestDownload(t *testing.T) {
-	t.Setenv("JUREUMA_USER_HOME", t.TempDir())
+	t.Setenv("ZEZE_USER_HOME", t.TempDir())
 	const payload = "dummy asset bytes"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1.2.3/asset.bin" {
@@ -155,9 +155,9 @@ func manJSON(name, version string, arts ...string) string {
 }
 
 func TestParseManifest(t *testing.T) {
-	valid := manJSON("jureuma", "1.2.3",
-		artJSON("payload-linux-amd64", "binary", "jureuma-linux-amd64", "versions/1.2.3/jureuma"),
-		artJSON("skill-guiho-s-jureuma", "skill", "guiho-s-jureuma.zip", "versions/1.2.3/artifacts/skills/guiho-s-jureuma"),
+	valid := manJSON("zeze", "1.2.3",
+		artJSON("payload-linux-amd64", "binary", "zeze-linux-amd64", "versions/1.2.3/zeze"),
+		artJSON("skill-guiho-s-zeze", "skill", "guiho-s-zeze.zip", "versions/1.2.3/artifacts/skills/guiho-s-zeze"),
 	)
 	tests := []struct {
 		name    string
@@ -165,29 +165,29 @@ func TestParseManifest(t *testing.T) {
 		wantErr bool
 	}{
 		{"valid", valid, false},
-		{"valid without artifacts", manJSON("jureuma", "1.2.3"), false},
+		{"valid without artifacts", manJSON("zeze", "1.2.3"), false},
 		{"malformed json", `{"schema":1`, true},
 		{"not an object", `[]`, true},
 		// cli mismatch
 		{"wrong cli name", manJSON("other", "1.2.3"), true},
 		{"empty cli name", manJSON("", "1.2.3"), true},
 		// version mismatches
-		{"invalid version", manJSON("jureuma", "1.2"), true},
-		{"empty version", manJSON("jureuma", ""), true},
-		{"version prefix does not match path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.2/a.bin")), true},
+		{"invalid version", manJSON("zeze", "1.2"), true},
+		{"empty version", manJSON("zeze", ""), true},
+		{"version prefix does not match path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.2/a.bin")), true},
 		// unsafe names and paths
-		{"unsafe asset with slash", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "dir/a.bin", "versions/1.2.3/a.bin")), true},
-		{"empty asset", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "", "versions/1.2.3/a.bin")), true},
-		{"dotdot asset", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "..", "versions/1.2.3/a.bin")), true},
-		{"empty installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "")), true},
-		{"prefix only installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.3")), true},
-		{"trailing slash installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.3/")), true},
-		{"dotdot installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.3/../evil")), true},
-		{"dot prefix installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "./versions/1.2.3/a.bin")), true},
-		{"doubled slash installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "versions//1.2.3/a.bin")), true},
-		{"absolute installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "/versions/1.2.3/a.bin")), true},
-		{"backslash installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", `versions/1.2.3/a\b`)), true},
-		{"other version installed path", manJSON("jureuma", "1.2.3", artJSON("a", "binary", "a.bin", "versions/other/a.bin")), true},
+		{"unsafe asset with slash", manJSON("zeze", "1.2.3", artJSON("a", "binary", "dir/a.bin", "versions/1.2.3/a.bin")), true},
+		{"empty asset", manJSON("zeze", "1.2.3", artJSON("a", "binary", "", "versions/1.2.3/a.bin")), true},
+		{"dotdot asset", manJSON("zeze", "1.2.3", artJSON("a", "binary", "..", "versions/1.2.3/a.bin")), true},
+		{"empty installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "")), true},
+		{"prefix only installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.3")), true},
+		{"trailing slash installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.3/")), true},
+		{"dotdot installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "versions/1.2.3/../evil")), true},
+		{"dot prefix installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "./versions/1.2.3/a.bin")), true},
+		{"doubled slash installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "versions//1.2.3/a.bin")), true},
+		{"absolute installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "/versions/1.2.3/a.bin")), true},
+		{"backslash installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", `versions/1.2.3/a\b`)), true},
+		{"other version installed path", manJSON("zeze", "1.2.3", artJSON("a", "binary", "a.bin", "versions/other/a.bin")), true},
 		// The parent's review closed the W2-reported gap: release.go now
 		// validates the manifest protocol ("schema") version and rejects
 		// artifacts that could be installed together onto the same path.
@@ -195,17 +195,17 @@ func TestParseManifest(t *testing.T) {
 		{"schema version 2 rejected", strings.Replace(valid, `"schema":1`, `"schema":2`, 1), true},
 		{"schema version 0 rejected", strings.Replace(valid, `"schema":1`, `"schema":0`, 1), true},
 		{"missing schema version rejected", strings.Replace(valid, `"schema":1,`, "", 1), true},
-		{"duplicate installed paths rejected", manJSON("jureuma", "1.2.3",
+		{"duplicate installed paths rejected", manJSON("zeze", "1.2.3",
 			artJSON("a", "binary", "a.bin", "versions/1.2.3/a.bin"),
 			artJSON("b", "skill", "b.zip", "versions/1.2.3/a.bin")), true},
-		{"platform target overlapping an any target rejected", manJSON("jureuma", "1.2.3",
-			artJSONPlat("a", "binary", "jureuma-linux-amd64", "linux", "amd64", "versions/1.2.3/a.bin"),
+		{"platform target overlapping an any target rejected", manJSON("zeze", "1.2.3",
+			artJSONPlat("a", "binary", "zeze-linux-amd64", "linux", "amd64", "versions/1.2.3/a.bin"),
 			artJSON("b", "prompt", "b.md", "versions/1.2.3/a.bin")), true},
-		{"same installed path across distinct platforms allowed", manJSON("jureuma", "1.2.3",
-			artJSONPlat("a", "binary", "jureuma-linux-amd64", "linux", "amd64", "versions/1.2.3/jureuma"),
-			artJSONPlat("b", "binary", "jureuma-linux-arm64", "linux", "arm64", "versions/1.2.3/jureuma"),
-			artJSONPlat("c", "launcher", "jureuma-launcher-linux-amd64", "linux", "amd64", "$HOME/.guiho/bin/jureuma"),
-			artJSONPlat("d", "launcher", "jureuma-launcher-linux-arm64", "linux", "arm64", "$HOME/.guiho/bin/jureuma")), false},
+		{"same installed path across distinct platforms allowed", manJSON("zeze", "1.2.3",
+			artJSONPlat("a", "binary", "zeze-linux-amd64", "linux", "amd64", "versions/1.2.3/zeze"),
+			artJSONPlat("b", "binary", "zeze-linux-arm64", "linux", "arm64", "versions/1.2.3/zeze"),
+			artJSONPlat("c", "launcher", "zeze-launcher-linux-amd64", "linux", "amd64", "$HOME/.guiho/bin/zeze"),
+			artJSONPlat("d", "launcher", "zeze-launcher-linux-arm64", "linux", "arm64", "$HOME/.guiho/bin/zeze")), false},
 	}
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
@@ -219,7 +219,7 @@ func TestParseManifest(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ParseManifest(%s): %v", c.in, err)
 			}
-			if m.Name != "jureuma" || m.Version == "" {
+			if m.Name != "zeze" || m.Version == "" {
 				t.Fatalf("unexpected manifest %+v", m)
 			}
 		})
@@ -231,8 +231,8 @@ func TestForPlatform(t *testing.T) {
 		{Kind: "binary", Asset: PayloadAsset("linux", "amd64"), OS: "linux", Arch: "amd64"},
 		{Kind: "binary", Asset: PayloadAsset("linux", "arm64"), OS: "linux", Arch: "arm64"},
 		{Kind: "binary", Asset: PayloadAsset("windows", "amd64"), OS: "windows", Arch: "amd64"},
-		{Kind: "skill", Asset: "guiho-s-jureuma.zip", OS: "any", Arch: "any"},
-		{Kind: "prompt", Asset: "guiho-p-jureuma.md", OS: "any", Arch: "any"},
+		{Kind: "skill", Asset: "guiho-s-zeze.zip", OS: "any", Arch: "any"},
+		{Kind: "prompt", Asset: "guiho-p-zeze.md", OS: "any", Arch: "any"},
 	}}
 	// Matching is by asset name (PayloadAsset); the os/arch fields are
 	// informational and every non-binary artifact is always included.
@@ -240,9 +240,9 @@ func TestForPlatform(t *testing.T) {
 		goos, goarch string
 		want         []string
 	}{
-		{"linux", "amd64", []string{"jureuma-linux-amd64", "guiho-s-jureuma.zip", "guiho-p-jureuma.md"}},
-		{"windows", "amd64", []string{"jureuma-windows-amd64.exe", "guiho-s-jureuma.zip", "guiho-p-jureuma.md"}},
-		{"darwin", "arm64", []string{"guiho-s-jureuma.zip", "guiho-p-jureuma.md"}},
+		{"linux", "amd64", []string{"zeze-linux-amd64", "guiho-s-zeze.zip", "guiho-p-zeze.md"}},
+		{"windows", "amd64", []string{"zeze-windows-amd64.exe", "guiho-s-zeze.zip", "guiho-p-zeze.md"}},
+		{"darwin", "arm64", []string{"guiho-s-zeze.zip", "guiho-p-zeze.md"}},
 	}
 	for _, c := range tests {
 		t.Run(c.goos+"/"+c.goarch, func(t *testing.T) {

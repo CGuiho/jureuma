@@ -4,13 +4,13 @@
 
 Mode: dnd · Role: workhorse (engineer) · Harness: OpenCode native background
 subagent (`general`) · Model: `xiaomi/mimo-v2.6-pro` (provider-default
-thinking, no variant) · Issue: <https://github.com/CGuiho/jureuma/issues/15>
+thinking, no variant) · Issue: <https://github.com/CGuiho/zeze/issues/15>
 
 **Base commit:** the commit that adds this brief (verify with `git log -1`).
 
 ## Mission
 
-CG hit Enter in `jureuma init`'s stored-key picker and it re-prompted
+CG hit Enter in `zeze init`'s stored-key picker and it re-prompted
 "enter a number between 1 and 3". Enter must select **create a new key**
 immediately. The synthetic entry must also render honestly instead of showing
 empty key-ID/`active` columns.
@@ -62,7 +62,7 @@ brief), release machinery or version pins.
 ## Commits and report
 
 One or two coherent commits with imperative messages through
-`flock -w 120 /tmp/opencode/jureuma-git.lock`; stage only owned paths; never
+`flock -w 120 /tmp/opencode/zeze-git.lock`; stage only owned paths; never
 `git add -A`; never push; worktree clean. Report commits, changed files, exact
 commands + exit codes, test names, a value-free before/after transcript of the
 picker (using a pipe is fine), deviations and residual uncertainty. DND: never

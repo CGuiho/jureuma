@@ -133,7 +133,7 @@ func TestProjectRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// c: jureuma.yaml at the root, a nearer .git below it.
+	// c: zeze.yaml at the root, a nearer .git below it.
 	c := filepath.Join(base, "c")
 	if err := os.MkdirAll(filepath.Join(c, "sub", "deep"), 0o755); err != nil {
 		t.Fatal(err)
@@ -141,11 +141,11 @@ func TestProjectRoot(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(c, "sub", ".git"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(c, "jureuma.yaml"), []byte("pairs: []\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(c, "zeze.yaml"), []byte("pairs: []\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	// d: .git at the root, a nearer jureuma.yaml below it.
+	// d: .git at the root, a nearer zeze.yaml below it.
 	d := filepath.Join(base, "d")
 	if err := os.MkdirAll(filepath.Join(d, "sub", "deep"), 0o755); err != nil {
 		t.Fatal(err)
@@ -153,7 +153,7 @@ func TestProjectRoot(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(d, ".git"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(d, "sub", "jureuma.yaml"), []byte("pairs: []\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(d, "sub", "zeze.yaml"), []byte("pairs: []\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -168,8 +168,8 @@ func TestProjectRoot(t *testing.T) {
 		start string
 		want  string
 	}{
-		{"jureuma.yaml wins over nearer .git", filepath.Join(c, "sub", "deep"), c},
-		{"nearest jureuma.yaml wins", filepath.Join(d, "sub", "deep"), filepath.Join(d, "sub")},
+		{"zeze.yaml wins over nearer .git", filepath.Join(c, "sub", "deep"), c},
+		{"nearest zeze.yaml wins", filepath.Join(d, "sub", "deep"), filepath.Join(d, "sub")},
 		{"falls back to .git", filepath.Join(b, "sub", "deep"), b},
 		{"no marker returns start", e, e},
 		{"root itself with marker", filepath.Join(d, "sub"), filepath.Join(d, "sub")},

@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-// Markers bounding jureuma's managed block in AGENTS.md. A marker is
+// Markers bounding zeze's managed block in AGENTS.md. A marker is
 // recognised only when it is alone on its line (surrounding spaces allowed).
 const (
-	BeginMarker = "<!-- >>> jureuma managed block >>> -->"
-	EndMarker   = "<!-- <<< jureuma managed block <<< -->"
+	BeginMarker = "<!-- >>> zeze managed block >>> -->"
+	EndMarker   = "<!-- <<< zeze managed block <<< -->"
 )
 
 // span locates one complete managed block: start is the first byte of the

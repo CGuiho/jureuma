@@ -9,12 +9,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/paths"
 	"go.yaml.in/yaml/v3"
 )
 
-// BindProjectKey writes the top-level key binding of <root>/jureuma.yaml as
+// BindProjectKey writes the top-level key binding of <root>/zeze.yaml as
 // exactly one spliced line: the value of the existing top-level key line is
 // replaced (its spacing and any trailing comment kept byte for byte), or one
 // line is appended when the document has no key entry. Every comment, blank

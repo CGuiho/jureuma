@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // Markers of the managed .gitignore block.
 const (
-	GitignoreBegin = "# >>> jureuma managed block >>>"
-	GitignoreEnd   = "# <<< jureuma managed block <<<"
+	GitignoreBegin = "# >>> zeze managed block >>>"
+	GitignoreEnd   = "# <<< zeze managed block <<<"
 )
 
 // GitignoreBlockLines is the managed block, markers included.
@@ -203,7 +203,7 @@ func TrackedByGit(root, path string) (bool, error) {
 	return code == 0, nil
 }
 
-// HeadPublicKey returns $jureuma.publicKey of path as committed at git HEAD.
+// HeadPublicKey returns $zeze.publicKey of path as committed at git HEAD.
 // ok is false when the file is not in HEAD or git is unavailable.
 func HeadPublicKey(path string) (pk string, ok bool) {
 	dir := existingDir(filepath.Dir(path))

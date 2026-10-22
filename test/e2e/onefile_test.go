@@ -25,7 +25,7 @@ func TestEncryptDeletesPlaintextByDefault(t *testing.T) {
 	}
 	// Injection still works from the encrypted file alone.
 	if got := p.revealConfig(); !strings.Contains(got, "OneFileSecret") {
-		t.Fatalf("JUREUMA_CONFIG = %s", got)
+		t.Fatalf("ZEZE_CONFIG = %s", got)
 	}
 }
 
@@ -100,7 +100,7 @@ func TestKeepBothKeepsBothFiles(t *testing.T) {
 // ciphertextOf returns the ciphertext string of the first member named key.
 func ciphertextOf(t *testing.T, encrypted, key string) string {
 	t.Helper()
-	i := strings.Index(encrypted, key+": \"jureuma:")
+	i := strings.Index(encrypted, key+": \"zeze:")
 	if i < 0 {
 		return ""
 	}

@@ -59,7 +59,7 @@ func Download(ctx context.Context, tag, asset, dst string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "jureuma")
+	req.Header.Set("User-Agent", "zeze")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("download of %s failed", asset)
@@ -123,7 +123,7 @@ type Manifest struct {
 }
 
 // Artifact is one entry of Manifest.Artifacts. InstalledPath is relative to
-// ~/.guiho/jureuma and, except for kind "launcher", always below
+// ~/.guiho/zeze and, except for kind "launcher", always below
 // versions/<version>/. Launcher artifacts install to the shared
 // ~/.guiho/bin directory and carry that absolute-convention path instead.
 type Artifact struct {
@@ -140,12 +140,12 @@ type Artifact struct {
 // launcherPaths are the only installed paths a kind "launcher" artifact may
 // declare: the stable launcher in the shared ~/.guiho/bin directory.
 var launcherPaths = map[string]bool{
-	"$HOME/.guiho/bin/jureuma":     true,
-	"$HOME/.guiho/bin/jureuma.exe": true,
+	"$HOME/.guiho/bin/zeze":     true,
+	"$HOME/.guiho/bin/zeze.exe": true,
 }
 
 // ParseManifest parses and checks artifacts.json: the document must be format
-// version 1, describe jureuma and carry a valid version; every asset name is
+// version 1, describe zeze and carry a valid version; every asset name is
 // plain; every non-launcher installed path is a clean relative path below
 // versions/<version>/; every launcher installed path is the shared command
 // path for its platform; and no two artifacts that can be installed together
@@ -155,8 +155,8 @@ func ParseManifest(data []byte) (*Manifest, error) {
 	if err := json.Unmarshal(data, &m); err != nil {
 		return nil, errors.New("artifacts.json is malformed")
 	}
-	if m.Name != "jureuma" {
-		return nil, errors.New("artifacts.json does not describe jureuma")
+	if m.Name != "zeze" {
+		return nil, errors.New("artifacts.json does not describe zeze")
 	}
 	// Only artifacts.json format version 1 is understood; a document from a
 	// different protocol version must be refused rather than misread.

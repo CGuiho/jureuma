@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // A pattern-valid, obviously synthetic key ID (public metadata). No key
@@ -30,7 +30,7 @@ func initProject(t *testing.T, h *harness) string {
 // storedKeyIDs lists the active stored key IDs in the harness home.
 func storedKeyIDs(t *testing.T, h *harness) []string {
 	t.Helper()
-	m, err := filepath.Glob(filepath.Join(h.home, ".guiho", "jureuma", "keys", "k_*.json"))
+	m, err := filepath.Glob(filepath.Join(h.home, ".guiho", "zeze", "keys", "k_*.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func storedKeyIDs(t *testing.T, h *harness) []string {
 	return ids
 }
 
-// pairKeyID reads the $jureuma.keyId a pair file records.
+// pairKeyID reads the $zeze.keyId a pair file records.
 func pairKeyID(t *testing.T, h *harness, file string) string {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join(h.proj, file))
@@ -52,7 +52,7 @@ func pairKeyID(t *testing.T, h *harness, file string) string {
 	var doc struct {
 		Meta struct {
 			KeyID string `json:"keyId"`
-		} `json:"$jureuma"`
+		} `json:"$zeze"`
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
 		t.Fatal(err)
@@ -95,7 +95,7 @@ func TestProjectKeyBindingDisagreementIsKeyError(t *testing.T) {
 	h.write("config.unencrypted.json", `{"db":{"url":"bound-value"}}`)
 	h.expect(0, "", "encrypt", "--keep-both")
 	// Bind a different key than the pair records.
-	h.write("jureuma.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
+	h.write("zeze.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
 	for _, args := range [][]string{
 		{"list"},
 		{"set", "/x", "1"},
@@ -108,15 +108,15 @@ func TestProjectKeyBindingDisagreementIsKeyError(t *testing.T) {
 		if code != xerr.CodeKey {
 			t.Fatalf("%v: exit %d, want %d\n%s", args, code, xerr.CodeKey, out)
 		}
-		for _, want := range []string{"jureuma.yaml", boundKeyOther, keyID} {
+		for _, want := range []string{"zeze.yaml", boundKeyOther, keyID} {
 			if !strings.Contains(out, want) {
 				t.Fatalf("%v: message misses %q:\n%s", args, want, out)
 			}
 		}
 	}
-	// run maps every jureuma-side failure to 125 with the same key message.
+	// run maps every zeze-side failure to 125 with the same key message.
 	code, out := h.run("", "run", "--", "true")
-	if code != 125 || !strings.HasPrefix(out, "[JUREUMA:KEY]") || !strings.Contains(out, boundKeyOther) {
+	if code != 125 || !strings.HasPrefix(out, "[ZEZE:KEY]") || !strings.Contains(out, boundKeyOther) {
 		t.Fatalf("run: exit %d\n%s", code, out)
 	}
 	// Nothing was re-encrypted to the bound key.
@@ -133,7 +133,7 @@ func TestProjectKeyBindingAgreementAndNoIdentity(t *testing.T) {
 	keyID := initProject(t, h)
 	h.write("config.unencrypted.json", `{"db":{"url":"agree-value"}}`)
 	h.expect(0, "", "encrypt", "--keep-both")
-	h.write("jureuma.yaml", "# the project key\nkey: "+keyID+"\npairs:\n  - name: config\n")
+	h.write("zeze.yaml", "# the project key\nkey: "+keyID+"\npairs:\n  - name: config\n")
 	h.expect(0, "", "set", "/n", "--json", "1")
 	h.expect(0, "", "list")
 	// A headerless plaintext with no encrypted file records no identity: the
@@ -141,9 +141,9 @@ func TestProjectKeyBindingAgreementAndNoIdentity(t *testing.T) {
 	// single-file repair pointer, not a key error.)
 	removeFile(t, h, "config.encrypted.json")
 	h.write("config.unencrypted.json", `{"db":{"url":"agree-value"}}`)
-	h.write("jureuma.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
+	h.write("zeze.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
 	code, out := h.run("", "set", "/x", "--json", "1")
-	if code != 1 || !strings.Contains(out, "run jureuma init to repair") {
+	if code != 1 || !strings.Contains(out, "run zeze init to repair") {
 		t.Fatalf("headerless plaintext: exit %d\n%s", code, out)
 	}
 	if strings.Contains(out, "key bound") || strings.Contains(out, boundKeyOther) {
@@ -152,14 +152,14 @@ func TestProjectKeyBindingAgreementAndNoIdentity(t *testing.T) {
 	// No files at all: init creates the pair with the bound key and the
 	// absence of an identity is not a disagreement either.
 	removeFile(t, h, "config.unencrypted.json")
-	h.write("jureuma.yaml", "key: "+keyID+"\npairs:\n  - name: config\n")
+	h.write("zeze.yaml", "key: "+keyID+"\npairs:\n  - name: config\n")
 	h.expect(0, "", "init", "--agent-deny-rules", "yes")
 	if got := pairKeyID(t, h, "config.encrypted.json"); got != keyID {
 		t.Fatalf("pair key %s, want the bound key %s", got, keyID)
 	}
 }
 
-// When jureuma.yaml binds a stored key, init creates a pair with that key and
+// When zeze.yaml binds a stored key, init creates a pair with that key and
 // leaves the file — and its comments — byte-identical (an equal binding is
 // never rewritten).
 func TestProjectKeyBindingInitUsesBoundKey(t *testing.T) {
@@ -168,7 +168,7 @@ func TestProjectKeyBindingInitUsesBoundKey(t *testing.T) {
 	removeFile(t, h, "config.encrypted.json")
 	removeFile(t, h, "config.unencrypted.json")
 	yml := "# project configuration\n\nkey: " + keyID + "   # the pair key\n\npairs:\n  - name: config   # the only pair\n"
-	h.write("jureuma.yaml", yml)
+	h.write("zeze.yaml", yml)
 	h.expect(0, "", "init", "--agent-deny-rules", "yes")
 	if got := projectFile(t, h); got != yml {
 		t.Fatalf("init rewrote %s:\n%s", config.ProjectFile, got)
@@ -182,12 +182,12 @@ func TestProjectKeyBindingInitUsesBoundKey(t *testing.T) {
 }
 
 // A pair with no recorded identity gets its key created or chosen; init then
-// binds that key in jureuma.yaml with a one-line splice that keeps every
+// binds that key in zeze.yaml with a one-line splice that keeps every
 // comment byte-identical.
 func TestProjectKeyBindingInitWritesBinding(t *testing.T) {
 	h := newHarness(t)
 	const head = "# yaml-language-server: $schema=example.invalid\n# keep this comment\n\npairs:\n  - name: config   # the only pair\nrun:\n  format: json\n"
-	h.write("jureuma.yaml", head)
+	h.write("zeze.yaml", head)
 	h.expect(0, "", "init", "--agent-deny-rules", "yes")
 	keyID := pairKeyID(t, h, "config.encrypted.json")
 	got := projectFile(t, h)
@@ -200,7 +200,7 @@ func TestProjectKeyBindingInitWritesBinding(t *testing.T) {
 	// The same through an explicitly chosen stored key.
 	removeFile(t, h, "config.encrypted.json")
 	removeFile(t, h, "config.unencrypted.json")
-	h.write("jureuma.yaml", head)
+	h.write("zeze.yaml", head)
 	h.expect(0, "", "init", "--agent-deny-rules", "yes", "--key-id", keyID)
 	got = projectFile(t, h)
 	if !strings.HasPrefix(got, head) || !strings.HasSuffix(got, "key: "+keyID+"\n") {
@@ -222,7 +222,7 @@ func TestProjectKeyBindingFlagContradiction(t *testing.T) {
 	// The same key as the binding is accepted.
 	h.expect(0, "", "init", "--agent-deny-rules", "yes", "--key-id", keyID)
 	// A stored key contradicting a binding that names an unstored key.
-	h.write("jureuma.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
+	h.write("zeze.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
 	code, out = h.run("", "init", "--agent-deny-rules", "yes", "--key-id", keyID)
 	if code != xerr.CodeUsage || !strings.Contains(out, config.ProjectFile) {
 		t.Fatalf("contradicting stored key: exit %d\n%s", code, out)
@@ -234,7 +234,7 @@ func TestProjectKeyBindingMalformedIsValidation(t *testing.T) {
 	h := newHarness(t)
 	initProject(t, h)
 	for _, val := range []string{"my-label", "\"\"", "k_" + strings.Repeat("A", 32)} {
-		h.write("jureuma.yaml", "key: "+val+"\npairs:\n  - name: config\n")
+		h.write("zeze.yaml", "key: "+val+"\npairs:\n  - name: config\n")
 		code, out := h.run("", "list")
 		if code != xerr.CodeValidation {
 			t.Fatalf("key: %s -> exit %d, want %d\n%s", val, code, xerr.CodeValidation, out)
@@ -268,10 +268,10 @@ func TestProjectKeyBindingRotateUpdates(t *testing.T) {
 	}
 	h.expect(0, "", "set", "/n", "--json", "2")
 	h.expect(0, "", "run", "--", "true")
-	// Without a binding, rotation leaves jureuma.yaml alone.
+	// Without a binding, rotation leaves zeze.yaml alone.
 	removeFile(t, h, "config.unencrypted.json")
 	h.expect(0, "", "decrypt", "--keep-both", "--dangerously-bypass-protections")
-	h.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	h.write("zeze.yaml", "pairs:\n  - name: config\n")
 	before := projectFile(t, h)
 	h.expect(0, "", "key", "rotate")
 	if got := projectFile(t, h); got != before {

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Verify a prepared jureuma release directory before publication.
+# Verify a prepared zeze release directory before publication.
 #
 # usage: devops/release-verify.sh [--dir <dir>] [--version <semver>] [--partial]
 #   --dir      release directory (default dist/)
@@ -40,22 +40,22 @@ mv_version=$(sed -n 's/^  "version": "\([^"]*\)",$/\1/p' "$dir/artifacts.json")
 [ -z "$version" ] || [ "$version" = "$mv_version" ] || fail "artifacts.json version $mv_version != $version"
 version=$mv_version
 
-mandatory="guiho-s-jureuma.zip guiho-p-jureuma.md guiho-p-jureuma-install.md guiho-p-jureuma-uninstall.md jureuma-instruction.md jureuma.schema.json jureuma.global.schema.json jureuma.example.yaml jureuma.global.example.yaml artifacts.json"
+mandatory="guiho-s-zeze.zip guiho-p-zeze.md guiho-p-zeze-install.md guiho-p-zeze-uninstall.md zeze-instruction.md zeze.schema.json zeze.global.schema.json zeze.example.yaml zeze.global.example.yaml artifacts.json"
 if [ "$partial" != true ]; then
-  mandatory="$mandatory jureuma-linux-amd64 jureuma-linux-arm64 jureuma-darwin-amd64 jureuma-darwin-arm64 jureuma-windows-amd64.exe jureuma-windows-arm64.exe"
-  mandatory="$mandatory jureuma-launcher-linux-amd64 jureuma-launcher-linux-arm64 jureuma-launcher-darwin-amd64 jureuma-launcher-darwin-arm64 jureuma-launcher-windows-amd64.exe jureuma-launcher-windows-arm64.exe"
+  mandatory="$mandatory zeze-linux-amd64 zeze-linux-arm64 zeze-darwin-amd64 zeze-darwin-arm64 zeze-windows-amd64.exe zeze-windows-arm64.exe"
+  mandatory="$mandatory zeze-launcher-linux-amd64 zeze-launcher-linux-arm64 zeze-launcher-darwin-amd64 zeze-launcher-darwin-arm64 zeze-launcher-windows-amd64.exe zeze-launcher-windows-arm64.exe"
 fi
 for a in $mandatory; do [ -f "$dir/$a" ] || fail "missing mandatory asset $a"; done
 
 # Every payload present must ship its paired launcher (and the other way).
-for f in "$dir"/jureuma-*; do
+for f in "$dir"/zeze-*; do
   [ -f "$f" ] || continue
   name=$(basename -- "$f")
   case "$name" in
-    jureuma-launcher-linux-*|jureuma-launcher-darwin-*|jureuma-launcher-windows-*)
-      twin="jureuma-${name#jureuma-launcher-}" ;;
-    jureuma-linux-*|jureuma-darwin-*|jureuma-windows-*)
-      twin="jureuma-launcher-${name#jureuma-}" ;;
+    zeze-launcher-linux-*|zeze-launcher-darwin-*|zeze-launcher-windows-*)
+      twin="zeze-${name#zeze-launcher-}" ;;
+    zeze-linux-*|zeze-darwin-*|zeze-windows-*)
+      twin="zeze-launcher-${name#zeze-}" ;;
     *) continue ;;
   esac
   [ -f "$dir/$twin" ] || fail "$name has no paired asset $twin"
@@ -88,9 +88,9 @@ done
 
 os=$(uname -s | tr '[:upper:]' '[:lower:]'); arch=$(uname -m)
 case "$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; esac
-host="$dir/jureuma-$os-$arch"
+host="$dir/zeze-$os-$arch"
 if [ -f "$host" ]; then
-  got=$(JUREUMA_NO_UPDATE_CHECK=1 "$host" --version)
+  got=$(ZEZE_NO_UPDATE_CHECK=1 "$host" --version)
   [ "$got" = "$version" ] || fail "host payload reports $got, expected $version"
 fi
 printf 'release-verify: %s ok (%s files)\n' "$version" "$count"

@@ -1,12 +1,12 @@
 ---
-subject: jureuma-docs-reviews-human
+subject: zeze-docs-reviews-human
 description: "Human review verdicts: what CG tested or authorized, what works, what failed, and the resulting delivery state."
-parent: jureuma-docs-reviews
+parent: zeze-docs-reviews
 children: []
 files: {}
 documents:
-  "2026-10-18-0.3.0-train.md": "Human review verdict for the jureuma 0.3.0 train: the release instruction, publication evidence, residuals accepted as shipped and the follow-up decisions."
-  "2026-10-18-0.3.1-picker.md": "Human review verdict for the jureuma 0.3.1 patch: the init picker Enter-default instruction, the fix and the publication evidence."
+  "2026-10-18-0.3.0-train.md": "Human review verdict for the zeze 0.3.0 train: the release instruction, publication evidence, residuals accepted as shipped and the follow-up decisions."
+  "2026-10-18-0.3.1-picker.md": "Human review verdict for the zeze 0.3.1 patch: the init picker Enter-default instruction, the fix and the publication evidence."
 tags:
   - "reviews"
   - "human review"
@@ -19,12 +19,12 @@ status: stable
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
 
-# jureuma-docs-reviews-human
+# zeze-docs-reviews-human
 
 Human review verdicts recorded after CG validates a delivery: what was tested
 or authorized, what works, what failed, and the resulting delivery state.
 
 ## Documents
 
-- [2026-10-18-0.3.0-train.md](2026-10-18-0.3.0-train.md): Human review verdict for the jureuma 0.3.0 train: the release instruction, publication evidence, residuals accepted as shipped and the follow-up decisions.
-- [2026-10-18-0.3.1-picker.md](2026-10-18-0.3.1-picker.md): Human review verdict for the jureuma 0.3.1 patch: the init picker Enter-default instruction, the fix and the publication evidence.
+- [2026-10-18-0.3.0-train.md](2026-10-18-0.3.0-train.md): Human review verdict for the zeze 0.3.0 train: the release instruction, publication evidence, residuals accepted as shipped and the follow-up decisions.
+- [2026-10-18-0.3.1-picker.md](2026-10-18-0.3.1-picker.md): Human review verdict for the zeze 0.3.1 patch: the init picker Enter-default instruction, the fix and the publication evidence.

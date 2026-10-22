@@ -34,7 +34,7 @@ func readProjectFile(t *testing.T, root string) string {
 
 func TestBindProjectKeyAppendsOneLine(t *testing.T) {
 	root := t.TempDir()
-	const before = `# yaml-language-server: $schema=https://example.invalid/jureuma.schema.json
+	const before = `# yaml-language-server: $schema=https://example.invalid/zeze.schema.json
 # the project configuration
 
 pairs:

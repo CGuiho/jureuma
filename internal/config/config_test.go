@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -57,7 +57,7 @@ func TestParseProjectValid(t *testing.T) {
 	if p.Key != "k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25" {
 		t.Fatalf("key binding: %q", p.Key)
 	}
-	if p.Run.Format != "json" || p.Run.EnvName != "JUREUMA_CONFIG" || p.Agent.Evolution.Issues.Reviews != "always-ask" {
+	if p.Run.Format != "json" || p.Run.EnvName != "ZEZE_CONFIG" || p.Agent.Evolution.Issues.Reviews != "always-ask" {
 		t.Fatalf("decoded: %+v", p)
 	}
 	for _, s := range []string{"", "\n", "# only a comment\n", "~\n", "{}\n", "pairs: []\n", "run:\n  format: flatten\n  prefix: APP_\n  override: true\n"} {
@@ -128,7 +128,7 @@ func TestConfigErrorsAreValidationErrors(t *testing.T) {
 		"key: \"\"\n",
 		"key:\n",
 		"run:\n  format: " + secretish + "\n",
-		"run:\n  envName: JUREUMA_\n",
+		"run:\n  envName: ZEZE_\n",
 		"pairs:\n  - name: ../" + secretish + "\n",
 	} {
 		_, err := ParseProject([]byte(in))
@@ -216,7 +216,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(filepath.Join(root, ProjectFile))
-	wantHeader := "# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v1.2.3/jureuma.schema.json\n"
+	wantHeader := "# yaml-language-server: $schema=https://github.com/CGuiho/zeze/releases/download/v1.2.3/zeze.schema.json\n"
 	if !strings.HasPrefix(string(data), wantHeader) {
 		t.Fatalf("header:\n%s", data)
 	}
@@ -237,7 +237,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ = os.ReadFile(filepath.Join(home, GlobalFile))
-	if !strings.HasPrefix(string(data), "# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.1.0/jureuma.global.schema.json\n") {
+	if !strings.HasPrefix(string(data), "# yaml-language-server: $schema=https://github.com/CGuiho/zeze/releases/download/v0.1.0/zeze.global.schema.json\n") {
 		t.Fatalf("global header:\n%s", data)
 	}
 	gg, ok, err := LoadGlobal(home)
@@ -311,17 +311,17 @@ func TestEffective(t *testing.T) {
 	}{
 		{"nil both", nil, nil, EffectiveConfig{
 			Evolution:   DefaultEvolution(),
-			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_CONFIG"},
+			Run:         RunConfig{Format: "json", EnvName: "ZEZE_CONFIG"},
 			Protections: Protections{AllowBypass: boolp(true)},
 		}},
 		{"merge", p, g, EffectiveConfig{
 			Evolution:   Evolution{Upgrade: "disabled", Issues: Issues{Bugs: "always-ask", Improvements: "always-proceed", Reviews: "disabled"}},
-			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_CONFIG", Prefix: "APP_"},
+			Run:         RunConfig{Format: "json", EnvName: "ZEZE_CONFIG", Prefix: "APP_"},
 			Protections: Protections{AllowBypass: boolp(false), AgentEnvMarkers: []string{"X_AGENT"}},
 		}},
 		{"project only", p, nil, EffectiveConfig{
 			Evolution:   Evolution{Upgrade: "always-ask", Issues: Issues{Bugs: "always-ask", Improvements: "always-proceed", Reviews: "always-ask"}},
-			Run:         RunConfig{Format: "json", EnvName: "JUREUMA_CONFIG", Prefix: "APP_"},
+			Run:         RunConfig{Format: "json", EnvName: "ZEZE_CONFIG", Prefix: "APP_"},
 			Protections: Protections{AllowBypass: boolp(true)},
 		}},
 		{"run explicit", &Project{Run: RunConfig{Format: "file", EnvName: "CFG"}}, g, EffectiveConfig{
@@ -372,10 +372,10 @@ func TestSchemasAndExamples(t *testing.T) {
 		t.Error("schema bytes are shared")
 	}
 	// Examples validate and carry pinned headers.
-	if !strings.HasPrefix(string(ProjectExampleYAML()), "# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v") {
+	if !strings.HasPrefix(string(ProjectExampleYAML()), "# yaml-language-server: $schema=https://github.com/CGuiho/zeze/releases/download/v") {
 		t.Error("project example header")
 	}
-	if !strings.HasPrefix(string(GlobalExampleYAML()), "# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v") {
+	if !strings.HasPrefix(string(GlobalExampleYAML()), "# yaml-language-server: $schema=https://github.com/CGuiho/zeze/releases/download/v") {
 		t.Error("global example header")
 	}
 	// The design's sample global block is valid against the global schema
@@ -435,8 +435,8 @@ func TestSchemaURL(t *testing.T) {
 		v, want string
 		ok      bool
 	}{
-		{"0.1.0", "https://github.com/CGuiho/jureuma/releases/download/v0.1.0/jureuma.schema.json", true},
-		{"v2.0.0-rc.1", "https://github.com/CGuiho/jureuma/releases/download/v2.0.0-rc.1/jureuma.schema.json", true},
+		{"0.1.0", "https://github.com/CGuiho/zeze/releases/download/v0.1.0/zeze.schema.json", true},
+		{"v2.0.0-rc.1", "https://github.com/CGuiho/zeze/releases/download/v2.0.0-rc.1/zeze.schema.json", true},
 		{"latest", "", false},
 		{"1.2", "", false},
 		{"1.2.3/../x", "", false},
@@ -449,13 +449,13 @@ func TestSchemaURL(t *testing.T) {
 }
 
 func TestValidateRejectsDenylistedRunEnvName(t *testing.T) {
-	for _, name := range []string{"BASH_ENV", "PAGER", "GIT_SSH_COMMAND", "LD_PRELOAD", "JUREUMA_USER_HOME", "JUREUMA_"} {
+	for _, name := range []string{"BASH_ENV", "PAGER", "GIT_SSH_COMMAND", "LD_PRELOAD", "ZEZE_USER_HOME", "ZEZE_"} {
 		p := &Project{Run: RunConfig{EnvName: name}}
 		if err := p.Validate(); err == nil {
 			t.Errorf("run.envName %s accepted", name)
 		}
 	}
-	for _, name := range []string{"JUREUMA_CONFIG", "APP_CONFIG"} {
+	for _, name := range []string{"ZEZE_CONFIG", "APP_CONFIG"} {
 		p := &Project{Run: RunConfig{EnvName: name}}
 		if err := p.Validate(); err != nil {
 			t.Errorf("run.envName %s refused: %v", name, err)
@@ -464,19 +464,19 @@ func TestValidateRejectsDenylistedRunEnvName(t *testing.T) {
 }
 
 // The default run env name is the denylist's only exception; the abandoned
-// JUREUMA_ name is an ordinary denylisted JUREUMA_* name.
+// ZEZE_ name is an ordinary denylisted ZEZE_* name.
 func TestRunEnvNameDefaultIsTheDenylistException(t *testing.T) {
-	if DefaultEnvName != "JUREUMA_CONFIG" {
+	if DefaultEnvName != "ZEZE_CONFIG" {
 		t.Fatalf("DefaultEnvName = %q", DefaultEnvName)
 	}
-	p, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: JUREUMA_CONFIG\n"))
+	p, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: ZEZE_CONFIG\n"))
 	if err != nil {
-		t.Fatalf("run.envName JUREUMA_CONFIG must load: %v", err)
+		t.Fatalf("run.envName ZEZE_CONFIG must load: %v", err)
 	}
 	if err := p.Validate(); err != nil {
-		t.Fatalf("run.envName JUREUMA_CONFIG refused: %v", err)
+		t.Fatalf("run.envName ZEZE_CONFIG refused: %v", err)
 	}
-	if _, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: JUREUMA_\n")); err == nil {
-		t.Fatal("run.envName JUREUMA_ must be rejected as denylisted")
+	if _, err := ParseProject([]byte("pairs:\n  - name: config\nrun:\n  envName: ZEZE_\n")); err == nil {
+		t.Fatal("run.envName ZEZE_ must be rejected as denylisted")
 	}
 }

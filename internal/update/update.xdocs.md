@@ -1,7 +1,7 @@
 ---
-subject: jureuma-update
+subject: zeze-update
 description: "SemVer comparison, the paginated GitHub release catalog (15-second timeout), the update cache, the single-flight worker lease and the reinstall commands printed by upgrade."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "update.go": "Release catalog, selection, cache and lease."
@@ -21,7 +21,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-update
+# zeze-update
 
 SemVer comparison, the paginated GitHub release catalog (15-second timeout), the update cache, the single-flight worker lease and the reinstall commands printed by upgrade.
 

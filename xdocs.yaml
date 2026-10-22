@@ -29,16 +29,16 @@ ignore:
     - pattern: "internal/agentres/assets/instruction.md"
       kind: file
       frontmatter: false
-    - pattern: "internal/agentres/assets/prompts/guiho-p-jureuma.md"
+    - pattern: "internal/agentres/assets/prompts/guiho-p-zeze.md"
       kind: file
       frontmatter: false
-    - pattern: "internal/agentres/assets/prompts/guiho-p-jureuma-install.md"
+    - pattern: "internal/agentres/assets/prompts/guiho-p-zeze-install.md"
       kind: file
       frontmatter: false
-    - pattern: "internal/agentres/assets/prompts/guiho-p-jureuma-uninstall.md"
+    - pattern: "internal/agentres/assets/prompts/guiho-p-zeze-uninstall.md"
       kind: file
       frontmatter: false
-    - pattern: "internal/agentres/assets/skills/guiho-s-jureuma/SKILL.md"
+    - pattern: "internal/agentres/assets/skills/guiho-s-zeze/SKILL.md"
       kind: file
       frontmatter: false
     # Shared GUIHO convention, copied verbatim; its frontmatter belongs to the
@@ -47,4 +47,4 @@ ignore:
       kind: file
       frontmatter: false
 project:
-  name: "jureuma"
+  name: "zeze"

@@ -18,7 +18,7 @@ func TestCommittedRunEnvNameCannotBeCodeLoading(t *testing.T) {
 	p.setup(`{"a":"value-1"}`)
 	marker := filepath.Join(p.home, "PWNED")
 	// A committed run.envName that names a shell start-up variable is invalid.
-	p.write("jureuma.yaml", "pairs:\n  - name: config\nrun:\n  format: file\n  envName: BASH_ENV\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\nrun:\n  format: file\n  envName: BASH_ENV\n")
 	p.write("hello.sh", "#!/bin/bash\necho hello\n")
 	os.Chmod(p.path("hello.sh"), 0o755)
 	r := p.run("run", "--", "./hello.sh")
@@ -28,7 +28,7 @@ func TestCommittedRunEnvNameCannotBeCodeLoading(t *testing.T) {
 	if _, err := os.Stat(marker); err == nil {
 		t.Fatal("code ran through BASH_ENV")
 	}
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	for _, name := range []string{"BASH_ENV", "PAGER", "GIT_SSH_COMMAND", "EDITOR"} {
 		for _, format := range []string{"json", "file"} {
 			if r := p.run("run", "--format", format, "--env-name", name, "--", "true"); r.code != 125 {
@@ -49,8 +49,8 @@ func TestArgumentsAreNeverEchoed(t *testing.T) {
 	p.setup(`{"a":"value-1"}`)
 	const secret = "SENTINELKEYMATERIAL7c1e"
 	cases := [][]string{
-		{"key", "export", "jureuma-sk-1:" + secret},
-		{"key", "retire", "jureuma-sk-1:" + secret},
+		{"key", "export", "zeze-sk-1:" + secret},
+		{"key", "retire", "zeze-sk-1:" + secret},
 		{"set", "/token", "-S" + secret},
 		{"set", "/token", "--" + secret},
 		{"set", "/x", "--json=" + secret},
@@ -80,7 +80,7 @@ func TestBypassRefusedWhenHomeIsRelocated(t *testing.T) {
 	p.setup(`{"a":"relocated-value"}`)
 	_, sk := p.privateKey()
 	alt := t.TempDir()
-	r := p.runEnv([]string{"JUREUMA_USER_HOME=" + alt, "JUREUMA_PRIVATE_KEY=" + sk}, "get", "/a", "--dangerously-bypass-protections")
+	r := p.runEnv([]string{"ZEZE_USER_HOME=" + alt, "ZEZE_PRIVATE_KEY=" + sk}, "get", "/a", "--dangerously-bypass-protections")
 	if r.code != 3 || strings.Contains(r.out(), "relocated-value") {
 		t.Fatalf("bypass with a relocated home must be refused (exit 3)\n%s", r)
 	}
@@ -89,7 +89,7 @@ func TestBypassRefusedWhenHomeIsRelocated(t *testing.T) {
 func TestCommittedPathsStayInsideTheProject(t *testing.T) {
 	p := newProject(t)
 	outside := t.TempDir()
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n    schema: "+filepath.ToSlash(filepath.Join("..", filepath.Base(outside), "evil.schema.json"))+"\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n    schema: "+filepath.ToSlash(filepath.Join("..", filepath.Base(outside), "evil.schema.json"))+"\n")
 	r := p.run("init", "--agent-deny-rules", "no", "--agent-evolution", "always-ask")
 	if r.code == 0 {
 		t.Fatalf("init with a schema outside the project must fail\n%s", r)
@@ -107,11 +107,11 @@ func TestCommittedPathsStayInsideTheProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	rel, _ := filepath.Rel(q.dir, victim)
-	m["$jureuma"].(map[string]any)["schema"] = filepath.ToSlash(rel)
+	m["$zeze"].(map[string]any)["schema"] = filepath.ToSlash(rel)
 	data, _ := json.MarshalIndent(m, "", "  ")
 	q.write("config.encrypted.json", string(data))
 	if r := q.run("schema", "infer", "--force"); r.code != 2 {
-		t.Fatalf("schema infer through $jureuma.schema outside the project: want exit 2\n%s", r)
+		t.Fatalf("schema infer through $zeze.schema outside the project: want exit 2\n%s", r)
 	}
 	if b, _ := os.ReadFile(victim); string(b) != "precious" {
 		t.Fatal("schema infer overwrote a file outside the project")
@@ -192,7 +192,7 @@ func TestUpgradeForceDoesNotStopRunsWhenNothingIsInstalled(t *testing.T) {
 		t.Fatal(err)
 	}
 	time.Sleep(500 * time.Millisecond)
-	r := p.runEnv([]string{"JUREUMA_RELEASES_URL=http://127.0.0.1:1/none"}, "upgrade", "--force")
+	r := p.runEnv([]string{"ZEZE_RELEASES_URL=http://127.0.0.1:1/none"}, "upgrade", "--force")
 	if r.code == 0 {
 		t.Fatalf("upgrade without a catalog must fail\n%s", r)
 	}
@@ -204,9 +204,9 @@ func TestUpgradeForceDoesNotStopRunsWhenNothingIsInstalled(t *testing.T) {
 func TestSelfTestAndBareNotice(t *testing.T) {
 	p := newProject(t)
 	p.expect(0, "__self-test")
-	cache := `{"latestVersion":"99.0.0","currentVersion":"` + testVersion + `","newVersionAvailable":true,"lastCheck":"` + time.Now().UTC().Format(time.RFC3339) + `","upgradeCommand":"jureuma upgrade"}`
+	cache := `{"latestVersion":"99.0.0","currentVersion":"` + testVersion + `","newVersionAvailable":true,"lastCheck":"` + time.Now().UTC().Format(time.RFC3339) + `","upgradeCommand":"zeze upgrade"}`
 	p.writeAbs(filepath.Join(p.jhome(), "cache.json"), cache)
-	env := []string{"JUREUMA_NO_UPDATE_CHECK="}
+	env := []string{"ZEZE_NO_UPDATE_CHECK="}
 	if r := p.runEnv(env, "--help-tree-depth", "3"); strings.Contains(r.stderr, "New version available") {
 		t.Fatalf("a root invocation with flags must not print the notice\n%s", r)
 	}

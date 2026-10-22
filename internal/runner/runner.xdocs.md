@@ -1,7 +1,7 @@
 ---
-subject: jureuma-runner
+subject: zeze-runner
 description: "Child-process injection for run: environment building (json, flatten, file formats), private-key stripping, memfd or temp-file documents, output redaction, signal forwarding and exit-code pass-through; plus the run-instance registry and OS process inspection that terminate previous-payload processes before an upgrade activation."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "runner.go": "Child environment and process supervision."
@@ -28,7 +28,7 @@ tags:
   - "go"
   - "process"
 keywords:
-  - "JUREUMA_CONFIG"
+  - "ZEZE_CONFIG"
   - "flatten"
   - "memfd"
   - "redaction"
@@ -36,7 +36,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-runner
+# zeze-runner
 
 Child-process injection for run: environment building (json, flatten, file formats), private-key stripping, memfd or temp-file documents, output redaction, signal forwarding and exit-code pass-through; plus the run-instance registry and OS process inspection that terminate previous-payload processes before an upgrade activation.
 

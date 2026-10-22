@@ -1,7 +1,7 @@
 ---
-subject: jureuma-crypt
+subject: zeze-crypt
 description: "Value encryption: X25519 ECIES with key IDs derived from public keys; ciphertext envelopes never contain plaintext."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "crypt.go": "Key generation, key IDs, encrypt and decrypt of single values."
@@ -18,7 +18,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-crypt
+# zeze-crypt
 
 Value encryption: X25519 ECIES with key IDs derived from public keys; ciphertext envelopes never contain plaintext.
 

@@ -1,9 +1,9 @@
 ---
-subject: jureuma-docs-plans-release-0.2.0-execution
+subject: zeze-docs-plans-release-0.2.0-execution
 description: "Execution artifacts of the release 0.2.0 plan: the worker handoff brief dispatched as a native background subagent."
-parent: jureuma-docs-plans-release-0.2.0
+parent: zeze-docs-plans-release-0.2.0
 children:
-  - jureuma-docs-plans-release-0.2.0-execution-handoffs
+  - zeze-docs-plans-release-0.2.0-execution-handoffs
 files: {}
 documents: {}
 tags:
@@ -16,7 +16,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-release-0.2.0-execution
+# zeze-docs-plans-release-0.2.0-execution
 
 Execution artifacts of the release 0.2.0 plan. The unit runs as a native
 background subagent (`xiaomi/mimo-v2.6-pro`, provider-default thinking, no

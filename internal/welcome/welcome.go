@@ -1,4 +1,4 @@
-// Package welcome renders the greeting printed by a bare `jureuma` invocation.
+// Package welcome renders the greeting printed by a bare `zeze` invocation.
 //
 // The layout follows the GUIHO RunX welcome (logo, tagline, author line, then a
 // platform/version/author block and a help hint), left-aligned instead of
@@ -80,11 +80,11 @@ var glyphs = map[rune][6]string{
 	},
 }
 
-// Logo returns the JUREUMA block-letter logo, one string per row, with
+// Logo returns the ZEZE block-letter logo, one string per row, with
 // trailing spaces trimmed.
 func Logo() []string {
 	rows := make([]string, 6)
-	for _, r := range "JUREUMA" {
+	for _, r := range "ZEZE" {
 		g := glyphs[r]
 		for i := range rows {
 			rows[i] += g[i]
@@ -160,7 +160,7 @@ func Render(goos, goarch, version string, color bool) string {
 	b.WriteString("\n\n")
 
 	b.WriteString("Run ")
-	b.WriteString(paint("jureuma --help", ansiOffWhite+ansiBold))
+	b.WriteString(paint("zeze --help", ansiOffWhite+ansiBold))
 	b.WriteString(" to see available commands.\n\n")
 	return b.String()
 }

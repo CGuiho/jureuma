@@ -1,9 +1,9 @@
 ---
-subject: jureuma-docs-plans-key-identity-headers-execution
+subject: zeze-docs-plans-key-identity-headers-execution
 description: "Execution artifacts of the key-identity plan: four worker handoff briefs dispatched as native background subagents."
-parent: jureuma-docs-plans-key-identity-headers
+parent: zeze-docs-plans-key-identity-headers
 children:
-  - jureuma-docs-plans-key-identity-headers-execution-handoffs
+  - zeze-docs-plans-key-identity-headers-execution-handoffs
 files: {}
 documents: {}
 tags:
@@ -16,7 +16,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-key-identity-headers-execution
+# zeze-docs-plans-key-identity-headers-execution
 
 Execution artifacts of the key-identity plan. The units run in native
 background subagents (`xiaomi/mimo-v2.6-pro`, provider-default thinking, no

@@ -1,5 +1,5 @@
 // Package jsonc parses strict JSON (RFC 8259) and lenient JSONC (comments and
-// trailing commas) into jureuma's ordered doc.Value tree.
+// trailing commas) into zeze's ordered doc.Value tree.
 //
 // Errors never contain source text: a SyntaxError carries only a position and
 // a fixed error class, so configuration values cannot leak through messages.
@@ -12,7 +12,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 // Error classes reported in SyntaxError.Class.

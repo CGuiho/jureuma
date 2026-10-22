@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 func mustKey(t *testing.T) PrivateKey {
@@ -128,9 +128,9 @@ func TestTamperFails(t *testing.T) {
 		prefix + base64.RawURLEncoding.EncodeToString(raw[:91]),
 		prefix + base64.URLEncoding.EncodeToString(raw),
 		prefix + base64.RawStdEncoding.EncodeToString(raw),
-		strings.Replace(ct, "jureuma:1:", "jureuma:2:", 1),
+		strings.Replace(ct, "zeze:1:", "zeze:2:", 1),
 		"",
-		"jureuma:1:",
+		"zeze:1:",
 	}
 	for i, b := range bad {
 		if b == ct {
@@ -245,7 +245,7 @@ func TestKeyID(t *testing.T) {
 func TestKeyEncoding(t *testing.T) {
 	sk := mustKey(t)
 	pk := sk.Public()
-	if !strings.HasPrefix(pk.String(), "jureuma-pk-1:") || !strings.HasPrefix(sk.String(), "jureuma-sk-1:") {
+	if !strings.HasPrefix(pk.String(), "zeze-pk-1:") || !strings.HasPrefix(sk.String(), "zeze-sk-1:") {
 		t.Fatal("bad prefix")
 	}
 	pk2, err := ParsePublicKey(pk.String())
@@ -258,7 +258,7 @@ func TestKeyEncoding(t *testing.T) {
 	}
 	enc := sk.String()[len(PrivateKeyPrefix):]
 	bad := []string{
-		"", enc, "jureuma-pk-1:" + enc, PrivateKeyPrefix + enc + "=", PrivateKeyPrefix + enc[:42],
+		"", enc, "zeze-pk-1:" + enc, PrivateKeyPrefix + enc + "=", PrivateKeyPrefix + enc[:42],
 		PrivateKeyPrefix + enc + "AA", PrivateKeyPrefix + " " + enc,
 		PrivateKeyPrefix + base64.RawStdEncoding.EncodeToString(bytes.Repeat([]byte{0xff}, 32)),
 	}
@@ -296,12 +296,12 @@ func TestInvalidPointerRejected(t *testing.T) {
 func TestIsCiphertext(t *testing.T) {
 	id := "k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25"
 	cases := map[string]bool{
-		"jureuma:1:" + id + ":AAAA":                      true,
-		"jureuma:1:" + id + ":":                          true,
-		"jureuma:1:" + id:                                false,
-		"jureuma:1:k_5C1E0A9F3B7D2E4C8A6F1B0D9E3C7A25:x": false,
-		"jureuma:2:" + id + ":AAAA":                      false,
-		"hello":                                          false,
+		"zeze:1:" + id + ":AAAA":                      true,
+		"zeze:1:" + id + ":":                          true,
+		"zeze:1:" + id:                                false,
+		"zeze:1:k_5C1E0A9F3B7D2E4C8A6F1B0D9E3C7A25:x": false,
+		"zeze:2:" + id + ":AAAA":                      false,
+		"hello":                                       false,
 	}
 	for s, want := range cases {
 		if IsCiphertext(s) != want {

@@ -194,8 +194,8 @@ func TestRandomWord(t *testing.T) {
 }
 
 func TestAudit(t *testing.T) {
-	home := filepath.Join(t.TempDir(), ".guiho", "jureuma")
-	t.Setenv("JUREUMA_USER_HOME", t.TempDir())
+	home := filepath.Join(t.TempDir(), ".guiho", "zeze")
+	t.Setenv("ZEZE_USER_HOME", t.TempDir())
 	ts := time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
 	if err := Audit(home, AuditEvent{Time: ts, Command: "get", Paths: []string{"config.encrypted.json"}, Outcome: "refused", Markers: []string{"CLAUDECODE"}}); err != nil {
 		t.Fatal(err)

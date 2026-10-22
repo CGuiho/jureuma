@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/paths"
 )
 
 // When decrypt removes the encrypted file, a copy of it (ciphertext and

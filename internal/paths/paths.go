@@ -1,4 +1,4 @@
-// Package paths resolves jureuma's platform-native locations and provides
+// Package paths resolves zeze's platform-native locations and provides
 // atomic file writes and CLI-owned locks.
 package paths
 
@@ -16,10 +16,10 @@ import (
 )
 
 // CLIName is the canonical executable and home-directory name.
-const CLIName = "jureuma"
+const CLIName = "zeze"
 
 // HomeOverrideEnv lets tests and sandboxes relocate the user home.
-const HomeOverrideEnv = "JUREUMA_USER_HOME"
+const HomeOverrideEnv = "ZEZE_USER_HOME"
 
 // UserHome returns the user's home directory.
 func UserHome() (string, error) {
@@ -58,7 +58,7 @@ func samePath(a, b string) bool {
 	return clean(a) == clean(b)
 }
 
-// Home returns ~/.guiho/jureuma.
+// Home returns ~/.guiho/zeze.
 func Home() (string, error) {
 	h, err := UserHome()
 	if err != nil {
@@ -85,14 +85,14 @@ func TempDir() (string, error) {
 	return filepath.Join(h, ".guiho", ".temp"), nil
 }
 
-// ProjectRoot returns the nearest ancestor of start containing jureuma.yaml,
+// ProjectRoot returns the nearest ancestor of start containing zeze.yaml,
 // else the nearest containing .git, else start itself.
 func ProjectRoot(start string) (string, error) {
 	abs, err := filepath.Abs(start)
 	if err != nil {
 		return "", err
 	}
-	for _, marker := range []string{"jureuma.yaml", ".git"} {
+	for _, marker := range []string{"zeze.yaml", ".git"} {
 		dir := abs
 		for {
 			if _, err := os.Stat(filepath.Join(dir, marker)); err == nil {
@@ -161,7 +161,7 @@ func IsStaleTemp(name string) bool {
 }
 
 // ErrLocked is returned when another live process holds the lock.
-var ErrLocked = errors.New("locked by another jureuma process")
+var ErrLocked = errors.New("locked by another zeze process")
 
 // Lock takes an exclusive CLI-owned lock named by key under home/locks.
 // A lock whose recorded process is gone is recovered. It retries for up to

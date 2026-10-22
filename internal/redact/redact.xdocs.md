@@ -1,7 +1,7 @@
 ---
-subject: jureuma-redact
+subject: zeze-redact
 description: "Streaming, boundary-safe replacement of secrets (and their encodings) with [REDACTED]."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "redact.go": "Redacting writer."
@@ -18,7 +18,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-redact
+# zeze-redact
 
 Streaming, boundary-safe replacement of secrets (and their encodings) with [REDACTED].
 

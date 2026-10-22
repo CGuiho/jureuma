@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // Agent-tool deny rules: entries added to the project's Claude Code settings
@@ -22,7 +22,7 @@ import (
 var denyRules = []string{
 	"Read(**/*.unencrypted.json)",
 	"Read(**/*.unencrypted.jsonc)",
-	"Read(~/.guiho/jureuma/**)",
+	"Read(~/.guiho/zeze/**)",
 }
 
 // opencodeDenyRule is one OpenCode V2 permissions entry; the rule fields are
@@ -37,7 +37,7 @@ type opencodeDenyRule struct {
 var opencodeDenyRules = []opencodeDenyRule{
 	{Action: "read", Resource: "*.unencrypted.json", Effect: "deny"},
 	{Action: "read", Resource: "*.unencrypted.jsonc", Effect: "deny"},
-	{Action: "read", Resource: "$HOME/.guiho/jureuma/*", Effect: "deny"},
+	{Action: "read", Resource: "$HOME/.guiho/zeze/*", Effect: "deny"},
 }
 
 const denyStateFile = "deny-rules.json"
@@ -48,7 +48,7 @@ func claudeSettingsPath(root string) string {
 
 // opencodeConfigPath resolves the project's OpenCode settings: opencode.json,
 // or opencode.jsonc when only that exists; a missing file resolves to
-// opencode.json (created on apply). jureuma never writes .opencode/ or any
+// opencode.json (created on apply). zeze never writes .opencode/ or any
 // global OpenCode configuration.
 func opencodeConfigPath(root string) string {
 	jsonPath := filepath.Join(root, "opencode.json")
@@ -191,12 +191,12 @@ func applyDenyRules(home, root string) (added int, err error) {
 	sort.Strings(rec)
 	st.Projects[root] = rec
 	if err := writeDenyState(home, st); err != nil {
-		return added, xerr.Failure("cannot record the deny rules in the jureuma state")
+		return added, xerr.Failure("cannot record the deny rules in the zeze state")
 	}
 	return added, nil
 }
 
-// removeDenyRules removes exactly the rules jureuma recorded for root.
+// removeDenyRules removes exactly the rules zeze recorded for root.
 func removeDenyRules(home, root string) (removed int, err error) {
 	st := readDenyState(home)
 	rec := st.Projects[root]
@@ -228,7 +228,7 @@ func removeDenyRules(home, root string) (removed int, err error) {
 	}
 	delete(st.Projects, root)
 	if err := writeDenyState(home, st); err != nil {
-		return removed, xerr.Failure("cannot update the jureuma state")
+		return removed, xerr.Failure("cannot update the zeze state")
 	}
 	return removed, nil
 }
@@ -345,12 +345,12 @@ func applyOpencodeDenyRules(home, root string) (added int, err error) {
 	}
 	st.OpenCode[root] = rec
 	if err := writeDenyState(home, st); err != nil {
-		return added, xerr.Failure("cannot record the deny rules in the jureuma state")
+		return added, xerr.Failure("cannot record the deny rules in the zeze state")
 	}
 	return added, nil
 }
 
-// removeOpencodeDenyRules removes exactly the rules jureuma recorded for root.
+// removeOpencodeDenyRules removes exactly the rules zeze recorded for root.
 func removeOpencodeDenyRules(home, root string) (removed int, err error) {
 	st := readDenyState(home)
 	rec := st.OpenCode[root]
@@ -386,7 +386,7 @@ func removeOpencodeDenyRules(home, root string) (removed int, err error) {
 	}
 	delete(st.OpenCode, root)
 	if err := writeDenyState(home, st); err != nil {
-		return removed, xerr.Failure("cannot update the jureuma state")
+		return removed, xerr.Failure("cannot update the zeze state")
 	}
 	return removed, nil
 }

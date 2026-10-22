@@ -1,9 +1,9 @@
 ---
 name: Release 0.1.0 — Technical Self-Review
 purpose: Verify every executed unit and the published release against the validated plan, the specification, the architecture and the GUIHO conventions before the human review begins.
-description: "Phase 2.1 self-review of the jureuma 0.1.0 run: unit-by-unit acceptance from actual commits and captured checks, the review fixes applied in-loop, task-state verification against the GitHub Project, and residual risk."
+description: "Phase 2.1 self-review of the zeze 0.1.0 run: unit-by-unit acceptance from actual commits and captured checks, the review fixes applied in-loop, task-state verification against the GitHub Project, and residual risk."
 created: "2026-10-16"
-owner: jureuma-docs-reviews-implementation
+owner: zeze-docs-reviews-implementation
 flags: []
 tags:
   - "reviews"
@@ -31,7 +31,7 @@ W4 `ses_ebdf4e448ffeiMNcNtrjnxJAPS`.
 ### W1 — Launcher artifacts and installed launcher (#5)
 
 - Commits: `1e0a201`, `1471200`, `75ff3ab`, `1d446c3`, `53b8363`.
-- Reviewed: launcher sources (`cmd/jureuma-launcher/**` — strict pointer
+- Reviewed: launcher sources (`cmd/zeze-launcher/**` — strict pointer
   decode, containment, exec semantics, no version embedded), the released
   launcher asset in `artifacts.json` (`kind: launcher`), installers
   (`install.sh`, `install.ps1`) downloading and SHA-256-verifying the released
@@ -119,7 +119,7 @@ to the human; managed-block placement).
 ## Task state
 
 All five items (`#4`–`#8`) were read back from the bound Project as
-`Testing` with component `jureuma` after the green battery; the local
+`Testing` with component `zeze` after the green battery; the local
 `todo.md` mirrors that state. Per the review discipline nothing is archived
 as completed before the human verdict; the handoff packet lists the state.
 
@@ -132,6 +132,6 @@ as completed before the human verdict; the handoff packet lists the state.
   pure selection logic.
 - **B-6 prompt naming:** Conventional prompt-file naming conflict between
   Convention 0001 and 0002 remains an open decision for the human (ledger).
-- **Dogfooding:** whether this repository should carry the jureuma managed
+- **Dogfooding:** whether this repository should carry the zeze managed
   block in its own `AGENTS.md` is an open question for the human.
 - No material defects found; no requirement was left unverified.

@@ -8,28 +8,28 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // MetaKey is the reserved top-level key of both pair files.
-const MetaKey = "$jureuma"
+const MetaKey = "$zeze"
 
-// FormatVersion is the format generation this jureuma writes. Parsing accepts
+// FormatVersion is the format generation this zeze writes. Parsing accepts
 // 1 (legacy) and 2; every write renders FormatVersion, so the Format fields of
 // Header and Meta record the generation that was read.
 const FormatVersion = 2
 
-// Encrypted is a parsed encrypted file. Body excludes $jureuma.
+// Encrypted is a parsed encrypted file. Body excludes $zeze.
 type Encrypted struct {
 	Meta Meta
 	Body *doc.Value
 }
 
-// Meta is the $jureuma block: the shared identity (format, publicKey, keyId,
+// Meta is the $zeze block: the shared identity (format, publicKey, keyId,
 // home) plus the schema reference, the sync baseline and the pending paths.
 // Schema is the readable path; SchemaCopy is the schema document encrypted to
 // the pair key ("" when no embedded copy is stored), and its presence turns
@@ -73,7 +73,7 @@ func ReadEncrypted(path string) (*Encrypted, error) {
 	data, err := readLimited(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return nil, &xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: name + ": not found (run jureuma encrypt if the configuration is decrypted, or jureuma init)", Err: fs.ErrNotExist}
+			return nil, &xerr.Error{Code: xerr.CodeFailure, Kind: xerr.KindFailure, Msg: name + ": not found (run zeze encrypt if the configuration is decrypted, or zeze init)", Err: fs.ErrNotExist}
 		}
 		return nil, readErr(name, err)
 	}
@@ -81,7 +81,7 @@ func ReadEncrypted(path string) (*Encrypted, error) {
 }
 
 // ParseEncrypted parses encrypted-file content; name is used in error messages.
-// A $jureuma block with format 1 parses and records Format 1 (legacy: reads
+// A $zeze block with format 1 parses and records Format 1 (legacy: reads
 // keep working); an unknown future format is rejected explicitly; a
 // present-but-malformed block returns the typed legacy refusal.
 func ParseEncrypted(name string, data []byte) (*Encrypted, error) {
@@ -110,14 +110,14 @@ func ParseEncrypted(name string, data []byte) (*Encrypted, error) {
 	}
 	for _, l := range doc.Leaves(body) {
 		if l.Value.Kind != doc.String || !crypt.IsCiphertext(l.Value.S) {
-			return nil, xerr.Failure("%s: %s: value is not a jureuma ciphertext", name, l.Pointer)
+			return nil, xerr.Failure("%s: %s: value is not a zeze ciphertext", name, l.Pointer)
 		}
 	}
 	e.Body = body
 	return e, nil
 }
 
-// parseMeta parses the $jureuma block of an encrypted file. The identity
+// parseMeta parses the $zeze block of an encrypted file. The identity
 // fields are shared with the unencrypted header; schema accepts the readable
 // path alone or the { path, c } form with the embedded schema copy in any
 // format generation.
@@ -214,7 +214,7 @@ func parseMeta(name string, mv *doc.Value) (*Meta, error) {
 	return e, nil
 }
 
-// MarshalEncrypted renders e with $jureuma first and sorted sync/pending. The
+// MarshalEncrypted renders e with $zeze first and sorted sync/pending. The
 // block always carries FormatVersion and the home reference; the schema
 // reference is the plain path, or { path, c } when an embedded schema copy is
 // present.
@@ -262,9 +262,9 @@ func MarshalEncrypted(e *Encrypted) []byte {
 	return doc.Marshal(root)
 }
 
-// WriteEncrypted writes e atomically ($jureuma first, sorted sync/pending).
-// It refuses to mutate a pair whose files carry old jureuma state; the typed
-// refusal points at jureuma init, and RepairEncrypted is the write path init
+// WriteEncrypted writes e atomically ($zeze first, sorted sync/pending).
+// It refuses to mutate a pair whose files carry old zeze state; the typed
+// refusal points at zeze init, and RepairEncrypted is the write path init
 // uses to replace such files.
 func WriteEncrypted(path string, e *Encrypted) error {
 	if err := CheckEncryptedName(path); err != nil {
@@ -276,8 +276,8 @@ func WriteEncrypted(path string, e *Encrypted) error {
 	return writeEncrypted(path, e)
 }
 
-// RepairEncrypted writes e like WriteEncrypted but is the jureuma init repair
-// path: it may replace a pair file whose $jureuma block is format 1 or
+// RepairEncrypted writes e like WriteEncrypted but is the zeze init repair
+// path: it may replace a pair file whose $zeze block is format 1 or
 // malformed. An unknown future format is still refused.
 func RepairEncrypted(path string, e *Encrypted) error {
 	if err := CheckEncryptedName(path); err != nil {
@@ -300,15 +300,15 @@ func writeEncrypted(path string, e *Encrypted) error {
 	return nil
 }
 
-// tooLarge refuses a write that jureuma could not read back.
+// tooLarge refuses a write that zeze could not read back.
 func tooLarge(path string) error {
-	return xerr.Validation("%s: the result would be larger than the %d MiB jureuma can read; nothing was written", filepath.Base(path), maxFileSize>>20)
+	return xerr.Validation("%s: the result would be larger than the %d MiB zeze can read; nothing was written", filepath.Base(path), maxFileSize>>20)
 }
 
 // readErr maps a readLimited failure to a message without content.
 func readErr(name string, err error) error {
 	if errors.Is(err, errTooLarge) {
-		return xerr.Failure("%s: file too large (jureuma reads at most %d MiB)", name, maxFileSize>>20)
+		return xerr.Failure("%s: file too large (zeze reads at most %d MiB)", name, maxFileSize>>20)
 	}
 	return xerr.Failure("%s: cannot read file", name)
 }
@@ -329,7 +329,7 @@ func SortedUnique(s []string) []string {
 }
 
 // ReadPlain parses an unencrypted file (JSONC when jsonc is true). The top
-// level must be an object without the reserved $jureuma key.
+// level must be an object without the reserved $zeze key.
 func ReadPlain(path string, jsonc_ bool) (*doc.Value, error) {
 	name := filepath.Base(path)
 	data, err := readLimited(path)
@@ -353,9 +353,9 @@ func ReadPlain(path string, jsonc_ bool) (*doc.Value, error) {
 }
 
 // WritePlain writes an unencrypted file with mode 0600, exactly the document
-// it is given: no $jureuma header or $schema pointer is injected and nothing
+// it is given: no $zeze header or $schema pointer is injected and nothing
 // in the document is stripped. It refuses to mutate a pair whose files carry
-// old jureuma state (RepairPlainFile is the jureuma init repair path). A .json
+// old zeze state (RepairPlainFile is the zeze init repair path). A .json
 // target is written as canonical JSON. A .jsonc target with existing content
 // is updated in place with the comment-preserving editor (comments and
 // formatting outside the edited spans survive; unparseable or unrepresentable
@@ -374,20 +374,20 @@ func WritePlain(path string, v *doc.Value) error {
 	return writePlainDoc(path, v, false)
 }
 
-// PlainFile is a parsed unencrypted file: its $jureuma identity header, the
+// PlainFile is a parsed unencrypted file: its $zeze identity header, the
 // top-level $schema pointer, and the body without either reserved key.
 type PlainFile struct {
-	// Header is nil when the file carries no $jureuma block (a headerless
+	// Header is nil when the file carries no $zeze block (a headerless
 	// plaintext is legal and stays mutable).
 	Header *Header
 	// Schema is the top-level $schema pointer value, "" when absent.
 	Schema string
-	// Body never contains $jureuma or $schema.
+	// Body never contains $zeze or $schema.
 	Body *doc.Value
 }
 
 // ReadPlainFile parses an unencrypted file (JSONC when jsonc is true) with
-// its identity metadata: the $jureuma header and the top-level $schema
+// its identity metadata: the $zeze header and the top-level $schema
 // pointer are returned separately and excluded from Body. A header with
 // format 1 parses and records Format 1 (legacy: reads keep working); an
 // unknown future format is rejected explicitly; a present-but-malformed
@@ -433,25 +433,25 @@ func ReadPlainFile(path string, jsonc_ bool) (*PlainFile, error) {
 }
 
 // WritePlainFile writes an unencrypted file from its identity metadata: the
-// $jureuma header (when set) first, then the $schema pointer (when set), then
+// $zeze header (when set) first, then the $schema pointer (when set), then
 // the body. Body must not contain the reserved keys. Like WritePlain it
 // composes .jsonc targets through the comment-preserving editor and refuses
 // targets git would not ignore; it refuses to mutate a pair whose files carry
-// old jureuma state, and RepairPlainFile is the write path jureuma init uses
+// old zeze state, and RepairPlainFile is the write path zeze init uses
 // to replace such files.
 func WritePlainFile(path string, f *PlainFile) error {
 	return writePlainFile(path, f, false)
 }
 
-// RepairPlainFile writes f like WritePlainFile but is the jureuma init repair
-// path: it may replace a pair file whose $jureuma block is format 1 or
+// RepairPlainFile writes f like WritePlainFile but is the zeze init repair
+// path: it may replace a pair file whose $zeze block is format 1 or
 // malformed. An unknown future format is still refused.
 func RepairPlainFile(path string, f *PlainFile) error {
 	return writePlainFile(path, f, true)
 }
 
 // writePlainFile validates the metadata and composes the document for
-// writePlainDoc. repair allows old jureuma state through (see checkMutable).
+// writePlainDoc. repair allows old zeze state through (see checkMutable).
 func writePlainFile(path string, f *PlainFile, repair bool) error {
 	name := filepath.Base(path)
 	if err := CheckUnencryptedName(path); err != nil {
@@ -473,7 +473,7 @@ func writePlainFile(path string, f *PlainFile, repair bool) error {
 	return writePlainDoc(path, root, repair)
 }
 
-// writePlainDoc writes the composed document through the $jureuma gate and
+// writePlainDoc writes the composed document through the $zeze gate and
 // the git ignore and tracking rules, then the file itself.
 func writePlainDoc(path string, root *doc.Value, repair bool) error {
 	name := filepath.Base(path)
@@ -524,7 +524,7 @@ func plainBytes(path string, v *doc.Value) ([]byte, error) {
 	}
 	current, err := jsonc.Parse(orig, false)
 	if err != nil {
-		return nil, xerr.Validation("%s: %v (fix it by hand; jureuma will not rewrite it)", name, err)
+		return nil, xerr.Validation("%s: %v (fix it by hand; zeze will not rewrite it)", name, err)
 	}
 	data, err := jsonc.Edit(orig, current, v)
 	if err != nil {

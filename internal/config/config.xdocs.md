@@ -1,14 +1,14 @@
 ---
-subject: jureuma-config
-description: "Loads, validates, merges and saves jureuma.yaml and ~/.guiho/jureuma/jureuma.global.yaml against embedded JSON Schemas, including the project key binding (key:) and the global-only protections block and its seal."
-parent: jureuma-internal
+subject: zeze-config
+description: "Loads, validates, merges and saves zeze.yaml and ~/.guiho/zeze/zeze.global.yaml against embedded JSON Schemas, including the project key binding (key:) and the global-only protections block and its seal."
+parent: zeze-internal
 children:
-  - jureuma-config-examples
-  - jureuma-config-schemas
+  - zeze-config-examples
+  - zeze-config-schemas
 files:
-  "config.go": "Project and global configuration types (including the jureuma.yaml key binding), loading, merging and saving with version-pinned schema comments."
+  "config.go": "Project and global configuration types (including the zeze.yaml key binding), loading, merging and saving with version-pinned schema comments."
   "schema.go": "Embeds schemas/ and examples/."
-  "keybind.go": "Byte-preserving one-line splice of the jureuma.yaml key: binding (used by init and key rotate; never a whole-document rewrite)."
+  "keybind.go": "Byte-preserving one-line splice of the zeze.yaml key: binding (used by init and key rotate; never a whole-document rewrite)."
   "keybind_test.go": "Key-binding splice tests (append, in-place replace, already-equal no-op, refusals without writes)."
   "protections.go": "Protections block seal (HMAC) state."
   "config_test.go": "Configuration tests (schema validation, merge, examples equal embedded copies)."
@@ -20,23 +20,23 @@ tags:
   - "configuration"
   - "yaml"
 keywords:
-  - "jureuma.yaml"
-  - "jureuma.global.yaml"
+  - "zeze.yaml"
+  - "zeze.global.yaml"
   - "agent.evolution"
   - "protections"
 flags: []
 status: stable
 ---
 
-# jureuma-config
+# zeze-config
 
-Loads, validates, merges and saves jureuma.yaml and ~/.guiho/jureuma/jureuma.global.yaml against embedded JSON Schemas, including the project key binding (`key:`) and the global-only protections block and its seal. Configuration documents that are present but invalid fail every load as validation errors (exit 4).
+Loads, validates, merges and saves zeze.yaml and ~/.guiho/zeze/zeze.global.yaml against embedded JSON Schemas, including the project key binding (`key:`) and the global-only protections block and its seal. Configuration documents that are present but invalid fail every load as validation errors (exit 4).
 
 ## Files
 
-- `config.go`: Project and global configuration types (including the jureuma.yaml key binding), loading, merging and saving with version-pinned schema comments.
+- `config.go`: Project and global configuration types (including the zeze.yaml key binding), loading, merging and saving with version-pinned schema comments.
 - `schema.go`: Embeds schemas/ and examples/.
-- `keybind.go`: Byte-preserving one-line splice of the jureuma.yaml key: binding (used by init and key rotate; never a whole-document rewrite).
+- `keybind.go`: Byte-preserving one-line splice of the zeze.yaml key: binding (used by init and key rotate; never a whole-document rewrite).
 - `keybind_test.go`: Key-binding splice tests (append, in-place replace, already-equal no-op, refusals without writes).
 - `protections.go`: Protections block seal (HMAC) state.
 - `config_test.go`: Configuration tests (schema validation, merge, examples equal embedded copies).
@@ -45,5 +45,5 @@ Loads, validates, merges and saves jureuma.yaml and ~/.guiho/jureuma/jureuma.glo
 
 ## Children
 
-- `jureuma-config-examples`
-- `jureuma-config-schemas`
+- `zeze-config-examples`
+- `zeze-config-schemas`

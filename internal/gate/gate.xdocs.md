@@ -1,7 +1,7 @@
 ---
-subject: jureuma-gate
+subject: zeze-gate
 description: "Human-only gate for protected operations (terminal checks, agent markers, typed confirmation word) and the audit log."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "gate.go": "Gate checks and agent-marker detection."
@@ -19,7 +19,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-gate
+# zeze-gate
 
 Human-only gate for protected operations (terminal checks, agent markers, typed confirmation word) and the audit log.
 

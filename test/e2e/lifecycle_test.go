@@ -63,7 +63,7 @@ func diffSnapshots(a, b map[string]string) []string {
 }
 
 // bodyWithoutMeta returns the body members of a top-level JSON document
-// written by jureuma: the reserved $jureuma and $schema members are dropped,
+// written by zeze: the reserved $zeze and $schema members are dropped,
 // every other member is returned byte for byte. Assertions compare the body
 // because decrypt and the mirror now write the pair's identity metadata
 // beside it.
@@ -75,7 +75,7 @@ func bodyWithoutMeta(s string) string {
 	var out []string
 	for _, m := range splitMembers(s[1 : len(s)-1]) {
 		t := strings.TrimLeft(m, " \t\r\n")
-		if strings.HasPrefix(t, `"$jureuma"`) || strings.HasPrefix(t, `"$schema"`) {
+		if strings.HasPrefix(t, `"$zeze"`) || strings.HasPrefix(t, `"$schema"`) {
 			continue
 		}
 		out = append(out, m)
@@ -114,7 +114,7 @@ func splitMembers(s string) []string {
 func TestInitCreatesPairAndIsIdempotent(t *testing.T) {
 	p := newProject(t)
 	p.init()
-	for _, f := range []string{"config.encrypted.json", "config.unencrypted.json", "config.schema.json", ".gitignore", "jureuma.yaml", "AGENTS.md"} {
+	for _, f := range []string{"config.encrypted.json", "config.unencrypted.json", "config.schema.json", ".gitignore", "zeze.yaml", "AGENTS.md"} {
 		if !p.exists(f) {
 			t.Fatalf("init did not create %s", f)
 		}
@@ -129,8 +129,8 @@ func TestInitCreatesPairAndIsIdempotent(t *testing.T) {
 		t.Fatalf("unencrypted file mode is too wide: %v", fi.Mode())
 	}
 	meta := p.encMeta("config.encrypted.json")
-	if meta["keyId"] == "" || !strings.HasPrefix(meta["publicKey"].(string), "jureuma-pk-1:") {
-		t.Fatalf("bad $jureuma block: %v", meta)
+	if meta["keyId"] == "" || !strings.HasPrefix(meta["publicKey"].(string), "zeze-pk-1:") {
+		t.Fatalf("bad $zeze block: %v", meta)
 	}
 
 	projBefore := snapshot(t, p.dir)
@@ -153,7 +153,7 @@ func TestInitCreatesPairAndIsIdempotent(t *testing.T) {
 	if len(changed) > 0 {
 		t.Fatalf("second init changed home files: %v", changed)
 	}
-	if n := strings.Count(p.read(".gitignore"), "# >>> jureuma managed block >>>"); n != 1 {
+	if n := strings.Count(p.read(".gitignore"), "# >>> zeze managed block >>>"); n != 1 {
 		t.Fatalf(".gitignore has %d managed blocks", n)
 	}
 
@@ -165,7 +165,7 @@ func TestInitCreatesPairAndIsIdempotent(t *testing.T) {
 		t.Fatalf("init without the key should report it as informational:\n%s", r)
 	}
 	if p.read("config.encrypted.json") != before {
-		t.Fatal("init modified $jureuma without the key")
+		t.Fatal("init modified $zeze without the key")
 	}
 	if _, err := os.Stat(filepath.Join(p.jhome(), "keys")); err == nil {
 		if files := p.keyFiles(); len(files) > 0 {
@@ -188,8 +188,8 @@ func TestEncryptDecryptRoundTripKeepsOrderAndNumberText(t *testing.T) {
 			t.Fatalf("encrypted file contains plaintext %q", v)
 		}
 	}
-	// $jureuma first, then keys in source order.
-	order := []string{`"$jureuma"`, `"zeta"`, `"alpha"`, `"b"`, `"a"`, `"c"`, `"num"`, `"big"`, `"arr"`, `"empty"`, `"esc"`, `"last"`}
+	// $zeze first, then keys in source order.
+	order := []string{`"$zeze"`, `"zeta"`, `"alpha"`, `"b"`, `"a"`, `"c"`, `"num"`, `"big"`, `"arr"`, `"empty"`, `"esc"`, `"last"`}
 	last := -1
 	body := enc
 	for _, k := range order {
@@ -211,11 +211,11 @@ func TestEncryptDecryptRoundTripKeepsOrderAndNumberText(t *testing.T) {
 
 	// The child sees the exact document text.
 	if got := p.revealConfig(); got != `{"zeta":1,"alpha":{"b":1.0,"a":1e2,"c":-0.50},"num":100,"big":12345678901234567890.000,"arr":[3,"x",true,null,{}],"empty":[],"esc":"aé\"b","last":"Zz9"}` {
-		t.Fatalf("JUREUMA_CONFIG = %s", got)
+		t.Fatalf("ZEZE_CONFIG = %s", got)
 	}
 
 	// decrypt recreates the plaintext with the same order and number text,
-	// beside the pair's $jureuma identity header and $schema pointer.
+	// beside the pair's $zeze identity header and $schema pointer.
 	p.remove("config.unencrypted.json")
 	p.expect(0, "decrypt", "--keep-both", "--dangerously-bypass-protections")
 	dec := p.read("config.unencrypted.json")
@@ -223,7 +223,7 @@ func TestEncryptDecryptRoundTripKeepsOrderAndNumberText(t *testing.T) {
 	if stripWS(bodyWithoutMeta(dec)) != want && stripWS(bodyWithoutMeta(dec)) != stripWS(plain) {
 		t.Fatalf("decrypted document differs:\n%s", dec)
 	}
-	for _, meta := range []string{`"$jureuma"`, `"$schema": "./config.schema.json"`} {
+	for _, meta := range []string{`"$zeze"`, `"$schema": "./config.schema.json"`} {
 		if !strings.Contains(dec, meta) {
 			t.Fatalf("decrypted document lacks %s:\n%s", meta, dec)
 		}
@@ -258,14 +258,14 @@ func TestJSONCInput(t *testing.T) {
 		t.Fatalf("comments or values reached the encrypted file:\n%s", enc)
 	}
 	if got := p.revealConfig(); got != `{"db":{"url":"jsonc-url-value","pool":5},"tags":["a","b"]}` {
-		t.Fatalf("JUREUMA_CONFIG = %s", got)
+		t.Fatalf("ZEZE_CONFIG = %s", got)
 	}
 	if o, _ := p.statusJSON(); o != "in-sync" {
 		t.Fatalf("status: %s", o)
 	}
-	// jureuma writes .jsonc in place: decrypt and set keep every comment
+	// zeze writes .jsonc in place: decrypt and set keep every comment
 	// and the formatting outside the values they change. decrypt also writes
-	// the pair's $jureuma identity header and $schema pointer, inserted before
+	// the pair's $zeze identity header and $schema pointer, inserted before
 	// the closing brace like any other new member.
 	jsoncBefore := p.read("config.unencrypted.jsonc")
 	p.expect(0, "decrypt", "--keep-both", "--dangerously-bypass-protections")
@@ -275,7 +275,7 @@ func TestJSONCInput(t *testing.T) {
 			t.Fatalf("decrypt must reproduce the same document without touching comments:\ngot:\n%s\nwant:\n%s", got, jsoncBefore)
 		}
 	}
-	for _, meta := range []string{`"$jureuma"`, `"$schema"`} {
+	for _, meta := range []string{`"$zeze"`, `"$schema"`} {
 		if !strings.Contains(got, meta) {
 			t.Fatalf("decrypt must write the identity header and $schema pointer into the .jsonc file:\n%s", got)
 		}
@@ -379,7 +379,7 @@ func TestGitignoreInvariant(t *testing.T) {
 
 	// A negation in a nested .gitignore is caught too.
 	p.write("sub/.gitignore", "!*.unencrypted.json\n")
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: sub/app\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: sub/app\n")
 	r = p.run("init", "--agent-deny-rules", "no", "--agent-evolution", "always-ask")
 	if r.code != 1 || !strings.Contains(r.stderr, "git does not ignore") {
 		t.Fatalf("init must refuse a plaintext file git does not ignore:\n%s", r)
@@ -393,12 +393,12 @@ func TestGitignoreInvariant(t *testing.T) {
 func TestNamedPairsAndFileFlags(t *testing.T) {
 	needSh(t)
 	p := newProject(t)
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: production\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: production\n")
 	p.init()
 	if !p.exists("production.encrypted.json") || !p.exists("production.schema.json") || !p.exists("config.encrypted.json") {
 		t.Fatal("init did not create every configured pair")
 	}
-	// One project, one key: the first pair's key becomes the jureuma.yaml key
+	// One project, one key: the first pair's key becomes the zeze.yaml key
 	// binding and every configured pair uses it.
 	if n := len(p.keyFiles()); n != 1 {
 		t.Fatalf("want one project key, have %d", n)
@@ -407,8 +407,8 @@ func TestNamedPairsAndFileFlags(t *testing.T) {
 	if got := p.encMeta("production.encrypted.json")["keyId"]; got != keyID {
 		t.Fatalf("production pair key %v, want the project key %s", got, keyID)
 	}
-	if !strings.Contains(p.read("jureuma.yaml"), "key: "+keyID) {
-		t.Fatalf("init did not bind the project key:\n%s", p.read("jureuma.yaml"))
+	if !strings.Contains(p.read("zeze.yaml"), "key: "+keyID) {
+		t.Fatalf("init did not bind the project key:\n%s", p.read("zeze.yaml"))
 	}
 	p.expect(0, "set", "--name", "production", "/mode", "prod-mode")
 	p.expect(0, "set", "/mode", "dev-mode")
@@ -430,10 +430,10 @@ func TestNamedPairsAndFileFlags(t *testing.T) {
 func TestSchemaFileDisagreementOnMutatingCommand(t *testing.T) {
 	p := newProject(t)
 	p.init()
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n    schema: ./config.schema.json\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n    schema: ./config.schema.json\n")
 	p.write("loose.schema.json", `{"type":"object"}`)
 	if r := p.run("set", "/a", "x", "--schema-file", "loose.schema.json"); r.code != 2 {
-		t.Fatalf("--schema-file disagreeing with jureuma.yaml on set: want exit 2\n%s", r)
+		t.Fatalf("--schema-file disagreeing with zeze.yaml on set: want exit 2\n%s", r)
 	}
 	p.expect(0, "status", "--schema-file", "loose.schema.json")
 }
@@ -452,14 +452,14 @@ func TestJSONOutputIsParseable(t *testing.T) {
 	}
 }
 
-// metaSpans returns the exact text of the $jureuma and $schema members of a
-// jureuma-written document, so tests can pin that pair metadata is preserved
+// metaSpans returns the exact text of the $zeze and $schema members of a
+// zeze-written document, so tests can pin that pair metadata is preserved
 // byte for byte.
 func metaSpans(s string) string {
 	s = strings.TrimSpace(s)
 	var out []string
 	for _, m := range splitMembers(s[1 : len(s)-1]) {
-		if t := strings.TrimLeft(m, " \t\r\n"); strings.HasPrefix(t, `"$jureuma"`) || strings.HasPrefix(t, `"$schema"`) {
+		if t := strings.TrimLeft(m, " \t\r\n"); strings.HasPrefix(t, `"$zeze"`) || strings.HasPrefix(t, `"$schema"`) {
 			out = append(out, m)
 		}
 	}
@@ -467,7 +467,7 @@ func metaSpans(s string) string {
 }
 
 // The only-unencrypted state is first class: set and unset build (or refresh)
-// the encrypted sibling from the plaintext's $jureuma identity header without
+// the encrypted sibling from the plaintext's $zeze identity header without
 // the private key, and decrypt returns the pair to the single-file state.
 // This is the W3 brief's manual proof walk-through.
 func TestOnlyUnencryptedSetRebuildsSibling(t *testing.T) {
@@ -527,7 +527,7 @@ func TestOnlyUnencryptedSetRebuildsSibling(t *testing.T) {
 	assertNo(t, "check", r.out(), "first-value", "host-value")
 }
 
-// set and unset never touch pair metadata: the $jureuma identity header and
+// set and unset never touch pair metadata: the $zeze identity header and
 // the $schema pointer survive byte-identically, in .json and .jsonc.
 func TestSetUnsetKeepIdentityHeaderAndSchemaPointer(t *testing.T) {
 	p := newProject(t)
@@ -561,7 +561,7 @@ func TestSetUnsetKeepIdentityHeaderAndSchemaPointer(t *testing.T) {
 	}
 }
 
-// init repairs a hand-made legacy pair: the format-1 $jureuma block becomes a
+// init repairs a hand-made legacy pair: the format-1 $zeze block becomes a
 // format-2 identity header (values, sync and pending kept), the schema copy is
 // embedded, and the plaintext gains its identity header and $schema pointer —
 // keylessly — while a second init changes nothing.
@@ -577,8 +577,8 @@ func TestInitRepairsLegacyPair(t *testing.T) {
 	if err := json.Unmarshal([]byte(p.read("config.encrypted.json")), &m); err != nil {
 		t.Fatal(err)
 	}
-	meta := m["$jureuma"].(map[string]any)
-	m["$jureuma"] = map[string]any{
+	meta := m["$zeze"].(map[string]any)
+	m["$zeze"] = map[string]any{
 		"format":    1,
 		"publicKey": meta["publicKey"],
 		"keyId":     meta["keyId"],
@@ -596,7 +596,7 @@ func TestInitRepairsLegacyPair(t *testing.T) {
 	p.expect(0, "status")
 	p.expect(0, "list")
 	r := p.run("set", "/x", "y")
-	if r.code != 1 || !strings.Contains(r.stderr, "run jureuma init to repair") {
+	if r.code != 1 || !strings.Contains(r.stderr, "run zeze init to repair") {
 		t.Fatalf("mutating a legacy pair must point at init:\n%s", r)
 	}
 
@@ -606,7 +606,7 @@ func TestInitRepairsLegacyPair(t *testing.T) {
 	restore()
 
 	meta = p.encMeta("config.encrypted.json")
-	if meta["format"] != float64(2) || meta["home"] != "~/.guiho/jureuma/" {
+	if meta["format"] != float64(2) || meta["home"] != "~/.guiho/zeze/" {
 		t.Fatalf("legacy header not repaired: %v", meta)
 	}
 	sc, _ := meta["schema"].(map[string]any)
@@ -621,7 +621,7 @@ func TestInitRepairsLegacyPair(t *testing.T) {
 		t.Fatalf("repair must keep the pending state: %v", meta["pending"])
 	}
 	plain := p.read("config.unencrypted.json")
-	for _, want := range []string{`"$jureuma"`, `"$schema": "./config.schema.json"`, "legacy-value"} {
+	for _, want := range []string{`"$zeze"`, `"$schema": "./config.schema.json"`, "legacy-value"} {
 		if !strings.Contains(plain, want) {
 			t.Fatalf("repair must keep the body and add the identity metadata:\n%s", plain)
 		}
@@ -667,7 +667,7 @@ func TestInitKeySelection(t *testing.T) {
 	}
 
 	// --key-label selects the stored key that carries the label.
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: other\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: other\n")
 	p.expect(0, "init", "--key-label", kf.Label, "--agent-deny-rules", "no", "--agent-evolution", "always-ask")
 	if n := len(p.keyFiles()); n != 1 {
 		t.Fatalf("--key-label must not create a key: have %d", n)
@@ -677,7 +677,7 @@ func TestInitKeySelection(t *testing.T) {
 	}
 
 	// --key-id selects it by key ID (full or short).
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: other\n  - name: third\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: other\n  - name: third\n")
 	p.expect(0, "init", "--key-id", keyID, "--agent-deny-rules", "no", "--agent-evolution", "always-ask")
 	if n := len(p.keyFiles()); n != 1 {
 		t.Fatalf("--key-id must not create a key: have %d", n)
@@ -687,7 +687,7 @@ func TestInitKeySelection(t *testing.T) {
 	}
 
 	// Default (non-TTY): a new key for a pair with no recorded identity.
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: other\n  - name: third\n  - name: fourth\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: other\n  - name: third\n  - name: fourth\n")
 	p.init()
 	if n := len(p.keyFiles()); n != 2 {
 		t.Fatalf("want one key per new pair, have %d", n)
@@ -697,7 +697,7 @@ func TestInitKeySelection(t *testing.T) {
 	}
 
 	// A label several keys carry is ambiguous; --key-id resolves it.
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: other\n  - name: third\n  - name: fourth\n  - name: fifth\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: other\n  - name: third\n  - name: fourth\n  - name: fifth\n")
 	r := p.run("init", "--key-label", kf.Label, "--agent-deny-rules", "no", "--agent-evolution", "always-ask")
 	if r.code != 2 || !strings.Contains(r.stderr, "--key-id") {
 		t.Fatalf("an ambiguous label must be refused with a --key-id hint:\n%s", r)
@@ -798,7 +798,7 @@ func TestSchemaInferSchemaPropertyAndCopyRefresh(t *testing.T) {
 }
 
 // The mirror keeps protecting unsaved human edits in the single-file state:
-// a value the plaintext holds and jureuma cannot prove unchanged is never
+// a value the plaintext holds and zeze cannot prove unchanged is never
 // replaced, and the path stays pending.
 func TestSetMirrorStillProtectsUnsavedEdits(t *testing.T) {
 	needSh(t)
@@ -845,7 +845,7 @@ func TestSetMirrorStillProtectsUnsavedEdits(t *testing.T) {
 
 // status and check cover every pair state with value-free output: the
 // single-file states, both files present (the riskiest state) and legacy
-// jureuma state.
+// zeze state.
 func TestFourStatesReporting(t *testing.T) {
 	p := newProject(t)
 	p.init()
@@ -878,27 +878,27 @@ func TestFourStatesReporting(t *testing.T) {
 	}
 	assertNo(t, "check", p.expect(0, "check").out(), "four-states-value", "second-value")
 
-	// legacy jureuma state: reported with the repair pointer everywhere.
+	// legacy zeze state: reported with the repair pointer everywhere.
 	var m map[string]any
 	if err := json.Unmarshal([]byte(p.read("config.encrypted.json")), &m); err != nil {
 		t.Fatal(err)
 	}
-	meta := m["$jureuma"].(map[string]any)
+	meta := m["$zeze"].(map[string]any)
 	meta["format"] = 1
 	delete(meta, "home")
 	data, _ := json.MarshalIndent(m, "", "  ")
 	p.write("config.encrypted.json", string(data))
 	r = p.expect(0, "status")
-	if !strings.Contains(r.stderr, "run jureuma init to repair") {
+	if !strings.Contains(r.stderr, "run zeze init to repair") {
 		t.Fatalf("status must report legacy state with the repair pointer:\n%s", r)
 	}
 	r = p.run("check")
-	if r.code != 1 || !strings.Contains(r.stdout, "run jureuma init to repair") {
+	if r.code != 1 || !strings.Contains(r.stdout, "run zeze init to repair") {
 		t.Fatalf("check must fail on legacy state with the repair pointer:\n%s", r)
 	}
 	p.init()
 	r = p.expect(0, "status")
-	if strings.Contains(r.stderr, "run jureuma init to repair") {
+	if strings.Contains(r.stderr, "run zeze init to repair") {
 		t.Fatalf("init must clear the legacy state:\n%s", r)
 	}
 }

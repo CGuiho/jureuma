@@ -20,4 +20,4 @@ version=$("$root/devops/version.sh" --release)
 pre=
 case "$version" in *-*) pre=--prerelease ;; esac
 # shellcheck disable=SC2086 # $pre is empty or one flag
-gh release create "v$version" --verify-tag --title "jureuma $version" --notes "jureuma $version. Install: see README.md#install." $pre "$dir"/*
+gh release create "v$version" --verify-tag --title "ZeZé $version" --notes "zeze $version. Install: see README.md#install." $pre "$dir"/*

@@ -1,24 +1,24 @@
 ---
-subject: jureuma-internal
-description: "Container for jureuma's internal Go packages (not importable outside the module)."
-parent: jureuma
+subject: zeze-internal
+description: "Container for zeze's internal Go packages (not importable outside the module)."
+parent: zeze
 children:
-  - jureuma-agentres
-  - jureuma-cli
-  - jureuma-config
-  - jureuma-crypt
-  - jureuma-doc
-  - jureuma-gate
-  - jureuma-jsonc
-  - jureuma-keystore
-  - jureuma-pair
-  - jureuma-paths
-  - jureuma-redact
-  - jureuma-runner
-  - jureuma-schema
-  - jureuma-update
-  - jureuma-welcome
-  - jureuma-xerr
+  - zeze-agentres
+  - zeze-cli
+  - zeze-config
+  - zeze-crypt
+  - zeze-doc
+  - zeze-gate
+  - zeze-jsonc
+  - zeze-keystore
+  - zeze-pair
+  - zeze-paths
+  - zeze-redact
+  - zeze-runner
+  - zeze-schema
+  - zeze-update
+  - zeze-welcome
+  - zeze-xerr
 files: {}
 documents: {}
 tags:
@@ -29,25 +29,25 @@ flags: []
 status: stable
 ---
 
-# jureuma-internal
+# zeze-internal
 
-Container for jureuma's internal Go packages (not importable outside the module).
+Container for zeze's internal Go packages (not importable outside the module).
 
 ## Children
 
-- `jureuma-agentres`
-- `jureuma-cli`
-- `jureuma-config`
-- `jureuma-crypt`
-- `jureuma-doc`
-- `jureuma-gate`
-- `jureuma-jsonc`
-- `jureuma-keystore`
-- `jureuma-pair`
-- `jureuma-paths`
-- `jureuma-redact`
-- `jureuma-runner`
-- `jureuma-schema`
-- `jureuma-update`
-- `jureuma-welcome`
-- `jureuma-xerr`
+- `zeze-agentres`
+- `zeze-cli`
+- `zeze-config`
+- `zeze-crypt`
+- `zeze-doc`
+- `zeze-gate`
+- `zeze-jsonc`
+- `zeze-keystore`
+- `zeze-pair`
+- `zeze-paths`
+- `zeze-redact`
+- `zeze-runner`
+- `zeze-schema`
+- `zeze-update`
+- `zeze-welcome`
+- `zeze-xerr`

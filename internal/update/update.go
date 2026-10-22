@@ -1,6 +1,6 @@
 // Package update implements the release catalog lookup, SemVer comparison,
 // the cached single-flight startup update check, and the reinstall commands
-// printed by "jureuma upgrade".
+// printed by "zeze upgrade".
 package update
 
 import (
@@ -20,21 +20,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/paths"
 )
 
 // Repository coordinates.
 const (
-	Repo         = "CGuiho/jureuma"
+	Repo         = "CGuiho/zeze"
 	RepoURL      = "https://github.com/" + Repo
 	InstallSh    = "https://raw.githubusercontent.com/" + Repo + "/main/devops/install.sh"
 	InstallPs1   = "https://raw.githubusercontent.com/" + Repo + "/main/devops/install.ps1"
 	ReleasesAPI  = "https://api.github.com/repos/" + Repo + "/releases"
-	ReleasesEnv  = "JUREUMA_RELEASES_URL" // test/sandbox override of ReleasesAPI
+	ReleasesEnv  = "ZEZE_RELEASES_URL" // test/sandbox override of ReleasesAPI
 	DownloadBase = "https://github.com/" + Repo + "/releases/download"
-	DownloadEnv  = "JUREUMA_DOWNLOAD_BASE_URL" // test/sandbox override of DownloadBase
-	WorkerEnv    = "JUREUMA_UPDATE_WORKER"
-	DisableEnv   = "JUREUMA_NO_UPDATE_CHECK"
+	DownloadEnv  = "ZEZE_DOWNLOAD_BASE_URL" // test/sandbox override of DownloadBase
+	WorkerEnv    = "ZEZE_UPDATE_WORKER"
+	DisableEnv   = "ZEZE_NO_UPDATE_CHECK"
 	CacheFile    = "cache.json"
 	LeaseFile    = "update-worker.lease"
 	CacheTTL     = 24 * time.Hour
@@ -161,11 +161,11 @@ type Release struct {
 
 // AgentAssets are the agent artifacts every release must carry (the same
 // list as AGENT_ASSETS in install.sh and install.ps1).
-var AgentAssets = []string{"guiho-s-jureuma.zip", "jureuma-instruction.md", "guiho-p-jureuma.md", "guiho-p-jureuma-install.md", "guiho-p-jureuma-uninstall.md"}
+var AgentAssets = []string{"guiho-s-zeze.zip", "zeze-instruction.md", "guiho-p-zeze.md", "guiho-p-zeze-install.md", "guiho-p-zeze-uninstall.md"}
 
 // PayloadAsset returns the release asset name of the payload for a platform.
 func PayloadAsset(goos, goarch string) string {
-	name := "jureuma-" + goos + "-" + goarch
+	name := "zeze-" + goos + "-" + goarch
 	if goos == "windows" {
 		name += ".exe"
 	}
@@ -176,7 +176,7 @@ func PayloadAsset(goos, goarch string) string {
 // platform. The launcher installs to the shared ~/.guiho/bin directory and is
 // never part of a versions/<version>/ payload directory.
 func LauncherAsset(goos, goarch string) string {
-	name := "jureuma-launcher-" + goos + "-" + goarch
+	name := "zeze-launcher-" + goos + "-" + goarch
 	if goos == "windows" {
 		name += ".exe"
 	}
@@ -257,7 +257,7 @@ func FetchReleases(ctx context.Context) ([]Release, error) {
 			return nil, err
 		}
 		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("User-Agent", "jureuma")
+		req.Header.Set("User-Agent", "zeze")
 		resp, err := client.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("release catalog request failed")
@@ -411,7 +411,7 @@ func Notice(home, current string) string {
 	if !ok1 || !ok2 || Compare(latest, cur) <= 0 {
 		return ""
 	}
-	return fmt.Sprintf("⚠ New version available: v%s\n  run jureuma upgrade to update\n", latest.Raw)
+	return fmt.Sprintf("⚠ New version available: v%s\n  run zeze upgrade to update\n", latest.Raw)
 }
 
 // NeedsCheck reports whether the cache is missing, expired or invalid.
@@ -476,7 +476,7 @@ func Check(ctx context.Context, home, current string) (*Cache, error) {
 		return nil, ErrNoReleases
 	}
 	latest, _ := Parse(r.Version)
-	c := &Cache{LatestVersion: r.Version, CurrentVersion: current, LastCheck: time.Now().UTC(), UpgradeCommand: "jureuma upgrade"}
+	c := &Cache{LatestVersion: r.Version, CurrentVersion: current, LastCheck: time.Now().UTC(), UpgradeCommand: "zeze upgrade"}
 	if cur, ok := Parse(current); ok {
 		c.NewVersionAvailable = Compare(latest, cur) > 0
 	}

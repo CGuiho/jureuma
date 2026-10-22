@@ -1,10 +1,10 @@
 ---
-subject: jureuma-cmd
+subject: zeze-cmd
 description: "Container for the Go main packages (executables) built from this module."
-parent: jureuma
+parent: zeze
 children:
-  - jureuma-cmd-jureuma
-  - jureuma-cmd-jureuma-launcher
+  - zeze-cmd-zeze
+  - zeze-cmd-zeze-launcher
 files: {}
 documents: {}
 tags:
@@ -15,11 +15,11 @@ flags: []
 status: stable
 ---
 
-# jureuma-cmd
+# zeze-cmd
 
 Container for the Go main packages (executables) built from this module.
 
 ## Children
 
-- `jureuma-cmd-jureuma`
-- `jureuma-cmd-jureuma-launcher`
+- `zeze-cmd-zeze`
+- `zeze-cmd-zeze-launcher`

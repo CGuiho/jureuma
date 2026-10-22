@@ -1,13 +1,13 @@
 ---
-subject: jureuma-agentres-assets
+subject: zeze-agentres-assets
 description: "Agent artifacts embedded into the binary (//go:embed all:assets) and published with every release. Descriptors (*.xdocs.md) are skipped when the artifacts are enumerated and packaged."
-parent: jureuma-agentres
+parent: zeze-agentres
 children:
-  - jureuma-agentres-prompts
-  - jureuma-agentres-skills
+  - zeze-agentres-prompts
+  - zeze-agentres-skills
 files: {}
 documents:
-  "instruction.md": "Body of the jureuma managed block in AGENTS.md (release asset jureuma-instruction.md)."
+  "instruction.md": "Body of the zeze managed block in AGENTS.md (release asset zeze-instruction.md)."
 tags:
   - "agents"
 keywords:
@@ -17,10 +17,10 @@ flags: []
 status: stable
 ---
 
-# jureuma-agentres-assets
+# zeze-agentres-assets
 
 Agent artifacts embedded into the binary (//go:embed all:assets) and published with every release. Descriptors (*.xdocs.md) are skipped when the artifacts are enumerated and packaged.
 
 ## Documents
 
-- [instruction.md](instruction.md): Body of the jureuma managed block in AGENTS.md (release asset jureuma-instruction.md).
+- [instruction.md](instruction.md): Body of the zeze managed block in AGENTS.md (release asset zeze-instruction.md).

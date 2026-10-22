@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/agentres"
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/gate"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/agentres"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/gate"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -29,22 +29,22 @@ func (a *app) cmdUninstall() *cobra.Command {
 	var preserveConfig, preserveData, dryRun, yes bool
 	c := &cobra.Command{
 		Use:   "uninstall",
-		Short: "remove jureuma: launcher, home directory, skills, AGENTS.md block and jureuma.yaml",
-		Long: `Removes every jureuma-owned artifact by default: the launcher in ~/.guiho/bin,
-~/.guiho/jureuma (configuration, state, audit log, caches), the installed skill copies, the
-jureuma block in the project's AGENTS.md, the agent-tool deny rules jureuma added, and the
-project's jureuma.yaml. The project .gitignore block is always kept (plaintext files may
-outlive jureuma). Private keys (~/.guiho/jureuma/keys) are removed only after the human-only
+		Short: "remove zeze: launcher, home directory, skills, AGENTS.md block and zeze.yaml",
+		Long: `Removes every zeze-owned artifact by default: the launcher in ~/.guiho/bin,
+~/.guiho/zeze (configuration, state, audit log, caches), the installed skill copies, the
+zeze block in the project's AGENTS.md, the agent-tool deny rules zeze added, and the
+project's zeze.yaml. The project .gitignore block is always kept (plaintext files may
+outlive zeze). Private keys (~/.guiho/zeze/keys) are removed only after the human-only
 confirmation, even with --yes; a non-interactive uninstall preserves them. Back keys up
-first with jureuma key export. Shared ~/.guiho directories and PATH are never touched.`,
-		Example: `  jureuma uninstall --dry-run
-  jureuma uninstall --preserve-config --preserve-data --yes
-  jureuma uninstall`,
+first with zeze key export. Shared ~/.guiho directories and PATH are never touched.`,
+		Example: `  zeze uninstall --dry-run
+  zeze uninstall --preserve-config --preserve-data --yes
+  zeze uninstall`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, err := paths.Home()
 			if err != nil {
-				return xerr.Failure("cannot resolve the jureuma home")
+				return xerr.Failure("cannot resolve the zeze home")
 			}
 			bin, err := paths.BinDir()
 			if err != nil {
@@ -62,13 +62,13 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 			// Projections first (they need state that is removed later).
 			if st := readDenyState(home); len(st.Projects[root]) > 0 || len(st.OpenCode[root]) > 0 {
 				if len(st.Projects[root]) > 0 {
-					add(true, claudeSettingsPath(root), "agent-tool deny rules added by jureuma (only those entries)", func() error {
+					add(true, claudeSettingsPath(root), "agent-tool deny rules added by zeze (only those entries)", func() error {
 						_, err := removeDenyRules(home, root)
 						return err
 					})
 				}
 				if len(st.OpenCode[root]) > 0 {
-					add(true, opencodeConfigPath(root), "agent-tool deny rules added by jureuma (only those entries)", func() error {
+					add(true, opencodeConfigPath(root), "agent-tool deny rules added by zeze (only those entries)", func() error {
 						_, err := removeOpencodeDenyRules(home, root)
 						return err
 					})
@@ -87,7 +87,7 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 			agents := filepath.Join(root, "AGENTS.md")
 			if data, err := os.ReadFile(agents); err == nil {
 				if _, had := agentres.RemoveBlock(data); had {
-					add(true, agents, "jureuma managed block only; the rest of AGENTS.md is kept", func() error {
+					add(true, agents, "zeze managed block only; the rest of AGENTS.md is kept", func() error {
 						_, err := removeInstruction(agents)
 						return err
 					})
@@ -102,9 +102,9 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 				}
 			}
 			if pair.HasGitignoreBlock(root) {
-				add(false, filepath.Join(root, ".gitignore"), "jureuma block is persistent project data: plaintext files may outlive jureuma", nil)
+				add(false, filepath.Join(root, ".gitignore"), "zeze block is persistent project data: plaintext files may outlive zeze", nil)
 			}
-			launcher := filepath.Join(bin, exeName("jureuma"))
+			launcher := filepath.Join(bin, exeName("zeze"))
 			if fileExists(launcher) {
 				add(true, launcher, "stable launcher", func() error { return os.Remove(launcher) })
 			}
@@ -157,7 +157,7 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 				}
 			}
 
-			outf(cmd, "jureuma uninstall plan\n")
+			outf(cmd, "zeze uninstall plan\n")
 			for _, label := range []string{"REMOVE", "PRESERVE"} {
 				outf(cmd, "%s\n", label)
 				n := 0
@@ -177,7 +177,7 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 					files := projectKeyUsage(root, strings.TrimSuffix(id, " (retired)"))
 					outf(cmd, "  %s  referenced by %d encrypted %s in this project\n", id, len(files), plural(len(files), "file", "files"))
 				}
-				outf(cmd, "back them up first with: jureuma key export <keyId>\n")
+				outf(cmd, "back them up first with: zeze key export <keyId>\n")
 			}
 			if dryRun {
 				outf(cmd, "dry run: nothing was changed\n")
@@ -240,12 +240,12 @@ first with jureuma key export. Shared ~/.guiho directories and PATH are never to
 			if len(failed) > 0 {
 				return xerr.Failure("%d %s could not be removed", len(failed), plural(len(failed), "item", "items"))
 			}
-			outf(cmd, "jureuma was uninstalled; ~/.guiho, ~/.guiho/bin, ~/.guiho/.temp and PATH were left untouched\n")
+			outf(cmd, "zeze was uninstalled; ~/.guiho, ~/.guiho/bin, ~/.guiho/.temp and PATH were left untouched\n")
 			return nil
 		},
 	}
 	f := c.Flags()
-	f.BoolVar(&preserveConfig, "preserve-config", false, "keep jureuma.global.yaml and the project's jureuma.yaml")
+	f.BoolVar(&preserveConfig, "preserve-config", false, "keep zeze.global.yaml and the project's zeze.yaml")
 	f.BoolVar(&preserveData, "preserve-data", false, "keep keys/, state/ and audit.log")
 	f.BoolVar(&dryRun, "dry-run", false, "print the plan without changing anything")
 	f.BoolVar(&yes, "yes", false, "confirm the plan without a prompt (keys still need the human-only confirmation)")

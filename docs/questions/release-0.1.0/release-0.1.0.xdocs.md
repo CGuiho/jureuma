@@ -1,7 +1,7 @@
 ---
-subject: jureuma-docs-questions-release-0.1.0
+subject: zeze-docs-questions-release-0.1.0
 description: "DND question ledger for the release 0.1.0 implementation-completion and release run of 2026-10-16."
-parent: jureuma-docs-questions
+parent: zeze-docs-questions
 children: []
 files: {}
 documents:
@@ -18,6 +18,6 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-questions-release-0.1.0
+# zeze-docs-questions-release-0.1.0
 
 Question ledger for the release 0.1.0 run (started 2026-10-16).

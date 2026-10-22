@@ -3,11 +3,11 @@ package pair
 import (
 	"sort"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/keystore"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/keystore"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // KeyLookup returns the private key for a key ID.

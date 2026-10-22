@@ -1,7 +1,7 @@
 ---
-subject: jureuma-docs-reviews-implementation
+subject: zeze-docs-reviews-implementation
 description: "Technical self-review records produced after unattended execution and before the human review."
-parent: jureuma-docs-reviews
+parent: zeze-docs-reviews
 children: []
 files: {}
 documents:
@@ -17,9 +17,9 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-reviews-implementation
+# zeze-docs-reviews-implementation
 
-Technical self-review records for jureuma deliveries, produced under Mandume
+Technical self-review records for zeze deliveries, produced under Mandume
 phase 2.1 from actual commits, captured checks and readbacks.
 
 ## Documents

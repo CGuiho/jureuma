@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 const sentinel = "SENTINEL-runner-42"
@@ -63,7 +63,7 @@ func TestFlattenRules(t *testing.T) {
 			t.Errorf("%s = %q want %q", k, got[k], w)
 		}
 	}
-	for _, bad := range []string{`{"a_b":1,"a":{"b":2}}`, `{"LD_PRELOAD":"x"}`, `{"node_options":"x"}`, `{"jureuma":{"x":1}}`, `{"env":"x"}`} {
+	for _, bad := range []string{`{"a_b":1,"a":{"b":2}}`, `{"LD_PRELOAD":"x"}`, `{"node_options":"x"}`, `{"zeze":{"x":1}}`, `{"env":"x"}`} {
 		if _, err := Flatten(parse(t, bad), ""); err == nil {
 			t.Errorf("%s: expected an error", bad)
 		} else if strings.Contains(err.Error(), "\"x\"") {
@@ -77,7 +77,7 @@ func TestFlattenRules(t *testing.T) {
 
 func TestBuildEnv(t *testing.T) {
 	d := parse(t, `{"db":{"url":"postgres://x","port":5432},"flag":null}`)
-	environ := []string{"PATH=/bin", "JUREUMA_PRIVATE_KEY=jureuma-sk-1:abc", "JUREUMA_PRIVATE_KEY_K_00=zz", "DB_URL=keep", "HOME=/h"}
+	environ := []string{"PATH=/bin", "ZEZE_PRIVATE_KEY=zeze-sk-1:abc", "ZEZE_PRIVATE_KEY_K_00=zz", "DB_URL=keep", "HOME=/h"}
 	get := func(env []string, name string) (string, bool) {
 		for _, kv := range env {
 			if strings.HasPrefix(kv, name+"=") {
@@ -90,14 +90,14 @@ func TestBuildEnv(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := get(env, "JUREUMA_PRIVATE_KEY"); ok {
+	if _, ok := get(env, "ZEZE_PRIVATE_KEY"); ok {
 		t.Fatal("private key not stripped")
 	}
-	if _, ok := get(env, "JUREUMA_PRIVATE_KEY_K_00"); ok {
+	if _, ok := get(env, "ZEZE_PRIVATE_KEY_K_00"); ok {
 		t.Fatal("dedicated private key not stripped")
 	}
-	if v, _ := get(env, "JUREUMA_CONFIG"); v != `{"db":{"url":"postgres://x","port":5432},"flag":null}` {
-		t.Fatalf("JUREUMA_CONFIG = %q", v)
+	if v, _ := get(env, "ZEZE_CONFIG"); v != `{"db":{"url":"postgres://x","port":5432},"flag":null}` {
+		t.Fatalf("ZEZE_CONFIG = %q", v)
 	}
 	env, _ = BuildEnv(Options{Doc: d, Environ: environ, Format: FormatFlatten, Env: []string{"PORT=/db/port", "WHOLE=/db"}}, "")
 	if v, _ := get(env, "DB_URL"); v != "keep" {
@@ -121,7 +121,7 @@ func TestBuildEnv(t *testing.T) {
 		t.Fatal("--env-name ignored")
 	}
 	for _, o := range []Options{
-		{Doc: d, Environ: environ, Env: []string{"JUREUMA_PRIVATE_KEY=/db/url"}},
+		{Doc: d, Environ: environ, Env: []string{"ZEZE_PRIVATE_KEY=/db/url"}},
 		{Doc: d, Environ: environ, Env: []string{"=nope"}},
 		{Doc: d, Environ: environ, Env: []string{"X=/missing"}},
 		{Doc: d, Environ: environ, Format: "yaml"},
@@ -135,7 +135,7 @@ func TestBuildEnv(t *testing.T) {
 
 func TestSecrets(t *testing.T) {
 	d := parse(t, `{"long":"`+sentinel+`","short":"abc","pin":1234,"flag":true}`)
-	sch, err := schema.Compile(parse(t, `{"type":"object","properties":{"pin":{"x-jureuma-secret":true}}}`), "t")
+	sch, err := schema.Compile(parse(t, `{"type":"object","properties":{"pin":{"x-zeze-secret":true}}}`), "t")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,10 +169,10 @@ func TestRunRedactsAndPassesExitCode(t *testing.T) {
 	home := t.TempDir()
 	d := parse(t, `{"url":"`+sentinel+`","n":3}`)
 	var out, errb bytes.Buffer
-	t.Setenv("JUREUMA_PRIVATE_KEY", sk.String())
+	t.Setenv("ZEZE_PRIVATE_KEY", sk.String())
 	code, err := Run(context.Background(), Options{
 		Doc: d, Redact: true, PrivateKeys: []crypt.PrivateKey{sk}, Home: home,
-		Args:  []string{"sh", "-c", `printf '%s\n' "$JUREUMA_CONFIG"; printf 'key=%s\n' "${JUREUMA_PRIVATE_KEY:-none}"; printf '%s' "$JUREUMA_CONFIG" | base64 >&2; exit 3`},
+		Args:  []string{"sh", "-c", `printf '%s\n' "$ZEZE_CONFIG"; printf 'key=%s\n' "${ZEZE_PRIVATE_KEY:-none}"; printf '%s' "$ZEZE_CONFIG" | base64 >&2; exit 3`},
 		Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errb,
 	})
 	if err != nil {
@@ -201,7 +201,7 @@ func TestRunFileFormat(t *testing.T) {
 	var out bytes.Buffer
 	code, err := Run(context.Background(), Options{
 		Doc: d, Format: FormatFile, Redact: true, Home: home,
-		Args:  []string{"sh", "-c", `test -r "$JUREUMA_CONFIG" && grep -c a "$JUREUMA_CONFIG"`},
+		Args:  []string{"sh", "-c", `test -r "$ZEZE_CONFIG" && grep -c a "$ZEZE_CONFIG"`},
 		Stdin: strings.NewReader(""), Stdout: &out, Stderr: &out,
 	})
 	if err != nil || code != 0 {
@@ -261,7 +261,7 @@ func TestFlattenDeniedPathMappedExplicitly(t *testing.T) {
 func TestBuildEnvRejectsDenylistedEnvName(t *testing.T) {
 	d := parse(t, `{"a":"b"}`)
 	for _, format := range []string{FormatJSON, FormatFile} {
-		for _, name := range []string{"BASH_ENV", "ENV", "PAGER", "EDITOR", "GIT_SSH_COMMAND", "PROMPT_COMMAND", "PS4", "LD_PRELOAD", "JUREUMA_USER_HOME", "JUREUMA_", "bash_env"} {
+		for _, name := range []string{"BASH_ENV", "ENV", "PAGER", "EDITOR", "GIT_SSH_COMMAND", "PROMPT_COMMAND", "PS4", "LD_PRELOAD", "ZEZE_USER_HOME", "ZEZE_", "bash_env"} {
 			if _, err := BuildEnv(Options{Doc: d, Format: format, EnvName: name, Environ: []string{}}, "/dev/fd/3"); xerr.CodeOf(err) != xerr.CodeRun {
 				t.Errorf("%s %s: want exit 125, got %v", format, name, err)
 			}
@@ -272,11 +272,11 @@ func TestBuildEnvRejectsDenylistedEnvName(t *testing.T) {
 	}
 }
 
-// The document lands in JUREUMA_CONFIG by default; the abandoned JUREUMA_
-// name is an ordinary denylisted JUREUMA_* name.
+// The document lands in ZEZE_CONFIG by default; the abandoned ZEZE_
+// name is an ordinary denylisted ZEZE_* name.
 func TestBuildEnvDefaultEnvName(t *testing.T) {
 	d := parse(t, `{"a":"b"}`)
-	if DefaultEnvName != "JUREUMA_CONFIG" {
+	if DefaultEnvName != "ZEZE_CONFIG" {
 		t.Fatalf("DefaultEnvName = %q", DefaultEnvName)
 	}
 	env, err := BuildEnv(Options{Doc: d, Environ: []string{}}, "")
@@ -284,19 +284,19 @@ func TestBuildEnvDefaultEnvName(t *testing.T) {
 		t.Fatal(err)
 	}
 	joined := strings.Join(env, "\n")
-	if !strings.Contains(joined, `JUREUMA_CONFIG={"a":"b"}`) {
-		t.Fatalf("default injection not in JUREUMA_CONFIG: %v", env)
+	if !strings.Contains(joined, `ZEZE_CONFIG={"a":"b"}`) {
+		t.Fatalf("default injection not in ZEZE_CONFIG: %v", env)
 	}
-	if strings.Contains(joined, "JUREUMA_={\"a\":\"b\"}") {
+	if strings.Contains(joined, "ZEZE_={\"a\":\"b\"}") {
 		t.Fatalf("abandoned name still injected: %v", env)
 	}
 	// The default name is accepted explicitly: it is the denylist exception.
-	if _, err := BuildEnv(Options{Doc: d, Format: FormatJSON, EnvName: "JUREUMA_CONFIG", Environ: []string{}}, ""); err != nil {
+	if _, err := BuildEnv(Options{Doc: d, Format: FormatJSON, EnvName: "ZEZE_CONFIG", Environ: []string{}}, ""); err != nil {
 		t.Fatalf("default name must be accepted as --env-name: %v", err)
 	}
-	// The abandoned JUREUMA_ name is refused as denylisted.
-	if _, err := BuildEnv(Options{Doc: d, Format: FormatJSON, EnvName: "JUREUMA_", Environ: []string{}}, ""); xerr.CodeOf(err) != xerr.CodeRun {
-		t.Fatalf("JUREUMA_ must be refused as denylisted: %v", err)
+	// The abandoned ZEZE_ name is refused as denylisted.
+	if _, err := BuildEnv(Options{Doc: d, Format: FormatJSON, EnvName: "ZEZE_", Environ: []string{}}, ""); xerr.CodeOf(err) != xerr.CodeRun {
+		t.Fatalf("ZEZE_ must be refused as denylisted: %v", err)
 	}
 }
 
@@ -315,13 +315,13 @@ func TestFlattenDenylistCoversCodeExecutingNames(t *testing.T) {
 func TestBuildEnvDocumentVariableAlwaysSet(t *testing.T) {
 	d := parse(t, `{"a":"b"}`)
 	for _, format := range []string{FormatJSON, FormatFile} {
-		env, err := BuildEnv(Options{Doc: d, Format: format, Environ: []string{"JUREUMA_CONFIG={\"stale\":1}"}}, "/dev/fd/3")
+		env, err := BuildEnv(Options{Doc: d, Format: format, Environ: []string{"ZEZE_CONFIG={\"stale\":1}"}}, "/dev/fd/3")
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, kv := range env {
 			if strings.Contains(kv, "stale") {
-				t.Fatalf("%s: inherited JUREUMA_CONFIG won: %v", format, env)
+				t.Fatalf("%s: inherited ZEZE_CONFIG won: %v", format, env)
 			}
 		}
 	}

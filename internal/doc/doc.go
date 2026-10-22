@@ -1,4 +1,4 @@
-// Package doc is jureuma's ordered JSON value tree, JSON Pointer operations,
+// Package doc is zeze's ordered JSON value tree, JSON Pointer operations,
 // canonical scalar encoding, and deterministic serialisation.
 //
 // Object key order is preserved and numbers keep their exact source text, so a

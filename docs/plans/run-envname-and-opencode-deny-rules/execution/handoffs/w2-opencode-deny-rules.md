@@ -1,22 +1,22 @@
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
 
-# Handoff — W2: OpenCode deny rules in `jureuma init` (issue #11)
+# Handoff — W2: OpenCode deny rules in `zeze init` (issue #11)
 
 Mode: dnd · Role: workhorse (engineer) · Harness: OpenCode native background
 subagent (`general`) · Model: `xiaomi/mimo-v2.6-pro` (provider-default
-thinking, no variant) · Issue: <https://github.com/CGuiho/jureuma/issues/11>
+thinking, no variant) · Issue: <https://github.com/CGuiho/zeze/issues/11>
 
 ## Mission
 
-Extend the agent-tool deny rules so `jureuma init` also protects OpenCode
+Extend the agent-tool deny rules so `zeze init` also protects OpenCode
 sessions inside the project — not only Claude Code — using OpenCode V2's
 ordered `permissions` array in the project's `opencode.json`. This unit runs
 after W1's commit.
 
 ## Required reading (before touching anything)
 
-- Repository `AGENTS.md`; `docs/2026-10-13-jureuma-design.md` (deny-rules
-  passages); `docs/2026-10-13-jureuma-implementation-contracts.md`.
+- Repository `AGENTS.md`; `docs/2026-10-13-zeze-design.md` (deny-rules
+  passages); `docs/2026-10-13-zeze-implementation-contracts.md`.
 - Skills: `guiho-s-0001-guiho`, `guiho-s-0004-working-with-cg`,
   `guiho-s-0040-explorer`, `guiho-s-0032-git-commit`, `guiho-s-0016-docs`,
   `guiho-s-runx`.
@@ -41,7 +41,7 @@ after W1's commit.
      field names:
      - read-deny `*.unencrypted.json`
      - read-deny `*.unencrypted.jsonc`
-     - read-deny `$HOME/.guiho/jureuma/*`
+     - read-deny `$HOME/.guiho/zeze/*`
      Adjust exact resource strings only if the live V2 docs contradict the
      matching semantics above; say so in the report.
    - Preserve every other key and array entry. A file with comments is
@@ -59,7 +59,7 @@ after W1's commit.
 2. `internal/cli/cmd_init.go`: after the Claude block, a second block — when
    the OpenCode rules are already present, print the existing "already
    present" style confirmation with the file path; otherwise prompt
-   `[project] Add deny rules for *.unencrypted.* and ~/.guiho/jureuma to <path> (recommended)?`
+   `[project] Add deny rules for *.unencrypted.* and ~/.guiho/zeze to <path> (recommended)?`
    in TTY mode. `--agent-deny-rules yes|no` governs both tools. Report the
    added count like the Claude block does.
 3. `internal/cli/cmd_info.go` (`check`): add OpenCode presence/absence
@@ -69,14 +69,14 @@ after W1's commit.
    entry) remove both tools' recorded rules exactly.
 5. Installer scripts: `devops/uninstall.sh` and `devops/uninstall.ps1` — add
    the `opencode.json` counterpart to their `.claude/settings.json` PRESERVE
-   entry (mirror the existing wording; the deny entries jureuma added must be
+   entry (mirror the existing wording; the deny entries zeze added must be
    removed by hand when the payload is gone).
-6. Docs: `docs/2026-10-13-jureuma-design.md` (the deny-rules passages, which
+6. Docs: `docs/2026-10-13-zeze-design.md` (the deny-rules passages, which
    today say "for example Claude Code `permissions.deny`"), `README.md`
-   (deny-rule mentions), `internal/agentres/assets/skills/guiho-s-jureuma/SKILL.md`
+   (deny-rule mentions), `internal/agentres/assets/skills/guiho-s-zeze/SKILL.md`
    and the prompts that mention deny rules
-   (`internal/agentres/assets/prompts/guiho-p-jureuma.md`,
-   `guiho-p-jureuma-uninstall.md`) — mention both tools.
+   (`internal/agentres/assets/prompts/guiho-p-zeze.md`,
+   `guiho-p-zeze-uninstall.md`) — mention both tools.
 7. Tests:
    - unit tests for: created-file shape, merge preserving unrelated
      settings, comment refusal, state recording + exact removal,
@@ -99,7 +99,7 @@ reviews, version pins, release machinery, global OpenCode config
 - `runx run go-fmt-check`, `runx run go-vet-cross`, `runx run go-test`,
   `runx run test-e2e`, `runx run test-smoke` — all exit 0; then
   `runx run docs-check` and `runx run ci-check`.
-- Manual proof with `JUREUMA_USER_HOME` set to a throwaway temp directory:
+- Manual proof with `ZEZE_USER_HOME` set to a throwaway temp directory:
   run `init --agent-deny-rules yes` in a temp project; show the resulting
   `opencode.json`; run `agent remove` and show the rules are gone and the
   rest of the file survives.
@@ -109,7 +109,7 @@ reviews, version pins, release machinery, global OpenCode config
 - One coherent commit after W1, message
   `Add OpenCode deny rules to init alongside Claude Code`.
 - Commit through the serialized index:
-  `flock -w 120 /tmp/opencode/jureuma-git.lock -c 'cd /root/swe/jureuma && git add <paths> && git commit -m "..."'`.
+  `flock -w 120 /tmp/opencode/zeze-git.lock -c 'cd /root/swe/zeze && git add <paths> && git commit -m "..."'`.
   Never push.
 - Report per unit: commit hash, changed files, exact commands + exit codes,
   test names, residual uncertainty. Do not claim results you did not capture.

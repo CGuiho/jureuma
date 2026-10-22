@@ -1,4 +1,4 @@
-// Package agentres holds jureuma's embedded agent artifacts (skills, prompts,
+// Package agentres holds zeze's embedded agent artifacts (skills, prompts,
 // and the AGENTS.md instruction block) and the helpers that install them.
 //
 // Nothing in this package writes to stdout or stderr, and no error message
@@ -18,10 +18,10 @@ var assets embed.FS
 
 // Artifact IDs bundled with this release.
 const (
-	MainSkillID       = "guiho-s-jureuma"
-	MainPromptID      = "guiho-p-jureuma"
-	InstallPromptID   = "guiho-p-jureuma-install"
-	UninstallPromptID = "guiho-p-jureuma-uninstall"
+	MainSkillID       = "guiho-s-zeze"
+	MainPromptID      = "guiho-p-zeze"
+	InstallPromptID   = "guiho-p-zeze-install"
+	UninstallPromptID = "guiho-p-zeze-uninstall"
 )
 
 // Skill is one bundled agent skill. Files maps slash-separated paths relative
@@ -38,7 +38,7 @@ type Prompt struct {
 }
 
 // Skills returns every bundled skill, sorted by ID. The main skill is
-// guiho-s-jureuma.
+// guiho-s-zeze.
 func Skills() []Skill {
 	entries, err := fs.ReadDir(assets, "assets/skills")
 	if err != nil {
@@ -85,7 +85,7 @@ func SkillByID(id string) (Skill, bool) {
 }
 
 // Prompts returns every bundled prompt, sorted by ID. The default prompt is
-// guiho-p-jureuma; the install prompt is guiho-p-jureuma-install.
+// guiho-p-zeze; the install prompt is guiho-p-zeze-install.
 func Prompts() []Prompt {
 	entries, err := fs.ReadDir(assets, "assets/prompts")
 	if err != nil {

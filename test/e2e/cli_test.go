@@ -74,8 +74,8 @@ func TestSchemaInferThenValidation(t *testing.T) {
 	}
 
 	// A .schema.jsonc file with comments is supported, refinements apply. The
-	// schema a pair uses is the one jureuma.yaml names (or the recorded
-	// $jureuma.schema path), so switching the file is an explicit choice.
+	// schema a pair uses is the one zeze.yaml names (or the recorded
+	// $zeze.schema path), so switching the file is an explicit choice.
 	p.write("config.unencrypted.json", `{"server":{"port":8080,"host":"`+v1+`"},"tags":["a","b"],"mixed":[1,"x"],"empty":[],"on":true}`)
 	os.Remove(p.path("config.schema.json"))
 	p.write("config.schema.jsonc", `{
@@ -86,7 +86,7 @@ func TestSchemaInferThenValidation(t *testing.T) {
     "server": {"type": "object", "properties": {"port": {"type": "integer", "maximum": 100,},},},
   },
 }`)
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n    schema: ./config.schema.jsonc\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n    schema: ./config.schema.jsonc\n")
 	r = p.run("encrypt", "--keep-both")
 	if r.code != 4 || !strings.Contains(r.out(), "maximum") {
 		t.Fatalf("jsonc schema maximum: want exit 4\n%s", r)
@@ -94,7 +94,7 @@ func TestSchemaInferThenValidation(t *testing.T) {
 	assertNo(t, "maximum failure", r.out(), "8080", v1)
 	// Unknown keywords and unsupported formats are errors.
 	os.Remove(p.path("config.schema.jsonc"))
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	p.write("config.schema.json", `{"type":"object","propertys":{}}`)
 	if r := p.run("check"); r.code != 4 {
 		t.Fatalf("unknown keyword: want exit 4\n%s", r)
@@ -164,7 +164,7 @@ func TestHelpTreeOnSubcommand(t *testing.T) {
 	}
 	// Help flags work even when required arguments are missing.
 	r = p.expect(0, "set", "--help-docs")
-	if !strings.HasPrefix(r.stdout, "# jureuma set") {
+	if !strings.HasPrefix(r.stdout, "# zeze set") {
 		t.Fatalf("set --help-docs:\n%s", r.stdout)
 	}
 	p.expect(0, "unset", "--help")
@@ -187,7 +187,7 @@ func TestKeyRotateAndRetire(t *testing.T) {
 	if newID == oldID {
 		t.Fatal("rotate kept the key ID")
 	}
-	if !strings.Contains(r.stdout, "JUREUMA_PRIVATE_KEY_"+strings.ToUpper(newID)) {
+	if !strings.Contains(r.stdout, "ZEZE_PRIVATE_KEY_"+strings.ToUpper(newID)) {
 		t.Fatalf("rotate must print the new CI variable name\n%s", r)
 	}
 	if strings.Contains(p.read("config.encrypted.json"), oldID) {
@@ -219,13 +219,13 @@ func TestKeyRotateRefreshesPlainSiblingIdentity(t *testing.T) {
 	p := newProject(t)
 	// The reproduction: init binds the key, the project is then unbound, and
 	// both pair files are present with the plaintext carrying its identity.
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	p.init()
 	keyID, _ := p.privateKey()
 	p.expect(0, "set", "/svc/url", "sibling-rotate-value")
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	r := p.expect(0, "key", "rotate")
-	if !strings.Contains(r.stdout, "updated the $jureuma identity in config.unencrypted.json") {
+	if !strings.Contains(r.stdout, "updated the $zeze identity in config.unencrypted.json") {
 		t.Fatalf("rotate must report the sibling identity update:\n%s", r.stdout)
 	}
 	newID := p.encMeta("config.encrypted.json")["keyId"].(string)
@@ -259,9 +259,9 @@ func TestKeyRotateRefreshesPlainSiblingIdentity(t *testing.T) {
 func TestKeyRotateKeepsHeaderlessSiblingHeaderless(t *testing.T) {
 	needSh(t)
 	p := newProject(t)
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	p.init()
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	const plain = `{"svc":{"url":"headerless-rotate-value"}}`
 	p.write("config.unencrypted.json", plain)
 	p.expect(0, "key", "rotate")

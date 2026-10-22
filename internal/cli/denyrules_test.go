@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
 )
 
 // OpenCode deny rules (issue #11): created-file shape, merge preserving
@@ -18,7 +18,7 @@ import (
 func newDenyFixture(t *testing.T) (home, root string) {
 	t.Helper()
 	home, root = t.TempDir(), t.TempDir()
-	t.Setenv("JUREUMA_USER_HOME", home)
+	t.Setenv("ZEZE_USER_HOME", home)
 	return home, root
 }
 
@@ -125,7 +125,7 @@ func TestOpencodeDenyRulesCommentRefusal(t *testing.T) {
 
 func TestOpencodeDenyRulesStateRecordingAndRemoval(t *testing.T) {
 	home, root := newDenyFixture(t)
-	// A hand-added identical rule is not jureuma's and must survive removal.
+	// A hand-added identical rule is not zeze's and must survive removal.
 	hand := ruleValue(opencodeDenyRules[0])
 	other := ruleValue(opencodeDenyRule{Action: "shell", Resource: "git push *", Effect: "deny"})
 	file := doc.NewObject()

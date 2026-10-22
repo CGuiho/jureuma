@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/keystore"
-	"github.com/CGuiho/jureuma/internal/pair"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/keystore"
+	"github.com/CGuiho/zeze/internal/pair"
 )
 
 // keyHarness runs the CLI in-process in a throw-away user home and project.
@@ -27,12 +27,12 @@ type keyHarness struct {
 func newKeyHarness(t *testing.T) *keyHarness {
 	t.Helper()
 	h := &keyHarness{t: t, home: t.TempDir(), proj: t.TempDir()}
-	t.Setenv("JUREUMA_USER_HOME", h.home)
+	t.Setenv("ZEZE_USER_HOME", h.home)
 	t.Setenv("HOME", h.home)
 	t.Setenv("USERPROFILE", h.home)
-	t.Setenv("JUREUMA_NO_UPDATE_CHECK", "1")
-	t.Setenv("JUREUMA_PRIVATE_KEY", "")
-	h.store = keystore.New(filepath.Join(h.home, ".guiho", "jureuma"))
+	t.Setenv("ZEZE_NO_UPDATE_CHECK", "1")
+	t.Setenv("ZEZE_PRIVATE_KEY", "")
+	h.store = keystore.New(filepath.Join(h.home, ".guiho", "zeze"))
 	t.Chdir(h.proj)
 	return h
 }
@@ -62,7 +62,7 @@ func (h *keyHarness) expect(code int, args ...string) string {
 	h.t.Helper()
 	got, out := h.run(args...)
 	if got != code {
-		h.t.Fatalf("jureuma %s: exit %d, want %d\n%s", strings.Join(args, " "), got, code, out)
+		h.t.Fatalf("zeze %s: exit %d, want %d\n%s", strings.Join(args, " "), got, code, out)
 	}
 	return out
 }
@@ -79,7 +79,7 @@ func (h *keyHarness) mustKey() (crypt.PrivateKey, string) {
 
 // keyLine matches one `key list` line: label, short key ID, public-key
 // prefix and state.
-var keyLine = regexp.MustCompile(`^\S.*  k_[0-9a-f]{12}  jureuma-pk-1:[A-Za-z0-9_-]{12}  (active|retired)$`)
+var keyLine = regexp.MustCompile(`^\S.*  k_[0-9a-f]{12}  zeze-pk-1:[A-Za-z0-9_-]{12}  (active|retired)$`)
 
 func assertNoKeyMaterial(t *testing.T, where, data string) {
 	t.Helper()
@@ -93,7 +93,7 @@ func TestKeyListOutputShape(t *testing.T) {
 	labeled, labeledID := h.mustKey()
 	legacy, legacyID := h.mustKey()
 	retired, retiredID := h.mustKey()
-	if _, err := h.store.SaveLabeled(labeled, "jureuma"); err != nil {
+	if _, err := h.store.SaveLabeled(labeled, "zeze"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := h.store.Save(legacy); err != nil {
@@ -140,7 +140,7 @@ func TestKeyListOutputShape(t *testing.T) {
 	rows := []struct {
 		keyID, label, state string
 	}{
-		{labeledID, "jureuma", "active"},
+		{labeledID, "zeze", "active"},
 		{legacyID, "—", "active"},
 		{retiredID, "old-project", "retired"},
 	}
@@ -186,7 +186,7 @@ func TestKeyListHelp(t *testing.T) {
 func TestKeyShowShowsLabel(t *testing.T) {
 	h := newKeyHarness(t)
 	sk, id := h.mustKey()
-	if _, err := h.store.SaveLabeled(sk, "jureuma"); err != nil {
+	if _, err := h.store.SaveLabeled(sk, "zeze"); err != nil {
 		t.Fatal(err)
 	}
 	if err := pair.WriteEncrypted(filepath.Join(h.proj, "config.encrypted.json"), pair.NewEncrypted(sk.Public(), "")); err != nil {
@@ -197,7 +197,7 @@ func TestKeyShowShowsLabel(t *testing.T) {
 	if !strings.Contains(out, "keyId:      "+id) {
 		t.Fatalf("key show lacks the key ID:\n%s", out)
 	}
-	if !strings.Contains(out, "label:      jureuma") {
+	if !strings.Contains(out, "label:      zeze") {
 		t.Fatalf("key show lacks the label:\n%s", out)
 	}
 }
@@ -253,7 +253,7 @@ func TestKeyRotateDerivesLabel(t *testing.T) {
 	if active != 1 || retired != 1 {
 		t.Fatalf("after rotate: %d active, %d retired keys", active, retired)
 	}
-	if _, err := os.Stat(filepath.Join(h.home, ".guiho", "jureuma", "keys", "retired", oldID+".json")); err != nil {
+	if _, err := os.Stat(filepath.Join(h.home, ".guiho", "zeze", "keys", "retired", oldID+".json")); err != nil {
 		t.Fatalf("old key not retired: %v", err)
 	}
 }

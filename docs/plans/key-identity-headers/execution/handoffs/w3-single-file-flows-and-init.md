@@ -4,7 +4,7 @@
 
 Mode: dnd · Role: workhorse (engineer) · Harness: OpenCode native background
 subagent (`general`) · Model: `xiaomi/mimo-v2.6-pro` (provider-default
-thinking, no variant) · Issue: <https://github.com/CGuiho/jureuma/issues/13>
+thinking, no variant) · Issue: <https://github.com/CGuiho/zeze/issues/13>
 
 **Dispatch gate:** after W1 (labels + picker) and W2 (headers) have landed and
 the parent confirms, and only after the JSONC write-support unit (issue #12)
@@ -23,7 +23,7 @@ use it, do not re-implement it:
 - `pair.FormatVersion = 2`; parsing accepts `format: 1` (legacy) and `2`;
   every write renders `2` (`Meta.Format`/`Header.Format` only record what was
   read, so no path re-emits `format: 1`).
-- Both files carry `$jureuma` identity (`format`, `publicKey`, `keyId`,
+- Both files carry `$zeze` identity (`format`, `publicKey`, `keyId`,
   `home`); the unencrypted file's header is exactly those four fields, plus
   the top-level `$schema` pointer beside it. The encrypted block adds
   `schema` (`string` or `{ path, c }`), `sync` and `pending`.
@@ -36,7 +36,7 @@ use it, do not re-implement it:
   `WriteEncrypted`, keyed on **format state on either side of the pair**
   (format 1 or present-but-malformed), never on plaintext header absence:
   headerless plaintexts stay fully mutable. Refusals are exit 1 with
-  `errors.Is` sentinels and the exact `run jureuma init to repair` pointer;
+  `errors.Is` sentinels and the exact `run zeze init to repair` pointer;
   key mismatches stay exit 5; unknown future formats are refused even by the
   repair path.
 - `CheckIdentity(plain, enc)` = cross-file key match (exit 5) + `home` and
@@ -85,7 +85,7 @@ drift.
 - `internal/cli/cmd_info.go` — `status`/`check`; `internal/cli/stash.go` —
   decrypt stash.
 - After W2: format-2 headers on both sides; legacy files refuse mutations with
-  the `run jureuma init to repair` pointer.
+  the `run zeze init to repair` pointer.
 - After W1: `internal/cli/keysel.go` picker + short-id helpers; keystore
   labels and labeled saves.
 - The schema path resolves today by convention (`<stem>.schema.json(c)`
@@ -134,14 +134,14 @@ drift.
    the existing `## Unreleased` heading for this train (append-only; never
    rewrite other entries); help texts for changed commands.
 9. **Schema lifecycle (2026-10-17 directive).** `encrypt` and sibling builds
-   embed the schema copy (`$jureuma.schema = { path, c }`, via W2's API);
+   embed the schema copy (`$zeze.schema = { path, c }`, via W2's API);
    `decrypt` restores the schema to its recorded path when missing — never
    clobbering an existing file, warning when it differs; `schema infer`
    includes the optional `$schema` string property in generated schemas and
    refreshes the embedded copy; `check`/`status` report pointer presence, path
    match and embedded-vs-local drift as warnings; `set` validates against the
    readable schema when present and warns explicitly when validation is
-   skipped; reserved keys (`$schema`, `$jureuma`) are refused as value paths
+   skipped; reserved keys (`$schema`, `$zeze`) are refused as value paths
    in `set`/`unset`.
 
 ## Do not touch
@@ -157,7 +157,7 @@ GitHub Project, release machinery, version pins, other projects.
 - `runx run go-fmt-check`, `runx run go-vet-cross`, `runx run go-test`,
   `runx run test-e2e`, `runx run test-smoke` — all exit 0; then
   `runx run docs-check` and `runx run ci-check`.
-- Manual proof in a throwaway `JUREUMA_USER_HOME` (never the real home):
+- Manual proof in a throwaway `ZEZE_USER_HOME` (never the real home):
   walk a pair through only-unencrypted → `set` rebuilds the sibling → `decrypt`
   → only-unencrypted again; `init` repairs a hand-made legacy headerless pair.
 
@@ -167,7 +167,7 @@ GitHub Project, release machinery, version pins, other projects.
   and unset`, `Repair pair headers from init and select stored keys`, and any
   docs/tests follow-up. Imperative messages.
 - Commit through the serialized index:
-  `flock -w 120 /tmp/opencode/jureuma-git.lock -c 'cd /root/swe/jureuma && git add <paths> && git commit -m "..."'`.
+  `flock -w 120 /tmp/opencode/zeze-git.lock -c 'cd /root/swe/zeze && git add <paths> && git commit -m "..."'`.
   Stage only files you own; never `git add -A`; never push.
 - Report: base commit, commit hashes, changed files, exact commands + exit
   codes, test names, deviations from the brief and why, residual uncertainty.

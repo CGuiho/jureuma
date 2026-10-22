@@ -1,7 +1,7 @@
 // Package runner injects a decrypted document into a child process and
 // redacts the child's output.
 //
-// Run never prints configuration values itself. Every jureuma-side failure
+// Run never prints configuration values itself. Every zeze-side failure
 // returns exit code 125 with an error whose kind names the failure class.
 package runner
 
@@ -21,14 +21,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/keystore"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/redact"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/keystore"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/redact"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // Formats.
@@ -39,7 +39,7 @@ const (
 )
 
 // DefaultEnvName is the variable that carries the document by default.
-const DefaultEnvName = "JUREUMA_CONFIG"
+const DefaultEnvName = "ZEZE_CONFIG"
 
 // MinRedactLen is the minimum length of a string value redacted by default.
 const MinRedactLen = 4
@@ -138,7 +138,7 @@ func ChildEnv(environ []string) []string {
 
 // Secrets returns the byte strings to redact: when redactValues is set, every
 // string value of length >= MinRedactLen and every value at a path the schema
-// marks x-jureuma-secret (all in their encoded variants); always every private
+// marks x-zeze-secret (all in their encoded variants); always every private
 // key in all its encodings.
 func Secrets(d *doc.Value, s *schema.Schema, keys []crypt.PrivateKey, redactValues bool) [][]byte {
 	set := map[string]bool{}
@@ -199,7 +199,7 @@ func Secrets(d *doc.Value, s *schema.Schema, keys []crypt.PrivateKey, redactValu
 func validEnvAssignmentName(name string) bool { return validEnvName(name) }
 
 // BuildEnv computes the child environment (without file-format plumbing) and
-// returns it with the names jureuma injected. docFile is the value for the
+// returns it with the names zeze injected. docFile is the value for the
 // file format's variable.
 func BuildEnv(o Options, docFile string) ([]string, error) {
 	environ := o.Environ
@@ -222,7 +222,7 @@ func BuildEnv(o Options, docFile string) ([]string, error) {
 		return nil, runErr(xerr.KindUsage, "--env-name may not name a private-key variable")
 	}
 	if format != FormatFlatten && config.DeniedRunEnvName(envName) {
-		return nil, runErr(xerr.KindUsage, "--env-name (or run.envName) %s is denylisted: it loads or runs code, or belongs to jureuma", envName)
+		return nil, runErr(xerr.KindUsage, "--env-name (or run.envName) %s is denylisted: it loads or runs code, or belongs to zeze", envName)
 	}
 	if o.Doc == nil || o.Doc.Kind != doc.Object {
 		return nil, runErr(xerr.KindValidation, "the document must be an object")
@@ -234,7 +234,7 @@ func BuildEnv(o Options, docFile string) ([]string, error) {
 		env.set(name, val)
 	}
 	// The document variable always carries this run's document: an inherited
-	// value (from the shell or an outer jureuma run) must not win silently.
+	// value (from the shell or an outer zeze run) must not win silently.
 	switch format {
 	case FormatJSON:
 		env.set(envName, string(doc.MarshalCompact(o.Doc)))
@@ -314,12 +314,12 @@ func newID() string {
 	return hex.EncodeToString(b)
 }
 
-// Run builds the environment (strip JUREUMA_PRIVATE_KEY*, inject per Format),
+// Run builds the environment (strip ZEZE_PRIVATE_KEY*, inject per Format),
 // starts the child, redacts output, and returns the child's exit code.
-// jureuma-side failures return (125, err).
+// zeze-side failures return (125, err).
 func Run(ctx context.Context, o Options) (int, error) {
 	if len(o.Args) == 0 {
-		return xerr.CodeRun, runErr(xerr.KindUsage, "missing command (use jureuma run -- <command> [args...])")
+		return xerr.CodeRun, runErr(xerr.KindUsage, "missing command (use zeze run -- <command> [args...])")
 	}
 	if o.Stdout == nil {
 		o.Stdout = os.Stdout
@@ -359,7 +359,7 @@ func Run(ctx context.Context, o Options) (int, error) {
 			docFile = "/dev/fd/3"
 		} else {
 			if instDir == "" {
-				return xerr.CodeRun, runErr(xerr.KindFailure, "--format file needs the jureuma home directory")
+				return xerr.CodeRun, runErr(xerr.KindFailure, "--format file needs the zeze home directory")
 			}
 			p := filepath.Join(instDir, "document.json")
 			data := doc.Marshal(o.Doc)

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v0.3.1/jureuma.schema.json
+# yaml-language-server: $schema=https://github.com/CGuiho/zeze/releases/download/v0.3.1/zeze.schema.json
 key: k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25
 pairs:
   - name: config
@@ -9,7 +9,7 @@ pairs:
     unencrypted: ./production.unencrypted.json
 run:
   format: json
-  envName: JUREUMA_CONFIG
+  envName: ZEZE_CONFIG
   prefix: ""
   override: false
 agent:

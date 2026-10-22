@@ -1,9 +1,9 @@
 ---
 name: Release 0.1.0 — Validation
 purpose: Record every validation command run for the 0.1.0 delivery and its honest result, including skipped checks, so the human review starts from real evidence.
-description: "Commands, captured results, skipped checks and readiness for the jureuma 0.1.0 delivery: the central ci-check battery, e2e and installer suites, version sync, mirror apply and the release pipeline."
+description: "Commands, captured results, skipped checks and readiness for the zeze 0.1.0 delivery: the central ci-check battery, e2e and installer suites, version sync, mirror apply and the release pipeline."
 created: "2026-10-16"
-owner: jureuma-docs-validation
+owner: zeze-docs-validation
 flags: []
 tags:
   - "validation"
@@ -46,7 +46,7 @@ asset-dir hermetic install, the upgrade refusal/rollback/channel checks
 
 Post-publish readbacks: `gh api` lists 23 assets; `checksums.txt` covers
 every other file and is (correctly) not self-listed; SHA-256 spot-checks for
-`jureuma-linux-amd64` match both `checksums.txt` and `artifacts.json`; the
+`zeze-linux-amd64` match both `checksums.txt` and `artifacts.json`; the
 release is neither draft nor prerelease.
 
 ## Checks not run here
@@ -62,5 +62,5 @@ release is neither draft nor prerelease.
 ## Readiness
 
 Ready for human review: the release is live at
-<https://github.com/CGuiho/jureuma/releases/tag/v0.1.0>, the tagged tree is
+<https://github.com/CGuiho/zeze/releases/tag/v0.1.0>, the tagged tree is
 validated, and no check was skipped silently.

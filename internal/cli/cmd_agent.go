@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/CGuiho/jureuma/internal/agentres"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/agentres"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func (a *app) cmdAgent() *cobra.Command {
 	}
 	skill := &cobra.Command{Use: "skill", Short: "manage the bundled agent skills in the global agent-skill directories"}
 	skill.AddCommand(a.cmdSkillInstall(), a.cmdSkillUninstall(), a.cmdSkillUpgrade(), a.cmdSkillList(), a.cmdSkillShow())
-	instr := &cobra.Command{Use: "instruction", Short: "manage the jureuma block in the project's AGENTS.md"}
+	instr := &cobra.Command{Use: "instruction", Short: "manage the zeze block in the project's AGENTS.md"}
 	instr.AddCommand(a.cmdInstrApply(), a.cmdInstrRemove(), a.cmdInstrUpgrade(), a.cmdInstrShow())
 	prompt := &cobra.Command{Use: "prompt", Short: "inspect the bundled one-time agent prompts"}
 	prompt.AddCommand(a.cmdPromptList(), a.cmdPromptShow())
@@ -36,7 +36,7 @@ func selectSkills(args []string) ([]agentres.Skill, error) {
 	for _, id := range args {
 		s, ok := agentres.SkillByID(id)
 		if !ok {
-			return nil, xerr.Usage("unknown skill %q (see jureuma agent skill list)", id)
+			return nil, xerr.Usage("unknown skill %q (see zeze agent skill list)", id)
 		}
 		out = append(out, s)
 	}
@@ -117,7 +117,7 @@ func uninstallSkills(skills []agentres.Skill, report func(string)) error {
 				continue
 			}
 			if err != nil || !fi.IsDir() {
-				return xerr.Failure("%s is not a directory installed by jureuma; remove it by hand", target)
+				return xerr.Failure("%s is not a directory installed by zeze; remove it by hand", target)
 			}
 			if err := os.RemoveAll(target); err != nil {
 				return xerr.Failure("cannot remove %s", target)
@@ -229,7 +229,7 @@ func applyInstruction(path string, onlyIfPresent bool) (string, error) {
 	}
 	if onlyIfPresent {
 		if _, had := agentres.RemoveBlock(data); !exists || !had {
-			return "", xerr.Failure("%s has no jureuma block; use jureuma agent instruction apply", path)
+			return "", xerr.Failure("%s has no zeze block; use zeze agent instruction apply", path)
 		}
 	}
 	out := agentres.ApplyBlock(data, body)
@@ -245,7 +245,7 @@ func applyInstruction(path string, onlyIfPresent bool) (string, error) {
 func (a *app) cmdInstrApply() *cobra.Command {
 	return &cobra.Command{
 		Use:   "apply",
-		Short: "add the jureuma block to AGENTS.md (created if missing); other content is kept",
+		Short: "add the zeze block to AGENTS.md (created if missing); other content is kept",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, path, err := agentsPath()
@@ -265,7 +265,7 @@ func (a *app) cmdInstrApply() *cobra.Command {
 func (a *app) cmdInstrUpgrade() *cobra.Command {
 	return &cobra.Command{
 		Use:   "upgrade",
-		Short: "replace an existing jureuma block in AGENTS.md with the bundled version",
+		Short: "replace an existing zeze block in AGENTS.md with the bundled version",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, path, err := agentsPath()
@@ -303,7 +303,7 @@ func removeInstruction(path string) (bool, error) {
 func (a *app) cmdInstrRemove() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove",
-		Short: "remove only the jureuma block from AGENTS.md (and jureuma's agent-tool deny rules)",
+		Short: "remove only the zeze block from AGENTS.md (and zeze's agent-tool deny rules)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			root, path, err := agentsPath()
@@ -315,9 +315,9 @@ func (a *app) cmdInstrRemove() *cobra.Command {
 				return err
 			}
 			if had {
-				outf(cmd, "removed the jureuma block from %s\n", path)
+				outf(cmd, "removed the zeze block from %s\n", path)
 			} else {
-				outf(cmd, "%s has no jureuma block\n", path)
+				outf(cmd, "%s has no zeze block\n", path)
 			}
 			if home, err := paths.Home(); err == nil {
 				if n, err := removeDenyRules(home, root); err != nil {
@@ -380,7 +380,7 @@ func (a *app) cmdPromptShow() *cobra.Command {
 			}
 			p, ok := agentres.PromptByID(id)
 			if !ok {
-				return xerr.Usage("unknown prompt %q (see jureuma agent prompt list)", id)
+				return xerr.Usage("unknown prompt %q (see zeze agent prompt list)", id)
 			}
 			outf(cmd, "%s", p.Body)
 			return nil

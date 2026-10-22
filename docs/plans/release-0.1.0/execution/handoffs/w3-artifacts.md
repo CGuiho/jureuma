@@ -5,15 +5,15 @@
 - **Role:** workhorse (engineer). **Harness:** opencode native background
   subagent; this brief is your session.
 - **Model:** `xiaomi/mimo-v2.6-pro` — provider-default thinking, no variant.
-- **Working directory:** `/root/swe/jureuma` — work on `main`; never create
+- **Working directory:** `/root/swe/zeze` — work on `main`; never create
   branches; never push; never tag.
 
 ## Mission
 
-Convention 0002 requires metadata on agent artifacts. jureuma ships:
+Convention 0002 requires metadata on agent artifacts. zeze ships:
 `SKILL.md` with only `name`/`description` (missing `metadata.version`);
-`assets/prompts/guiho-p-jureuma*.md` and `assets/instruction.md` with no
-frontmatter at all (the instruction also lacks its `guiho-i-jureuma`
+`assets/prompts/guiho-p-zeze*.md` and `assets/instruction.md` with no
+frontmatter at all (the instruction also lacks its `guiho-i-zeze`
 identifier). Siblings are the reference: read
 `/root/swe/guiho/conventions/guiho-convention-0002-agent-artifacts.md`,
 `/root/swe/buda/prompts/*.md`, `/root/swe/buda/skills/guiho-s-buda/SKILL.md`,
@@ -29,15 +29,15 @@ frontmatter when applying instruction blocks
 
 ## Requirements
 
-1. `internal/agentres/assets/skills/guiho-s-jureuma/SKILL.md`: add
+1. `internal/agentres/assets/skills/guiho-s-zeze/SKILL.md`: add
    `metadata.version` (release version — set `0.1.0`).
-2. `assets/prompts/guiho-p-jureuma.md`, `guiho-p-jureuma-install.md`,
-   `guiho-p-jureuma-uninstall.md`: frontmatter modeled on buda's prompts
+2. `assets/prompts/guiho-p-zeze.md`, `guiho-p-zeze-install.md`,
+   `guiho-p-zeze-uninstall.md`: frontmatter modeled on buda's prompts
    (`name`, `purpose`, `description`, `created`, `version`, `owner` —
-   owner `jureuma-prompts` unless sibling precedent says otherwise; keep
+   owner `zeze-prompts` unless sibling precedent says otherwise; keep
    existing content intact below).
-3. `assets/instruction.md`: frontmatter with its `guiho-i-jureuma` identity
-   (same field pattern; owner `jureuma`).
+3. `assets/instruction.md`: frontmatter with its `guiho-i-zeze` identity
+   (same field pattern; owner `zeze`).
 4. Block application: `internal/agentres/block.go` (and `cmd_agent.go` where
    needed) must strip a leading YAML frontmatter block so the applied
    AGENTS.md block body never contains it — both for `agent instruction
@@ -63,13 +63,13 @@ frontmatter when applying instruction blocks
 - `gofmt -l` clean; `runx run go-vet-cross`; `runx run go-test` green.
 - Sanity: build the binary and exercise `agent instruction apply` →
   `remove`, `agent instruction show`, `agent skill install` in a temp
-  `JUREUMA_USER_HOME` — the applied block must have no frontmatter.
+  `ZEZE_USER_HOME` — the applied block must have no frontmatter.
 - Do NOT run `runx run ci-check` / `test-smoke` / `test-installers` (other
   workers active; the parent runs the central suite).
 
 ## Commit contract
 
-- `flock -w 120 /tmp/opencode/jureuma-git.lock -c 'cd /root/swe/jureuma &&
+- `flock -w 120 /tmp/opencode/zeze-git.lock -c 'cd /root/swe/zeze &&
   git add <paths> && git commit -m "<message>"'`; never `git add -A`; never
   push; unexpected changes elsewhere: leave untouched, report.
 

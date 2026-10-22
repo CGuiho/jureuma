@@ -3,7 +3,7 @@ name: JSONC Write Support
 purpose: Record the one-unit train that makes `.jsonc` fully two-way through a comment-preserving writer, JSON staying the default.
 description: "Plan for the one-unit train: a comment-preserving JSONC writer with wire-in for set/unset mirrors, decrypt and schema writes (issue #12), JSON staying the default."
 created: "2026-10-17"
-owner: jureuma-docs-plans-jsonc-support
+owner: zeze-docs-plans-jsonc-support
 flags: []
 tags:
   - "planning"
@@ -22,7 +22,7 @@ status: stable
 
 CG directive (voice, 2026-10-17): "We should add support for JSONC, but by
 default use JSON." JSONC was first floated as the default schema format and
-explicitly corrected back to JSON in the same message. Today `jureuma` reads
+explicitly corrected back to JSON in the same message. Today `zeze` reads
 JSONC leniently everywhere but v1 never writes a `.jsonc` file — the design
 states there is no comment-preserving writer, so `set`/`unset` skip the
 plaintext mirror, `decrypt` refuses, and the human reconciles by hand.

@@ -1,7 +1,7 @@
 ---
-subject: jureuma-docs-plans-release-0.2.0-execution-handoffs
+subject: zeze-docs-plans-release-0.2.0-execution-handoffs
 description: "Self-contained worker briefs for the release 0.2.0 units, one per GitHub issue on the bound GUIHO Project."
-parent: jureuma-docs-plans-release-0.2.0-execution
+parent: zeze-docs-plans-release-0.2.0-execution
 children: []
 files: {}
 documents:
@@ -16,7 +16,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-release-0.2.0-execution-handoffs
+# zeze-docs-plans-release-0.2.0-execution-handoffs
 
 Self-contained briefs handed to native background workers, one per executable
 unit. Each brief names mode (dnd), role, model, ownership, acceptance and the

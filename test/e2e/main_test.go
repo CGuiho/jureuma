@@ -1,7 +1,7 @@
-// Package e2e runs the built jureuma binary end to end in throwaway projects.
+// Package e2e runs the built zeze binary end to end in throwaway projects.
 //
 // TestMain builds the binary once into a temporary directory. Every test gets
-// its own user home (JUREUMA_USER_HOME and HOME), its own git-initialised
+// its own user home (ZEZE_USER_HOME and HOME), its own git-initialised
 // project directory and a scrubbed environment without agent markers or
 // private-key variables, so the real home is never touched.
 package e2e
@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/gate"
+	"github.com/CGuiho/zeze/internal/gate"
 )
 
 // testVersion is injected with -ldflags so --version can be checked exactly.
@@ -27,16 +27,16 @@ const testVersion = "9.8.7-e2e"
 var binPath string
 
 func TestMain(m *testing.M) {
-	dir, err := os.MkdirTemp("", "jureuma-e2e-bin-")
+	dir, err := os.MkdirTemp("", "zeze-e2e-bin-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "e2e: temp dir:", err)
 		os.Exit(1)
 	}
-	binPath = filepath.Join(dir, "jureuma")
+	binPath = filepath.Join(dir, "zeze")
 	if runtime.GOOS == "windows" {
 		binPath += ".exe"
 	}
-	build := exec.Command("go", "build", "-ldflags", "-X main.version="+testVersion, "-o", binPath, "github.com/CGuiho/jureuma/cmd/jureuma")
+	build := exec.Command("go", "build", "-ldflags", "-X main.version="+testVersion, "-o", binPath, "github.com/CGuiho/zeze/cmd/zeze")
 	build.Stdout = os.Stderr
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
@@ -59,23 +59,23 @@ type result struct {
 func (r result) out() string { return r.stdout + r.stderr }
 
 func (r result) String() string {
-	return fmt.Sprintf("jureuma %s -> exit %d\n--- stdout ---\n%s--- stderr ---\n%s", strings.Join(r.args, " "), r.code, r.stdout, r.stderr)
+	return fmt.Sprintf("zeze %s -> exit %d\n--- stdout ---\n%s--- stderr ---\n%s", strings.Join(r.args, " "), r.code, r.stdout, r.stderr)
 }
 
 // project is a temporary user home plus a git-initialised project directory.
 type project struct {
 	t     *testing.T
-	home  string // fake user home (JUREUMA_USER_HOME and HOME)
+	home  string // fake user home (ZEZE_USER_HOME and HOME)
 	dir   string // project root
 	env   []string
 	trans bytes.Buffer // output of every command run through run()
 	nRuns int
 }
 
-// scrubbed reports whether an inherited variable must not reach jureuma.
+// scrubbed reports whether an inherited variable must not reach zeze.
 func scrubbed(name string) bool {
 	up := strings.ToUpper(name)
-	if strings.HasPrefix(up, "JUREUMA_") || strings.HasPrefix(up, "GIT_") {
+	if strings.HasPrefix(up, "ZEZE_") || strings.HasPrefix(up, "GIT_") {
 		return true
 	}
 	for _, m := range gate.DefaultMarkers {
@@ -121,8 +121,8 @@ func newProject(t *testing.T) *project {
 	p.env = append(p.env,
 		"HOME="+p.home,
 		"USERPROFILE="+p.home,
-		"JUREUMA_USER_HOME="+p.home,
-		"JUREUMA_NO_UPDATE_CHECK=1",
+		"ZEZE_USER_HOME="+p.home,
+		"ZEZE_NO_UPDATE_CHECK=1",
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GIT_CONFIG_GLOBAL="+filepath.Join(p.home, ".gitconfig"),
 	)
@@ -132,7 +132,7 @@ func newProject(t *testing.T) *project {
 }
 
 // jhome is the CLI home inside the fake user home.
-func (p *project) jhome() string { return filepath.Join(p.home, ".guiho", "jureuma") }
+func (p *project) jhome() string { return filepath.Join(p.home, ".guiho", "zeze") }
 
 func (p *project) path(rel string) string { return filepath.Join(p.dir, filepath.FromSlash(rel)) }
 
@@ -174,7 +174,7 @@ func (p *project) execIn(dir string, extraEnv []string, stdin string, args ...st
 	if err != nil {
 		ee, ok := err.(*exec.ExitError)
 		if !ok {
-			p.t.Fatalf("running jureuma %s: %v", strings.Join(args, " "), err)
+			p.t.Fatalf("running zeze %s: %v", strings.Join(args, " "), err)
 		}
 		code = ee.ExitCode()
 	}
@@ -359,26 +359,26 @@ func (p *project) hideKeys() func() {
 	}
 }
 
-// encMeta returns the $jureuma block of the encrypted file.
+// encMeta returns the $zeze block of the encrypted file.
 func (p *project) encMeta(rel string) map[string]any {
 	p.t.Helper()
 	var m map[string]any
 	if err := json.Unmarshal([]byte(p.read(rel)), &m); err != nil {
 		p.t.Fatalf("%s: %v", rel, err)
 	}
-	meta, _ := m["$jureuma"].(map[string]any)
+	meta, _ := m["$zeze"].(map[string]any)
 	if meta == nil {
-		p.t.Fatalf("%s has no $jureuma block", rel)
+		p.t.Fatalf("%s has no $zeze block", rel)
 	}
 	return meta
 }
 
 // revealConfig runs the child with the bypass flag and returns the exact
-// JUREUMA_CONFIG text the child received.
+// ZEZE_CONFIG text the child received.
 func (p *project) revealConfig(extra ...string) string {
 	p.t.Helper()
 	args := append([]string{"run", "--dangerously-bypass-protections"}, extra...)
-	args = append(args, "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
+	args = append(args, "--", "sh", "-c", `printf '%s' "$ZEZE_CONFIG"`)
 	r := p.expect(0, args...)
 	return r.stdout
 }

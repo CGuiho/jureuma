@@ -1,7 +1,7 @@
 ---
-subject: jureuma-test-e2e
-description: "End-to-end tests that build jureuma and drive it as a subprocess in throw-away homes and git projects (runx: test-e2e)."
-parent: jureuma-test
+subject: zeze-test-e2e
+description: "End-to-end tests that build zeze and drive it as a subprocess in throw-away homes and git projects (runx: test-e2e)."
+parent: zeze-test
 children: []
 files:
   "cli_test.go": "Command-surface tests (init, pairs, JSON output, schema infer, version, help, key rotation and the plaintext sibling identity it refreshes)."
@@ -26,9 +26,9 @@ flags: []
 status: stable
 ---
 
-# jureuma-test-e2e
+# zeze-test-e2e
 
-End-to-end tests that build jureuma and drive it as a subprocess in throw-away homes and git projects (runx: test-e2e).
+End-to-end tests that build zeze and drive it as a subprocess in throw-away homes and git projects (runx: test-e2e).
 
 ## Files
 

@@ -1,12 +1,12 @@
 ---
-subject: jureuma-docs-plans-run-envname-and-opencode-deny-rules
+subject: zeze-docs-plans-run-envname-and-opencode-deny-rules
 description: "Execution plan of the run env name + OpenCode deny rules train (issues #10 and #11), with worker handoff briefs under execution/handoffs/."
-parent: jureuma-docs-plans
+parent: zeze-docs-plans
 children:
-  - jureuma-docs-plans-run-envname-and-opencode-deny-rules-execution
+  - zeze-docs-plans-run-envname-and-opencode-deny-rules-execution
 files: {}
 documents:
-  "plan.md": "Plan for the two units: default the run env name to `JUREUMA_` and add OpenCode deny rules to `jureuma init`."
+  "plan.md": "Plan for the two units: default the run env name to `ZEZE_` and add OpenCode deny rules to `zeze init`."
 tags:
   - "planning"
 keywords:
@@ -16,7 +16,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-run-envname-and-opencode-deny-rules
+# zeze-docs-plans-run-envname-and-opencode-deny-rules
 
 Execution plan for the run env name + OpenCode deny rules train (2026-10-17):
 issues #10 and #11. Worker handoff briefs dispatched through the OpenCode

@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/agentres"
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/gate"
-	"github.com/CGuiho/jureuma/internal/keystore"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/update"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/agentres"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/gate"
+	"github.com/CGuiho/zeze/internal/keystore"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/update"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -47,12 +47,12 @@ func evolutionFields(e *config.Evolution) []struct {
 	}
 }
 
-const evolutionExplanation = `agent.evolution controls what AI agents may do to evolve jureuma (global configuration,
-~/.guiho/jureuma/jureuma.global.yaml; a project's jureuma.yaml may override single fields):
-  disabled        never upgrade jureuma or create issues on your behalf
+const evolutionExplanation = `agent.evolution controls what AI agents may do to evolve zeze (global configuration,
+~/.guiho/zeze/zeze.global.yaml; a project's zeze.yaml may override single fields):
+  disabled        never upgrade zeze or create issues on your behalf
   always-ask      ask you every time before upgrading or creating an issue (default)
   always-proceed  upgrade and file bug/improvement/review issues, then report the result
-Recommended: always-proceed, so agents keep jureuma current and report what they find.
+Recommended: always-proceed, so agents keep zeze current and report what they find.
 `
 
 // askEvolution fills unset policies interactively. It reports whether anything changed.
@@ -94,29 +94,29 @@ func (a *app) cmdInit() *cobra.Command {
 	var denyRulesFlag, keyID, keyLabel string
 	c := &cobra.Command{
 		Use:   "init",
-		Short: "initialize or reconcile jureuma for this project (idempotent)",
-		Long: `Installs the bundled agent skills, applies the jureuma block to AGENTS.md, ensures
-~/.guiho/jureuma/jureuma.global.yaml and the project's jureuma.yaml exist and are valid, asks
+		Short: "initialize or reconcile zeze for this project (idempotent)",
+		Long: `Installs the bundled agent skills, applies the zeze block to AGENTS.md, ensures
+~/.guiho/zeze/zeze.global.yaml and the project's zeze.yaml exist and are valid, asks
 the agent-evolution policy questions when an interactive terminal is present (defaults to
 always-ask otherwise), and for every configured pair:
   - with an existing encrypted file: never generates keys; reports key availability; repairs
-    the $jureuma identity header (format 2), the schema metadata and the embedded schema copy
+    the $zeze identity header (format 2), the schema metadata and the embedded schema copy
     in place, keeping every value, sync and pending state;
-  - without one, with the identity recorded in the unencrypted file's $jureuma header: builds
+  - without one, with the identity recorded in the unencrypted file's $zeze header: builds
     the encrypted sibling from that document under that key (no private key needed);
   - without one and with no recorded identity: chooses the pair key — the key bound in
-    jureuma.yaml (key:), else a stored key picked in a terminal (or named with --key-id /
+    zeze.yaml (key:), else a stored key picked in a terminal (or named with --key-id /
     --key-label), a new key otherwise — then creates an empty encrypted file and an empty,
     git-ignored unencrypted file; after creating or choosing a key, init ensures the
-    jureuma.yaml key binding names it (one line spliced in place; an existing binding is
+    zeze.yaml key binding names it (one line spliced in place; an existing binding is
     never overwritten);
-  - adds or repairs the unencrypted file's $jureuma identity header and $schema pointer,
+  - adds or repairs the unencrypted file's $zeze identity header and $schema pointer,
     keeping its body exactly;
   - ensures the .gitignore block and the schema (a permissive starter when missing);
   - offers deny rules for *.unencrypted.* in the agent tools' settings (Claude Code, OpenCode).
 Init is idempotent: an already-repaired pair is left byte-identical. Fails unless the
 .gitignore block is present, no unencrypted file is tracked by git, every schema is present
-and supported, and every keyId matches its publicKey and the jureuma.yaml key binding.`,
+and supported, and every keyId matches its publicKey and the zeze.yaml key binding.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if evolution != "" && !config.ValidPolicy(evolution) {
@@ -138,13 +138,13 @@ and supported, and every keyId matches its publicKey and the jureuma.yaml key bi
 			}
 			home, err := paths.Home()
 			if err != nil {
-				return xerr.Failure("cannot resolve the jureuma home")
+				return xerr.Failure("cannot resolve the zeze home")
 			}
 			if err := os.MkdirAll(home, 0o700); err != nil {
 				return xerr.Failure("cannot create %s", home)
 			}
 			tty := interactive()
-			outf(cmd, "jureuma init\n  project root: %s\n  jureuma home: %s\n", root, home)
+			outf(cmd, "zeze init\n  project root: %s\n  zeze home: %s\n", root, home)
 
 			// Skills.
 			outf(cmd, "agent skills\n")
@@ -216,7 +216,7 @@ and supported, and every keyId matches its publicKey and the jureuma.yaml key bi
 				}
 			}
 			if len(defaulted) > 0 {
-				r.notes = append(r.notes, "agent.evolution "+strings.Join(defaulted, ", ")+" defaulted to always-ask (global; rerun jureuma init in a terminal or pass --agent-evolution to choose)")
+				r.notes = append(r.notes, "agent.evolution "+strings.Join(defaulted, ", ")+" defaulted to always-ask (global; rerun zeze init in a terminal or pass --agent-evolution to choose)")
 			}
 			globalPath := filepath.Join(home, config.GlobalFile)
 			if gChanged {
@@ -247,7 +247,7 @@ and supported, and every keyId matches its publicKey and the jureuma.yaml key bi
 						r.notes = append(r.notes, "protections block not re-sealed: --dangerously-bypass-protections stays refused")
 					}
 				} else {
-					r.notes = append(r.notes, "the protections block does not match its seal: --dangerously-bypass-protections is refused until a human re-runs jureuma init in a terminal")
+					r.notes = append(r.notes, "the protections block does not match its seal: --dangerously-bypass-protections is refused until a human re-runs zeze init in a terminal")
 				}
 			}
 
@@ -283,7 +283,7 @@ and supported, and every keyId matches its publicKey and the jureuma.yaml key bi
 			if changed, err := pair.EnsureGitignoreBlock(root); err != nil {
 				return err
 			} else if changed {
-				r.step("updated   %s (jureuma managed block)", filepath.Join(root, ".gitignore"))
+				r.step("updated   %s (zeze managed block)", filepath.Join(root, ".gitignore"))
 			}
 			for _, p := range pairs {
 				if err := initPair(r, e, p, keyID, keyLabel); err != nil {
@@ -299,7 +299,7 @@ and supported, and every keyId matches its publicKey and the jureuma.yaml key bi
 			} else {
 				apply := denyRulesFlag == "yes"
 				if denyRulesFlag == "" && tty {
-					apply = askYesNo(cmd, "[project] Add deny rules for *.unencrypted.* and ~/.guiho/jureuma to "+settings+" (recommended)?", true)
+					apply = askYesNo(cmd, "[project] Add deny rules for *.unencrypted.* and ~/.guiho/zeze to "+settings+" (recommended)?", true)
 				}
 				if apply {
 					n, err := applyDenyRules(home, root)
@@ -317,7 +317,7 @@ and supported, and every keyId matches its publicKey and the jureuma.yaml key bi
 			} else {
 				apply := denyRulesFlag == "yes"
 				if denyRulesFlag == "" && tty {
-					apply = askYesNo(cmd, "[project] Add deny rules for *.unencrypted.* and ~/.guiho/jureuma to "+ocfg+" (recommended)?", true)
+					apply = askYesNo(cmd, "[project] Add deny rules for *.unencrypted.* and ~/.guiho/zeze to "+ocfg+" (recommended)?", true)
 				}
 				if apply {
 					n, err := applyOpencodeDenyRules(home, root)
@@ -363,7 +363,7 @@ and supported, and every keyId matches its publicKey and the jureuma.yaml key bi
 				}
 				return xerr.Failure("init found %d %s", len(r.fatal), plural(len(r.fatal), "problem", "problems"))
 			}
-			outf(cmd, "jureuma is initialized for %s\n", root)
+			outf(cmd, "zeze is initialized for %s\n", root)
 			return nil
 		},
 	}
@@ -390,20 +390,20 @@ func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error
 		return err
 	}
 	if p.SchemaSource == pair.SchemaFromFlag && !pair.Within(p.Root, p.SchemaPath) {
-		// The reference would be committed in $jureuma.schema, which may not
+		// The reference would be committed in $zeze.schema, which may not
 		// point outside the project.
 		return xerr.Usage("--schema-file must stay inside the project root for init")
 	}
-	// Both sides are read before anything is written: a file jureuma cannot
+	// Both sides are read before anything is written: a file zeze cannot
 	// parse is reported and left untouched, never overwritten blindly.
 	pf, err := readPlainIfExists(p)
 	if err != nil {
-		return xerr.Failure("%v; fix or remove the %s block by hand, then re-run jureuma init", err, pair.MetaKey)
+		return xerr.Failure("%v; fix or remove the %s block by hand, then re-run zeze init", err, pair.MetaKey)
 	}
 	var enc *pair.Encrypted
 	if fileExists(p.EncryptedPath) {
 		if enc, err = pair.ReadEncrypted(p.EncryptedPath); err != nil {
-			return xerr.Failure("%v; fix or remove the %s block by hand, then re-run jureuma init", err, pair.MetaKey)
+			return xerr.Failure("%v; fix or remove the %s block by hand, then re-run zeze init", err, pair.MetaKey)
 		}
 	}
 	warns, err := pair.CheckIdentity(pf, enc)
@@ -429,15 +429,15 @@ func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error
 			r.step("key       private key %s available", enc.Meta.KeyID)
 		}
 		if keyID != "" || keyLabel != "" {
-			r.notes = append(r.notes, "--key-id/--key-label were not applied: the pair already has a key (jureuma key rotate changes it)")
+			r.notes = append(r.notes, "--key-id/--key-label were not applied: the pair already has a key (zeze key rotate changes it)")
 		}
 	} else {
 		// No encrypted file: the identity comes from the unencrypted file's
-		// $jureuma header when it has one, else from a stored key chosen for
+		// $zeze header when it has one, else from a stored key chosen for
 		// this pair (picker in a terminal, --key-id / --key-label, or a new
 		// key by default).
 		if pf != nil && pf.Header != nil && (keyID != "" || keyLabel != "") {
-			return xerr.Usage("the pair key is recorded in %s; drop --key-id/--key-label (jureuma key rotate changes the key)", p.Rel(p.UnencryptedPath))
+			return xerr.Usage("the pair key is recorded in %s; drop --key-id/--key-label (zeze key rotate changes the key)", p.Rel(p.UnencryptedPath))
 		}
 		if pf != nil && pf.Header != nil {
 			h1 := *pf.Header
@@ -478,7 +478,7 @@ func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error
 		if err := paths.AtomicWrite(p.SchemaPath, doc.Marshal(schema.Starter()), 0o644); err != nil {
 			return xerr.Failure("%s: cannot write file", p.SchemaPath)
 		}
-		r.step("created   %s (permissive starter; run jureuma schema infer)", p.SchemaPath)
+		r.step("created   %s (permissive starter; run zeze schema infer)", p.SchemaPath)
 	} else {
 		r.step("exists    %s", p.SchemaPath)
 	}
@@ -528,7 +528,7 @@ func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error
 		}
 	}
 
-	// The unencrypted side: the body is kept exactly; the $jureuma identity
+	// The unencrypted side: the body is kept exactly; the $zeze identity
 	// header and the $schema pointer are added or repaired.
 	if pf == nil {
 		pf = &pair.PlainFile{Body: doc.NewObject()}
@@ -565,8 +565,8 @@ func initPair(r *initReport, e *env, p *pair.Pair, keyID, keyLabel string) error
 }
 
 // chooseInitKey resolves the key for a pair with no recorded identity. When
-// jureuma.yaml binds a key, that key is used (resolved from the keystore; a
-// missing key is a key error naming it and pointing at jureuma key list).
+// zeze.yaml binds a key, that key is used (resolved from the keystore; a
+// missing key is a key error naming it and pointing at zeze key list).
 // Otherwise an explicit --key-id or --key-label names a stored key; a terminal
 // offers the stored keys through the picker plus a "create a new key" choice;
 // without a terminal a new key is created. New keys carry the default
@@ -676,10 +676,10 @@ func namedStoredKey(e *env, keyID, keyLabel string) (*keystore.Entry, error) {
 	return match, nil
 }
 
-// boundKeyHeader resolves the key jureuma.yaml binds from the keystore: the
+// boundKeyHeader resolves the key zeze.yaml binds from the keystore: the
 // private key when it is available (so the pair keeps a sync baseline), else
 // the stored public key. A key the keystore does not hold at all is a key
-// error naming it and pointing at jureuma key list.
+// error naming it and pointing at zeze key list.
 func boundKeyHeader(e *env, bound string) (*pair.Header, *crypt.PrivateKey, error) {
 	sk, _, err := e.findKey(bound)
 	if err != nil {
@@ -701,7 +701,7 @@ func boundKeyHeader(e *env, bound string) (*pair.Header, *crypt.PrivateKey, erro
 		}
 		break
 	}
-	return nil, nil, xerr.Key("the key bound in %s (%s) is not in the keystore; run jureuma key list", config.ProjectFile, bound)
+	return nil, nil, xerr.Key("the key bound in %s (%s) is not in the keystore; run zeze key list", config.ProjectFile, bound)
 }
 
 // headerOf builds the format-2 pair identity of a key.
@@ -710,7 +710,7 @@ func headerOf(pk crypt.PublicKey) *pair.Header {
 }
 
 // checkInitKeyFlags refuses --key-id / --key-label that contradict the key
-// jureuma.yaml binds: they name the project key or nothing (a usage error).
+// zeze.yaml binds: they name the project key or nothing (a usage error).
 // Flags that name no stored key stay key errors. With no binding the flags
 // keep their ordinary meaning.
 func checkInitKeyFlags(e *env, keyID, keyLabel string) error {
@@ -733,7 +733,7 @@ func checkInitKeyFlags(e *env, keyID, keyLabel string) error {
 	return nil
 }
 
-// ensureKeyBinding makes jureuma.yaml's key binding equal the key init just
+// ensureKeyBinding makes zeze.yaml's key binding equal the key init just
 // created or chose for a pair with no recorded identity: an absent binding is
 // added, an equal binding is never rewritten, and a binding that differs is
 // never overwritten (exit 5). A new binding is written only when no other
@@ -748,7 +748,7 @@ func ensureKeyBinding(r *initReport, e *env, p *pair.Pair, keyID string) error {
 		return xerr.Key("the key bound in %s (%s) is not the key of pair %s (%s); the binding is never overwritten", config.ProjectFile, e.proj.Key, p.Name, keyID)
 	}
 	if name, other := recordedKeyConflict(e, p, keyID); other != "" {
-		r.notes = append(r.notes, fmt.Sprintf("%s got no key binding: pair %s records %s while pair %s uses %s (one project, one key; converge with jureuma key rotate)", config.ProjectFile, name, other, p.Name, keyID))
+		r.notes = append(r.notes, fmt.Sprintf("%s got no key binding: pair %s records %s while pair %s uses %s (one project, one key; converge with zeze key rotate)", config.ProjectFile, name, other, p.Name, keyID))
 		return nil
 	}
 	changed, err := config.BindProjectKey(e.root, keyID)
@@ -798,7 +798,7 @@ func verifyPair(r *initReport, e *env, p *pair.Pair) {
 	case s == nil:
 		r.fatal = append(r.fatal, p.Name+": schema "+p.Rel(p.SchemaPath)+" is missing")
 	case schema.IsStarter(s.Raw()):
-		r.notes = append(r.notes, p.Name+": "+p.Rel(p.SchemaPath)+" is still the starter schema (run jureuma schema infer, then refine it)")
+		r.notes = append(r.notes, p.Name+": "+p.Rel(p.SchemaPath)+" is still the starter schema (run zeze schema infer, then refine it)")
 	}
 	if sk, _, err := e.findKey(enc.Meta.KeyID); err == nil && sk != nil {
 		plain, _ := readPlainIfExists(p)

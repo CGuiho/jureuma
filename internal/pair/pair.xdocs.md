@@ -1,12 +1,12 @@
 ---
-subject: jureuma-pair
+subject: zeze-pair
 description: "Configuration pairs: resolution of encrypted, unencrypted and schema files, encrypt/decrypt, sync state per path, the .gitignore block and git tracking checks."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "pair.go": "Pair resolution."
   "files.go": "Encrypted-file format and atomic reads/writes."
-  "header.go": "The $jureuma identity header: format generation, key reference, home, the $schema pointer and the embedded schema copy."
+  "header.go": "The $zeze identity header: format generation, key reference, home, the $schema pointer and the embedded schema copy."
   "git.go": "Managed .gitignore block and git check-ignore/tracked checks."
   "crypto.go": "Encrypting and decrypting whole documents."
   "mutate.go": "set/unset mutations and pending paths."
@@ -27,7 +27,7 @@ status: stable
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
 
-# jureuma-pair
+# zeze-pair
 
 Configuration pairs: resolution of encrypted, unencrypted and schema files, encrypt/decrypt, sync state per path, the .gitignore block and git tracking checks.
 
@@ -35,7 +35,7 @@ Configuration pairs: resolution of encrypted, unencrypted and schema files, encr
 
 - `pair.go`: Pair resolution.
 - `files.go`: Encrypted-file format and atomic reads/writes.
-- `header.go`: The $jureuma identity header: format generation, key reference, home, the $schema pointer and the embedded schema copy.
+- `header.go`: The $zeze identity header: format generation, key reference, home, the $schema pointer and the embedded schema copy.
 - `git.go`: Managed .gitignore block and git check-ignore/tracked checks.
 - `crypto.go`: Encrypting and decrypting whole documents.
 - `mutate.go`: set/unset mutations and pending paths.

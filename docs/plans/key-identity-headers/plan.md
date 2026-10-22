@@ -1,9 +1,9 @@
 ---
 name: Key Identity Headers and Single-File Pairs
-purpose: Record the train that puts the `$jureuma` identity header on both pair files, makes single-file operation first-class, and adds key labels with stored-key selection (issue #13).
-description: "Plan for the key-identity train: format-2 `$jureuma` headers on both files with the always-present `$schema` pointer and the embedded encrypted schema, single-file operation, `init` repair and key selection, labeled keys with a listing and a TTY-safe picker (issue #13)."
+purpose: Record the train that puts the `$zeze` identity header on both pair files, makes single-file operation first-class, and adds key labels with stored-key selection (issue #13).
+description: "Plan for the key-identity train: format-2 `$zeze` headers on both files with the always-present `$schema` pointer and the embedded encrypted schema, single-file operation, `init` repair and key selection, labeled keys with a listing and a TTY-safe picker (issue #13)."
 created: "2026-10-17"
-owner: jureuma-docs-plans-key-identity-headers
+owner: zeze-docs-plans-key-identity-headers
 flags: []
 tags:
   - "planning"
@@ -24,25 +24,25 @@ status: stable
 
 CG directive (voice, 2026-10-17, issue #13): the public key currently lives
 only in the committed encrypted file, so a bare unencrypted file cannot tell
-jureuma — or its holder — which key pair it belongs to. jureuma must carry a
-`$jureuma` header on **both** files (public key, key reference `keyId`, and
+zeze — or its holder — which key pair it belongs to. zeze must carry a
+`$zeze` header on **both** files (public key, key reference `keyId`, and
 the global directory reference) and must work with **either file alone**:
 only-unencrypted or only-encrypted; both present stays allowed but is not
 assumed ("having both is risky"). Headerless legacy files are repaired by
-re-running `jureuma init`. Every created key pair gets a label (default: the
+re-running `zeze init`. Every created key pair gets a label (default: the
 project/repository name); key listing shows the label plus the short keyId /
 public-key prefix, and commands let the user pick from already stored keys.
 After implementation, the next minor release (0.3.0) ships this together
 with #10, #11 and #12.
 
 Additional directive (2026-10-17, referencing `/root/swe/auth-ui/config.unencrypted.json`
-and its jureuma-migration note): the unencrypted file must **always** specify
+and its zeze-migration note): the unencrypted file must **always** specify
 the path to the local schema — "always, always, always" — and the encrypted
 file must also carry a property holding the schema in encrypted form, so each
 file stays self-describing. auth-ui grounds this: its schema declares the
 optional `$schema` string property ("Always specify it in the unencrypted file
 so editors validate and autocomplete") and its note says the unencrypted
-document always points at `./config.schema.json`. jureuma makes that pointer
+document always points at `./config.schema.json`. zeze makes that pointer
 first-class (always written, repaired, preserved, checked) and turns the
 top-level `$schema` into reserved metadata — never a value, listing, injection
 or encrypted body entry.
@@ -56,11 +56,11 @@ Keystore labels with a repository-name default, `key list`, label on
 in-flight JSONC writer; dispatched immediately. Brief:
 `execution/handoffs/w1-key-labels-and-selection.md`.
 
-### W2 — `$jureuma` identity header on both files (issue #13, part 2)
+### W2 — `$zeze` identity header on both files (issue #13, part 2)
 
 Format-2 identity block (`format`, `publicKey`, `keyId`, `home`) on the
 encrypted and unencrypted files; the always-present `$schema` pointer and the
-`$jureuma.schema` encrypted copy; body exclusion of reserved keys; cross-file
+`$zeze.schema` encrypted copy; body exclusion of reserved keys; cross-file
 consistency checks; typed legacy-header repair pointer; header and pointer
 insert/repair through the JSONC lossless engine. Brief:
 `execution/handoffs/w2-pair-identity-headers.md`.
@@ -74,7 +74,7 @@ selection on `init`; schema restore on `decrypt` and refresh on
 `schema infer`; status/check reporting across all states. Brief:
 `execution/handoffs/w3-single-file-flows-and-init.md`.
 
-### W4 — project key binding in `jureuma.yaml` (issue #14, CG directive 2026-10-17)
+### W4 — project key binding in `zeze.yaml` (issue #14, CG directive 2026-10-17)
 
 An optional top-level `key:` (full key ID) names the one key the project uses;
 every pair must agree with it (mismatch exit 5, never a silent re-encrypt).
@@ -92,7 +92,7 @@ dispatch only after the JSONC worker's commits have landed and been reviewed,
 because they share `internal/pair/files.go`, `internal/cli/cmd_init.go`,
 `internal/cli/cmd_values.go`, the design document, `CHANGELOG.md` and
 `test/e2e/lifecycle_test.go` with it. One serialized Git index throughout
-(`flock -w 120 /tmp/opencode/jureuma-git.lock`); all work on `main`; workers
+(`flock -w 120 /tmp/opencode/zeze-git.lock`); all work on `main`; workers
 commit owned units and never push.
 
 ## Decisions
@@ -101,20 +101,20 @@ Confirmed by the orchestrator from the UltraCode packet v1 (safest-reversible
 defaults; stated to CG at dispatch time):
 
 - **Format 2.** New headers are written as `format: 2` on both files. Legacy
-  is old jureuma **state**, never header absence: a `$jureuma` block with
+  is old zeze **state**, never header absence: a `$zeze` block with
   `format: 1`, or a present-but-malformed block, on either side. Reads keep
   working; mutations through such files refuse with an explicit
-  `run jureuma init to repair` pointer (enforced in the pair mutating entry
+  `run zeze init to repair` pointer (enforced in the pair mutating entry
   points, so untouched command callers inherit it). A headerless plaintext
   stays fully mutable (encrypt, mirror and both-present flows — the
   untouched suite pins this and W3 keeps it green); the repair pointer for
   missing plaintext identity belongs to the single-file identity paths,
   `check` and `init` repair. (Amended by UltraCode packet v2.1; see the W2
-  brief's A4 block.) Old jureuma readers already reject unknown `$jureuma`
+  brief's A4 block.) Old zeze readers already reject unknown `$zeze`
   fields; the explicit version makes the break legible instead of a shape
   surprise.
 - **Identity-only plaintext header.** The unencrypted header carries
-  `format`, `publicKey`, `keyId`, `home` (the `~/.guiho/jureuma/` global
+  `format`, `publicKey`, `keyId`, `home` (the `~/.guiho/zeze/` global
   directory reference); `sync`/`pending` stay encrypted-side only, so the
   plaintext header is stable and a keyless `set` can rebuild the sibling
   from it. The schema pointer lives beside the header as a real top-level
@@ -127,7 +127,7 @@ defaults; stated to CG at dispatch time):
   when missing; `schema infer` includes the optional `$schema` string
   property in generated schemas.
 - **Encrypted schema copy (2026-10-17).** The encrypted header carries
-  `$jureuma.schema`: the readable schema path plus the schema document
+  `$zeze.schema`: the readable schema path plus the schema document
   encrypted to the pair key, written as `{ path, c }` when the embedded copy
   is present (the historical plain-string path form stays readable in any
   generation and remains the written form when no copy exists — packet

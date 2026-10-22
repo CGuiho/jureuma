@@ -1,9 +1,9 @@
 ---
-subject: jureuma-docs-plans-run-envname-and-opencode-deny-rules-execution
+subject: zeze-docs-plans-run-envname-and-opencode-deny-rules-execution
 description: "Execution artifacts of the run env name + OpenCode deny rules plan: the worker handoff briefs dispatched as one native background subagent."
-parent: jureuma-docs-plans-run-envname-and-opencode-deny-rules
+parent: zeze-docs-plans-run-envname-and-opencode-deny-rules
 children:
-  - jureuma-docs-plans-run-envname-and-opencode-deny-rules-execution-handoffs
+  - zeze-docs-plans-run-envname-and-opencode-deny-rules-execution-handoffs
 files: {}
 documents: {}
 tags:
@@ -16,7 +16,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-run-envname-and-opencode-deny-rules-execution
+# zeze-docs-plans-run-envname-and-opencode-deny-rules-execution
 
 Execution artifacts of the run env name + OpenCode deny rules plan. Both units
 run in one native background subagent (`xiaomi/mimo-v2.6-pro`, provider-default

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
 )
 
 // sentinel is a fake secret; it must never appear in any Issue or error.
@@ -60,7 +60,7 @@ const appSchema = `{
     "database": {
       "type": "object",
       "properties": {
-        "url": {"type": "string", "format": "uri", "x-jureuma-secret": true},
+        "url": {"type": "string", "format": "uri", "x-zeze-secret": true},
         "pool": {"type": "integer", "minimum": 1, "maximum": 100},
         "ratio": {"type": "number", "exclusiveMaximum": 0.5}
       },
@@ -68,12 +68,12 @@ const appSchema = `{
       "additionalProperties": false
     },
     "mode": {"enum": ["dev", "prod"]},
-    "token": {"type": "string", "pattern": "^tok_", "minLength": 50, "x-jureuma-secret": true},
+    "token": {"type": "string", "pattern": "^tok_", "minLength": 50, "x-zeze-secret": true},
     "email": {"type": "string", "format": "email"},
     "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 2},
     "nullable": {"anyOf": [{"type": "string", "maxLength": 3}, {"type": "null"}]},
     "ref": {"$ref": "#/$defs/port"},
-    "creds": {"type": "object", "x-jureuma-secret": true, "properties": {"user": {"type": "string"}}}
+    "creds": {"type": "object", "x-zeze-secret": true, "properties": {"user": {"type": "string"}}}
   },
   "required": ["database"],
   "additionalProperties": false,
@@ -127,7 +127,7 @@ func TestCompileErrors(t *testing.T) {
 		{"definitions", `{"definitions": {}}`, `use "$defs"`},
 		{"draft 7", `{"$schema": "http://json-schema.org/draft-07/schema#"}`, "unsupported $schema"},
 		{"remote ref", `{"$ref": "https://example.com/s.json"}`, "only local references"},
-		{"bad secret", `{"x-jureuma-secret": "yes"}`, "must be a boolean"},
+		{"bad secret", `{"x-zeze-secret": "yes"}`, "must be a boolean"},
 		{"meta invalid", `{"type": "strin"}`, "not a valid draft 2020-12 schema"},
 		{"bad ref target", `{"$ref": "#/$defs/missing"}`, "$ref"},
 		{"not schema", `{"properties": {"a": 3}}`, "must be an object or a boolean"},
@@ -285,7 +285,7 @@ func TestValidateValueBranches(t *testing.T) {
 
 func TestValidateStructure(t *testing.T) {
 	s := compile(t, appSchema)
-	ct := `"jureuma:1:k_00:` + sentinel + `"`
+	ct := `"zeze:1:k_00:` + sentinel + `"`
 	tests := []struct {
 		name, doc, ptr, kw string
 	}{
@@ -369,7 +369,7 @@ func TestSecret(t *testing.T) {
 			t.Errorf("Secret(%q) = %v, want %v", p, got, want)
 		}
 	}
-	s2 := compile(t, `{"$defs": {"sec": {"type": "string", "x-jureuma-secret": true, "default": "x"}},
+	s2 := compile(t, `{"$defs": {"sec": {"type": "string", "x-zeze-secret": true, "default": "x"}},
 	  "properties": {"a": {"$ref": "#/$defs/sec"}, "b": {"anyOf": [{"$ref": "#/$defs/sec"}, {"type": "null"}]}}}`)
 	if !s2.Secret("/a") || !s2.Secret("/b") {
 		t.Error("secret through $ref/anyOf not detected")
@@ -414,7 +414,7 @@ func TestInfer(t *testing.T) {
 	if is := sch.Validate(v); len(is) != 0 {
 		t.Fatalf("source does not validate against inferred schema: %v", is)
 	}
-	untyped := Infer(parse(t, `{"a": "jureuma:1:k:x", "b": ["c1", "c2"]}`), false)
+	untyped := Infer(parse(t, `{"a": "zeze:1:k:x", "b": ["c1", "c2"]}`), false)
 	wantU := parse(t, `{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object",
 	  "properties": {"a": {}, "b": {"type": "array", "items": {}}}, "required": ["a", "b"], "additionalProperties": false}`)
 	if !doc.Equal(untyped, wantU) {

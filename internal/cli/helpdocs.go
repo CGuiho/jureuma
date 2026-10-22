@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

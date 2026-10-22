@@ -1,4 +1,4 @@
-// Package gate implements jureuma's human-only gate for protected operations
+// Package gate implements zeze's human-only gate for protected operations
 // and the append-only audit log.
 //
 // A protected operation proceeds only when standard input and standard error
@@ -26,7 +26,7 @@ var ErrRefused = errors.New("protected operation refused")
 // DefaultMarkers are the environment variable names that identify an AI agent
 // or agent sandbox. A marker is present when its variable is set to a
 // non-empty value.
-var DefaultMarkers = []string{"CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CODEX_SANDBOX", "CODEX_HOME", "CURSOR_AGENT", "CURSOR_TRACE_ID", "GEMINI_CLI", "AIDER", "OPENCODE", "AMP_AGENT", "CLINE", "GOOSE_SESSION", "WINDSURF_AGENT", "COPILOT_AGENT", "JUREUMA_AGENT"}
+var DefaultMarkers = []string{"CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CODEX_SANDBOX", "CODEX_HOME", "CURSOR_AGENT", "CURSOR_TRACE_ID", "GEMINI_CLI", "AIDER", "OPENCODE", "AMP_AGENT", "CLINE", "GOOSE_SESSION", "WINDSURF_AGENT", "COPILOT_AGENT", "ZEZE_AGENT"}
 
 // Refusal reasons. They name the failed check only, never any input.
 const (

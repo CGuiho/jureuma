@@ -5,7 +5,7 @@
 - **Role:** workhorse (engineer). **Harness:** opencode native background
   subagent; this brief is your session.
 - **Model:** `xiaomi/mimo-v2.6-pro` — provider-default thinking, no variant.
-- **Working directory:** `/root/swe/jureuma` — work on `main`; never create
+- **Working directory:** `/root/swe/zeze` — work on `main`; never create
   branches; never push; never tag.
 - **Dependency satisfied:** W1 (issue #5, launcher artifacts) landed on `main`
   (`1e0a201`…`53b8363`) and passed the parent's review; the central `ci-check`
@@ -15,7 +15,7 @@
   ordinary upgrades never replace. The instance-termination block sits just
   before `activate` (search `runner.Instances(home)`); keep `--force`
   semantics. A verified old-payload process executes
-  `versions/<previous>/jureuma[.exe]` (symlink-resolved).
+  `versions/<previous>/zeze[.exe]` (symlink-resolved).
 - **Ownership:** your files are `internal/cli/upgrade_tx.go`,
   `internal/cli/cli.go`, `internal/runner/**`, any new journal files, the
   tests for these packages, and the one design-doc bullet named in
@@ -62,7 +62,7 @@ cannot be terminated, fail without activating the new release."
 2. Instances: keep the registry behavior (refuse live `run` instances unless
    `--force`) and add OS inspection of current-user processes whose
    **verified executable path** is the previous payload
-   (`versions/<previous>/jureuma[.exe]`, symlink-resolved) — Linux `/proc`,
+   (`versions/<previous>/zeze[.exe]`, symlink-resolved) — Linux `/proc`,
    macOS equivalent, Windows equivalent (port buda's approach). Never match
    by filename; never terminate the CLI's own children; fail without
    activation when a verified old-payload process cannot be terminated.
@@ -71,9 +71,9 @@ cannot be terminated, fail without activating the new release."
    guarded by build/platform where needed).
 4. Do not regress: `--force` semantics, rollback, `__self-test`, recovery
    message first-and-last behavior.
-5. Documentation: update the `docs/2026-10-13-jureuma-design.md` "Upgrade
+5. Documentation: update the `docs/2026-10-13-zeze-design.md` "Upgrade
    transaction scope" bullet — its "it keeps no transaction journal, so an
-   interrupted upgrade is repaired by re-running `jureuma upgrade` or the
+   interrupted upgrade is repaired by re-running `zeze upgrade` or the
    reinstall command rather than automatically on the next invocation"
    sentence becomes false once the journal lands. Replace it with the journal
    and repair behavior as implemented; keep the rest of the bullet and the
@@ -88,7 +88,7 @@ cannot be terminated, fail without activating the new release."
 
 ## Commit contract
 
-- `flock -w 120 /tmp/opencode/jureuma-git.lock -c 'cd /root/swe/jureuma &&
+- `flock -w 120 /tmp/opencode/zeze-git.lock -c 'cd /root/swe/zeze &&
   git add <paths> && git commit -m "<message>"'`; never `git add -A`; never
   push; unexpected changes elsewhere: leave untouched, report.
 

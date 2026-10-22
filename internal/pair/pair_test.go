@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 const sentinel = "SENTINEL-7f3a9c-value"
@@ -137,8 +137,8 @@ func TestEncryptedRoundTripAndChecks(t *testing.T) {
 	if strings.Contains(string(data), sentinel) {
 		t.Fatal("plaintext leaked into the encrypted file")
 	}
-	if !strings.HasPrefix(string(data), "{\n  \"$jureuma\"") {
-		t.Fatal("$jureuma must come first")
+	if !strings.HasPrefix(string(data), "{\n  \"$zeze\"") {
+		t.Fatal("$zeze must come first")
 	}
 	got, err := ReadEncrypted(path)
 	if err != nil {
@@ -185,7 +185,7 @@ func TestReadEncryptedRejects(t *testing.T) {
 		"keyId mismatch": {strings.Replace(string(MarshalEncrypted(good)), crypt.KeyID(pk), crypt.KeyID(sk2.Public()), 1), xerr.CodeKey},
 		"plaintext leaf": {strings.Replace(string(MarshalEncrypted(good)), "\"pending\": []\n  }", "\"pending\": []\n  },\n  \"x\": \""+sentinel+"\"", 1), xerr.CodeFailure},
 		"no meta":        {`{"x": 1}`, xerr.CodeFailure},
-		"syntax":         {`{"$jureuma": ` + sentinel, xerr.CodeFailure},
+		"syntax":         {`{"$zeze": ` + sentinel, xerr.CodeFailure},
 		"unknown meta":   {strings.Replace(string(MarshalEncrypted(good)), `"format": 2,`, `"format": 2, "extra": "`+sentinel+`",`, 1), xerr.CodeFailure},
 	}
 	for name, tc := range cases {
@@ -213,9 +213,9 @@ func TestReadPlain(t *testing.T) {
 	if _, err := ReadPlain(p, false); err == nil || strings.Contains(err.Error(), sentinel) {
 		t.Fatalf("strict read must fail without leaking: %v", err)
 	}
-	os.WriteFile(p, []byte(`{"$jureuma": 1}`), 0o600)
+	os.WriteFile(p, []byte(`{"$zeze": 1}`), 0o600)
 	if _, err := ReadPlain(p, true); err == nil {
-		t.Fatal("$jureuma must be reserved")
+		t.Fatal("$zeze must be reserved")
 	}
 }
 
@@ -244,7 +244,7 @@ func TestGitignoreAndWritePlain(t *testing.T) {
 		t.Fatal("block must be added")
 	}
 	data, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
-	if !strings.HasPrefix(string(data), "node_modules\n\n# >>> jureuma") {
+	if !strings.HasPrefix(string(data), "node_modules\n\n# >>> zeze") {
 		t.Fatalf("existing lines must be kept: %q", data)
 	}
 	if changed, _ := EnsureGitignoreBlock(root); changed {
@@ -424,14 +424,14 @@ func TestResolveConfinesCommittedPaths(t *testing.T) {
 			t.Errorf("%+v: want usage error, got %v", pc, err)
 		}
 	}
-	// $jureuma.schema from the committed encrypted file.
+	// $zeze.schema from the committed encrypted file.
 	sk, _ := crypt.GenerateKey()
 	for _, ref := range []string{"../home/victim.txt", "../evil.schema.json", "./notaschema.json"} {
 		if err := WriteEncrypted(filepath.Join(root, "config.encrypted.json"), NewEncrypted(sk.Public(), ref)); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := Resolve(Options{Root: root}); xerr.CodeOf(err) != xerr.CodeUsage {
-			t.Errorf("$jureuma.schema %s: want usage error, got %v", ref, err)
+			t.Errorf("$zeze.schema %s: want usage error, got %v", ref, err)
 		}
 	}
 	// A symlinked directory that leaves the root is refused too.
@@ -464,7 +464,7 @@ func TestCheckSchemaFlagAgainstDefaultSchema(t *testing.T) {
 	}
 }
 
-func TestWriteRefusesFilesJureumaCannotRead(t *testing.T) {
+func TestWriteRefusesFilesZezeCannotRead(t *testing.T) {
 	root := t.TempDir()
 	sk, _ := crypt.GenerateKey()
 	e := NewEncrypted(sk.Public(), "")

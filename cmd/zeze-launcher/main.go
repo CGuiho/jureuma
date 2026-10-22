@@ -1,7 +1,7 @@
-// Command jureuma-launcher is the stable launcher installed at
-// $HOME/.guiho/bin/jureuma (jureuma.exe on Windows). It reads the active
-// version from ~/.guiho/jureuma/current.json and starts
-// versions/<active>/jureuma with the original arguments and standard streams,
+// Command zeze-launcher is the stable launcher installed at
+// $HOME/.guiho/bin/zeze (zeze.exe on Windows). It reads the active
+// version from ~/.guiho/zeze/current.json and starts
+// versions/<active>/zeze with the original arguments and standard streams,
 // returning the payload's exact exit code. When the active payload is missing
 // or cannot be started, it falls back to the retained previous payload. The
 // launcher is release-independent: it carries no version of its own and never
@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/paths"
 )
 
 const currentFile = "current.json"
@@ -49,22 +49,22 @@ func main() {
 // payloadName is the platform payload file name inside a version directory.
 func payloadName() string {
 	if runtime.GOOS == "windows" {
-		return "jureuma.exe"
+		return "zeze.exe"
 	}
-	return "jureuma"
+	return "zeze"
 }
 
 // reinstallHint is printed with every launcher failure so the reader can
 // repair the installation.
 func reinstallHint() string {
 	if runtime.GOOS == "windows" {
-		return "reinstall: irm https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.ps1 | iex"
+		return "reinstall: irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1 | iex"
 	}
-	return "reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh"
+	return "reinstall: curl -fsSL https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.sh | sh"
 }
 
 func fail(errOut io.Writer, format string, args ...any) int {
-	fmt.Fprintf(errOut, "jureuma launcher: "+format+"\n", args...)
+	fmt.Fprintf(errOut, "zeze launcher: "+format+"\n", args...)
 	return 1
 }
 
@@ -75,7 +75,7 @@ func fail(errOut io.Writer, format string, args ...any) int {
 func run(args []string, start starter, errOut io.Writer) int {
 	home, err := paths.Home()
 	if err != nil {
-		return fail(errOut, "cannot resolve the jureuma home: %v; %s", err, reinstallHint())
+		return fail(errOut, "cannot resolve the zeze home: %v; %s", err, reinstallHint())
 	}
 	p, err := readPointer(filepath.Join(home, currentFile))
 	if err != nil {
@@ -100,7 +100,7 @@ func run(args []string, start starter, errOut io.Writer) int {
 	if fallbackErr != nil {
 		return fail(errOut, "%v; the fallback version %s is unavailable (%v); %s", runErr, p.Previous, fallbackErr, reinstallHint())
 	}
-	fmt.Fprintf(errOut, "jureuma launcher: warning: %v; running the fallback version %s\n", runErr, p.Previous)
+	fmt.Fprintf(errOut, "zeze launcher: warning: %v; running the fallback version %s\n", runErr, p.Previous)
 	if code, err := start(fallback, args); err == nil {
 		return code
 	}
@@ -214,7 +214,7 @@ func validateRelative(value string) error {
 	return nil
 }
 
-// resolvePayload maps a version name to versions/<name>/jureuma(.exe) and
+// resolvePayload maps a version name to versions/<name>/zeze(.exe) and
 // refuses any target that is not a regular file strictly inside the versions
 // directory.
 func resolvePayload(versionsRoot, version string) (string, error) {

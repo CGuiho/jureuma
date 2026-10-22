@@ -2,10 +2,10 @@ package config
 
 import "strings"
 
-// Environment variable names jureuma never produces from configuration data
+// Environment variable names zeze never produces from configuration data
 // (flatten mode, run.envName, --env-name): names that make a program load or
 // run code, change how a shell or tool executes commands, or belong to
-// jureuma itself. A key added by "set" (anyone holding the committed public
+// zeze itself. A key added by "set" (anyone holding the committed public
 // key can add one) must not become code execution inside a process that
 // holds every secret. "run --env NAME=/pointer" may still map them
 // explicitly, because that mapping is typed on the command line.
@@ -31,7 +31,7 @@ var (
 		"JAVA_",       // JAVA_TOOL_OPTIONS, ...
 		"NPM_CONFIG_", // npm_config_script_shell, ...
 		"BASH_FUNC_",  // exported shell functions
-		"JUREUMA_",    // jureuma's own variables
+		"ZEZE_",       // zeze's own variables
 	}
 )
 

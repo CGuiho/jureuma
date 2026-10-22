@@ -9,7 +9,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 func compact(t *testing.T, v *doc.Value) string {

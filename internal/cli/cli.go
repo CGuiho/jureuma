@@ -1,4 +1,4 @@
-// Package cli is jureuma's Cobra command tree.
+// Package cli is zeze's Cobra command tree.
 //
 // Every message printed here is built from file names, JSON Pointers, key IDs
 // and fixed phrases. Configuration values, plaintext and key material are only
@@ -14,9 +14,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/runner"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/runner"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -81,20 +81,20 @@ func ExecuteIO(version string, args []string, stdin io.Reader, stdout, stderr io
 			kind = xerr.KindUsage
 			msg = parseErrorMessage(err, args)
 		}
-		fmt.Fprintf(stderr, "[JUREUMA:%s] %s\n", kind, msg)
+		fmt.Fprintf(stderr, "[ZEZE:%s] %s\n", kind, msg)
 		return xerr.CodeRun
 	}
 	if !isX {
 		// Errors produced by Cobra itself (unknown command or flag, bad
 		// argument count) are usage errors.
-		fmt.Fprintf(stderr, "jureuma: %s\n", parseErrorMessage(err, args))
+		fmt.Fprintf(stderr, "zeze: %s\n", parseErrorMessage(err, args))
 		fmt.Fprintf(stderr, "Run '%s --help' for usage.\n", commandPath(cmd))
 		return xerr.CodeUsage
 	}
 	if xe.Code == xerr.CodeProtected && strings.HasPrefix(err.Error(), "[PROTECTED]") {
 		fmt.Fprintln(stderr, err.Error())
 	} else {
-		fmt.Fprintf(stderr, "jureuma: %s\n", err.Error())
+		fmt.Fprintf(stderr, "zeze: %s\n", err.Error())
 	}
 	return xe.Code
 }
@@ -153,16 +153,16 @@ func parseErrorMessage(err error, args []string) string {
 
 func commandPath(cmd *cobra.Command) string {
 	if cmd == nil {
-		return "jureuma"
+		return "zeze"
 	}
 	return cmd.CommandPath()
 }
 
 func (a *app) newRoot() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "jureuma",
+		Use:   "zeze",
 		Short: "Agent-safe configuration CLI: encrypt, set and inject configuration without revealing it",
-		Long: `jureuma keeps a gitignored plaintext JSON file, a committed encrypted JSON file and a
+		Long: `zeze keeps a gitignored plaintext JSON file, a committed encrypted JSON file and a
 committed JSON Schema per configuration. AI agents can set values and inject them into
 processes but cannot read them: decrypt and get are human-only.
 
@@ -204,7 +204,7 @@ Exit codes: 0 ok, 1 failure, 2 usage, 3 protected operation refused, 4 validatio
 		RunE: func(c *cobra.Command, args []string) error {
 			target, _, err := root.Find(args)
 			if err != nil || target == nil {
-				return xerr.Usage("unknown command (run 'jureuma --help' for the command list)")
+				return xerr.Usage("unknown command (run 'zeze --help' for the command list)")
 			}
 			return target.Help()
 		},

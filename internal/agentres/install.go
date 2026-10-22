@@ -65,7 +65,7 @@ func randSuffix() string {
 // there. The new copy is built in a temporary sibling directory and swapped
 // in by rename; on failure the previous copy is restored. An existing
 // dest/<s.ID> that is not a real directory (a file or a symlink) is refused,
-// because jureuma does not own it.
+// because zeze does not own it.
 func InstallSkill(s Skill, dest string) error {
 	if !validID(s.ID) {
 		return errors.New("invalid skill id")
@@ -85,11 +85,11 @@ func InstallSkill(s Skill, dest string) error {
 		return fmt.Errorf("inspect %s: %w", target, err)
 	}
 	if exists && (fi.Mode()&fs.ModeSymlink != 0 || !fi.IsDir()) {
-		return fmt.Errorf("%s exists and is not a directory managed by jureuma", target)
+		return fmt.Errorf("%s exists and is not a directory managed by zeze", target)
 	}
 
 	suffix := randSuffix()
-	tmp := filepath.Join(dest, "."+s.ID+".jureuma-tmp-"+suffix)
+	tmp := filepath.Join(dest, "."+s.ID+".zeze-tmp-"+suffix)
 	if err := os.Mkdir(tmp, 0o755); err != nil {
 		return fmt.Errorf("create temporary skill directory in %s: %w", dest, err)
 	}
@@ -111,7 +111,7 @@ func InstallSkill(s Skill, dest string) error {
 
 	var old string
 	if exists {
-		old = filepath.Join(dest, "."+s.ID+".jureuma-old-"+suffix)
+		old = filepath.Join(dest, "."+s.ID+".zeze-old-"+suffix)
 		if err := os.Rename(target, old); err != nil {
 			return fmt.Errorf("replace %s: %w", target, err)
 		}

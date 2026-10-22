@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/CGuiho/mirror/main/mirror/schema/mirror.schema.json
 #
-# GUIHO Mirror is the sole authority for jureuma versions, release commits and tags.
+# GUIHO Mirror is the sole authority for zeze versions, release commits and tags.
 #
-# jureuma is a Go module, so the canonical version lives in Git tags (v<semver>),
-# which is also what `jureuma upgrade`, devops/install.sh and devops/install.ps1
+# zeze is a Go module, so the canonical version lives in Git tags (v<semver>),
+# which is also what `zeze upgrade`, devops/install.sh and devops/install.ps1
 # read from the GitHub release catalog. The first release is 0.1.0:
 #
 #   mirror version plan 0.1.0
@@ -12,15 +12,15 @@
 # package.json) are kept in sync by `runx run version-sync -- <version>`
 # and checked by `runx run version-check -- <version>`:
 #
-#   internal/config/examples/jureuma.yaml         pinned project schema URL
-#   internal/config/examples/jureuma.global.yaml  pinned global schema URL
+#   internal/config/examples/zeze.yaml         pinned project schema URL
+#   internal/config/examples/zeze.global.yaml  pinned global schema URL
 #
 # The binary version is injected at build time with
 # -ldflags "-X main.version=<semver>" (devops/version.sh resolves it from the
-# exact v<semver> tag at HEAD or JUREUMA_VERSION).
+# exact v<semver> tag at HEAD or ZEZE_VERSION).
 schema: 1
 project:
-  name: "jureuma"
+  name: "zeze"
 version:
   scheme: semver
   source: "git"

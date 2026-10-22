@@ -1,7 +1,7 @@
 ---
-subject: jureuma-keystore
-description: "Resolves, stores, retires and lists private keys under ~/.guiho/jureuma/keys and from JUREUMA_PRIVATE_KEY variables, with file-permission checks."
-parent: jureuma-internal
+subject: zeze-keystore
+description: "Resolves, stores, retires and lists private keys under ~/.guiho/zeze/keys and from ZEZE_PRIVATE_KEY variables, with file-permission checks."
+parent: zeze-internal
 children: []
 files:
   "keystore.go": "Key storage and lookup, with non-secret key labels."
@@ -17,14 +17,14 @@ tags:
   - "keys"
 keywords:
   - "keys"
-  - "JUREUMA_PRIVATE_KEY"
+  - "ZEZE_PRIVATE_KEY"
 flags: []
 status: stable
 ---
 
-# jureuma-keystore
+# zeze-keystore
 
-Resolves, stores, retires and lists private keys under ~/.guiho/jureuma/keys and from JUREUMA_PRIVATE_KEY variables, with file-permission checks.
+Resolves, stores, retires and lists private keys under ~/.guiho/zeze/keys and from ZEZE_PRIVATE_KEY variables, with file-permission checks.
 
 ## Files
 

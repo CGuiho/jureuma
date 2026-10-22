@@ -9,16 +9,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 )
 
-//go:embed schemas/jureuma.schema.json schemas/jureuma.global.schema.json
+//go:embed schemas/zeze.schema.json schemas/zeze.global.schema.json
 var schemaFS embed.FS
 
-//go:embed examples/jureuma.yaml examples/jureuma.global.yaml
+//go:embed examples/zeze.yaml examples/zeze.global.yaml
 var exampleFS embed.FS
 
 func mustRead(fs embed.FS, name string) []byte {
@@ -37,16 +37,16 @@ var (
 	globalSchema  = mustCompile(GlobalSchemaFile, globalSchemaBytes)
 )
 
-// ProjectSchemaJSON returns the embedded JSON Schema for jureuma.yaml.
+// ProjectSchemaJSON returns the embedded JSON Schema for zeze.yaml.
 func ProjectSchemaJSON() []byte { return bytes.Clone(projectSchemaBytes) }
 
-// GlobalSchemaJSON returns the embedded JSON Schema for jureuma.global.yaml.
+// GlobalSchemaJSON returns the embedded JSON Schema for zeze.global.yaml.
 func GlobalSchemaJSON() []byte { return bytes.Clone(globalSchemaBytes) }
 
-// ProjectExampleYAML returns the complete example jureuma.yaml.
+// ProjectExampleYAML returns the complete example zeze.yaml.
 func ProjectExampleYAML() []byte { return mustRead(exampleFS, "examples/"+ProjectFile) }
 
-// GlobalExampleYAML returns the complete example jureuma.global.yaml.
+// GlobalExampleYAML returns the complete example zeze.global.yaml.
 func GlobalExampleYAML() []byte { return mustRead(exampleFS, "examples/"+GlobalFile) }
 
 func mustCompile(name string, data []byte) *jsonschema.Schema {
@@ -54,7 +54,7 @@ func mustCompile(name string, data []byte) *jsonschema.Schema {
 	if err != nil {
 		panic("config: embedded schema " + name + " is not JSON")
 	}
-	url := "https://github.com/CGuiho/jureuma/schemas/" + name
+	url := "https://github.com/CGuiho/zeze/schemas/" + name
 	c := jsonschema.NewCompiler()
 	if err := c.AddResource(url, v); err != nil {
 		panic("config: embedded schema " + name + ": " + err.Error())

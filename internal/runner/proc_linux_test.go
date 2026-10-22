@@ -43,7 +43,7 @@ func TestProcessSnapshotFindsSelf(t *testing.T) {
 
 // TestHelperHold is the re-exec helper: a copy of this test binary started at
 // a chosen path with RUNNER_TEST_HOLD=1 holds a process open at that exact
-// executable path, the way a running jureuma payload does.
+// executable path, the way a running zeze payload does.
 func TestHelperHold(t *testing.T) {
 	if os.Getenv("RUNNER_TEST_HOLD") != "1" {
 		t.Skip("helper for TestTerminateOldPayload*")
@@ -119,10 +119,10 @@ func matchingPID(t *testing.T, exe string) int {
 // verification) while a same-named process at another path survives.
 func TestTerminateOldPayload(t *testing.T) {
 	home := t.TempDir()
-	payload := filepath.Join(home, "versions", "0.1.0", "jureuma")
+	payload := filepath.Join(home, "versions", "0.1.0", "zeze")
 	// The bystander has the same file name at a different path: selection is
 	// by verified executable path, never by file name.
-	bystander := filepath.Join(t.TempDir(), "jureuma")
+	bystander := filepath.Join(t.TempDir(), "zeze")
 
 	holdAt(t, payload, true)
 	target := matchingPID(t, payload)
@@ -151,7 +151,7 @@ func TestTerminateOldPayload(t *testing.T) {
 
 func TestTerminateOldPayloadSparesOwnChildren(t *testing.T) {
 	home := t.TempDir()
-	payload := filepath.Join(home, "versions", "0.1.0", "jureuma")
+	payload := filepath.Join(home, "versions", "0.1.0", "zeze")
 
 	// A child of this process running the payload path stands in for a
 	// CLI-launched child command and must be spared.

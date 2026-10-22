@@ -3,10 +3,10 @@ name: 2026-10-17 DND Decisions
 purpose: Record every question the unattended (DND) workers answer themselves during the key-identity-headers train (issue #13).
 description: "DND question ledger for the key-identity-headers train: W1 key-list display format, label storage and relabeling, best-effort key-file metadata, picker behavior and label derivation, the issue #10 env-name-restore DND calls, and the W4 project key-binding calls (issue #14)."
 created: 2026-10-17
-owner: jureuma-docs-questions-key-identity-headers
+owner: zeze-docs-questions-key-identity-headers
 flags: []
 tags:
-  - "jureuma"
+  - "zeze"
   - "questions"
   - "dnd"
 keywords:
@@ -15,7 +15,7 @@ keywords:
   - "key list"
   - "key selection"
   - "key binding"
-  - "jureuma.yaml"
+  - "zeze.yaml"
   - "issue 13"
   - "issue 14"
   - "question ledger"
@@ -34,7 +34,7 @@ choice and record it here. Entries are grouped by unit.
 ### Q1 — How short are the "short key ID" and the public-key prefix in listings?
 
 **Answer: 12 characters each.** `key list` shows `k_` plus the first 12 hex
-characters of the key ID and `jureuma-pk-1:` plus the first 12 base64url
+characters of the key ID and `zeze-pk-1:` plus the first 12 base64url
 characters of the public key. CG asked for "the beginning of the public key or
 the key ID"; 12 characters are unique in practice for one machine's key set
 and stay readable in one line. Display-only, so widening or narrowing later
@@ -47,10 +47,10 @@ touches no stored data.
 ### Q2 — `key list` shows short key IDs only. How does a human get the full key ID?
 
 **Answer: `key show` and the file name carry it.** The brief mandates the line
-`label  k_shortid  jureuma-pk-1:prefix  active|retired`, so `export <keyId>`
+`label  k_shortid  zeze-pk-1:prefix  active|retired`, so `export <keyId>`
 and `retire <keyId>` cannot be fed straight from `list`. The full key ID stays
-available from `jureuma key show`, from `check`/`status` output, and from the
-key file name `~/.guiho/jureuma/keys/<keyId>.json`. Safest reading of the
+available from `zeze key show`, from `check`/`status` output, and from the
+key file name `~/.guiho/zeze/keys/<keyId>.json`. Safest reading of the
 mandated format; if CG wants copy-pasteable IDs in the listing, adding a
 long-format option is additive.
 
@@ -96,7 +96,7 @@ parsers and for agents reading metadata. `key list` stays machine-readable.
 ### Q6 — What do `key show` and `key list` display when a key has no label?
 
 **Answer: the placeholder `—`.** Covers legacy key files created before
-labels existed and env-only keys (`JUREUMA_PRIVATE_KEY*`) that have no file at
+labels existed and env-only keys (`ZEZE_PRIVATE_KEY*`) that have no file at
 all. The placeholder is display-only.
 
 - **confidence:** high
@@ -130,7 +130,7 @@ name. The lookup is injectable for tests.
 - **action taken:** implemented in W1 (labeled key storage, `key list`, `key show` and the TTY-safe picker).
 - **human-review:** done
 
-## W2 — `$jureuma` identity headers on both pair files
+## W2 — `$zeze` identity headers on both pair files
 
 ### Q9 — Where does the legacy mutation refusal live, and how can `init` repair write over legacy files?
 
@@ -141,17 +141,17 @@ points" and can be triggered "on either side", while W3's brief requires
 `init` repair to upgrade legacy files (keyless). Both hold only if the
 ordinary write paths are gated and one explicit repair path
 (`RepairPlainFile`, `RepairEncrypted`) may replace format-1 or malformed
-blocks. The repair path still refuses an unknown future format, so jureuma
+blocks. The repair path still refuses an unknown future format, so zeze
 never overwrites a file it cannot read.
 
 ### Q10 — What does the refusal key on when the file cannot be parsed at all?
 
 **Answer: nothing — such content keeps today's overwrite behaviour.** The
-trigger is a *visible* `$jureuma` block (format 1 or present-but-malformed);
-content with no parseable document has no header jureuma can see, and the old
+trigger is a *visible* `$zeze` block (format 1 or present-but-malformed);
+content with no parseable document has no header zeze can see, and the old
 `.jsonc` path already refuses unparseable text through the lossless writer.
-Conservative for A4b's exact wording ("a `$jureuma` block with `format: 1`,
-or a present-but-malformed `$jureuma`").
+Conservative for A4b's exact wording ("a `$zeze` block with `format: 1`,
+or a present-but-malformed `$zeze`").
 
 ### Q11 — What are the exit codes and the types of the refusals?
 
@@ -160,24 +160,24 @@ or a present-but-malformed `$jureuma`").
 exit 5.** The legacy refusal is a file-state failure, not a usage error and
 not a key error; the existing keyId↔publicKey rule keeps its exit 5 even when
 the mismatch is first seen by a mutating entry point. Every legacy refusal
-message carries the exact `run jureuma init to repair` pointer and no value.
+message carries the exact `run zeze init to repair` pointer and no value.
 
 ### Q12 — Does the marshaled `format` follow the parsed generation?
 
 **Answer: no — every write renders `FormatVersion` (2), and `Header.Format` /
 `Meta.Format` only record the generation that was read.** That makes the
-marshal deterministic, keeps "this jureuma writes format 2" true on every
+marshal deterministic, keeps "this zeze writes format 2" true on every
 path (including `MarshalEncrypted` callers such as the decrypt stash), and
 means no repair or mirror can accidentally re-emit `format: 1`.
 
 ### Q13 — Where do `home` and the embedded schema copy live?
 
-**Answer: `home` is an identity field of both `$jureuma` blocks
-(`~/.guiho/jureuma/` as `HomeRef`), and the embedded copy is
-`$jureuma.schema = { path, c }` with `c` an `internal/crypt` envelope bound
-to `/$jureuma/schema/c`.** The plaintext keeps the schema pointer at the
+**Answer: `home` is an identity field of both `$zeze` blocks
+(`~/.guiho/zeze/` as `HomeRef`), and the embedded copy is
+`$zeze.schema = { path, c }` with `c` an `internal/crypt` envelope bound
+to `/$zeze/schema/c`.** The plaintext keeps the schema pointer at the
 top-level `$schema` key instead. `Meta.Schema` stays the readable path, the
-plain-string `$jureuma.schema` stays readable in any generation and stays the
+plain-string `$zeze.schema` stays readable in any generation and stays the
 written form without a copy, and `Meta.SchemaCopy` is the additive field with
 `SetSchemaCopy`/`OpenSchemaCopy` as its setter and opener.
 
@@ -206,7 +206,7 @@ plan's "keyless rebuild baseline" wanted `c` per leaf with `h` absent, but the
 frozen W2 parser (`internal/pair`, `parseMeta`) requires every `sync` entry to
 carry both tags and rejects the file otherwise, and `crypt.PlainTag` derives `h`
 from the private key. Writing `c`-only entries would make the pair unreadable.
-The observable guarantee holds unchanged: jureuma never claims `in-sync`
+The observable guarantee holds unchanged: zeze never claims `in-sync`
 without an `h` tag — with the key, `status` reports `in-sync` only after
 proving equality by decryption (pair `Status`'s existing fallback); without it,
 the overall state is `key-unavailable`. A key holder refreshing the sibling
@@ -214,7 +214,7 @@ writes full `c`/`h` pairs.
 
 ### Q16 — Where does `init` get the pair identity when no encrypted file exists?
 
-**Answer: from the unencrypted file's `$jureuma` header when it has one, else
+**Answer: from the unencrypted file's `$zeze` header when it has one, else
 from a chosen stored key.** CG's flow is that the agent opens the single file;
 when the file records the key, that key *is* "a key that is already stored" and
 re-keying would orphan the pair. The picker (`--key-id` / `--key-label` /
@@ -247,7 +247,7 @@ through to creating a key.
 only-unencrypted flow?
 
 **Answer: exactly when today's `mirrorBlocked` allows it — an unsaved human
-edit, or a value jureuma cannot prove unchanged, is never replaced.** The
+edit, or a value zeze cannot prove unchanged, is never replaced.** The
 baseline is the last saved state (the decrypt saved copy, then git `HEAD`),
 falling back to "nothing is saved" when neither exists; without the private
 key any existing value at or under the target blocks, as before. A skipped
@@ -263,24 +263,24 @@ rewritten (format 2 identity, `home`, recorded schema path, embedded copy
 added when absent) keeping values, `sync` and `pending`; the unencrypted side
 keeps its body exactly and gains/renews the identity header and `$schema`
 pointer. An already-correct file is not rewritten at all, so `init` is
-byte-idempotent and keyless for legacy upgrades. A `$jureuma` block jureuma
+byte-idempotent and keyless for legacy upgrades. A `$zeze` block zeze
 cannot parse at all (present-but-malformed) cannot be repaired through the
 frozen pair API — `ReadPlainFile`/`ReadEncrypted` refuse it and there is no
-lenient reader — so `init` reports it (`fix or remove the $jureuma block by
-hand, then re-run jureuma init`) and leaves the file untouched. **Pair-API need
+lenient reader — so `init` reports it (`fix or remove the $zeze block by
+hand, then re-run zeze init`) and leaves the file untouched. **Pair-API need
 recorded for review:** an additive lenient repair reader (parse the document,
-split the body from a malformed `$jureuma` without validating it) would let
+split the body from a malformed `$zeze` without validating it) would let
 `RepairPlainFile`/`RepairEncrypted` heal malformed blocks too; it needs an
 `internal/pair` addition, which this unit must not make.
 
-### Q21 — Why is the schema path recorded in `$jureuma.schema`, and how does a
+### Q21 — Why is the schema path recorded in `$zeze.schema`, and how does a
 schema-file rename work?
 
 **Answer: the path is always recorded (the `{ path, c }` form with the copy,
 the plain string without) so both files agree on the schema and the copy can
 be restored to its recorded path; a rename is an explicit choice through
-`jureuma.yaml` (`pairs[].schema`) or `schema infer`.** `pair.CheckIdentity`
-compares the plaintext `$schema` pointer against `$jureuma.schema` directly, so
+`zeze.yaml` (`pairs[].schema`) or `schema infer`.** `pair.CheckIdentity`
+compares the plaintext `$schema` pointer against `$zeze.schema` directly, so
 an empty recorded path would warn "different schemas" on every ordinary pair;
 recording the resolved path in both keeps that check meaningful and
 `decrypt`'s restore faithful (a `.schema.jsonc` copy returns to a
@@ -288,7 +288,7 @@ recording the resolved path in both keeps that check meaningful and
 creating a differently-named one does not follow automatically — `check` fails
 naming the missing schema until `pairs[].schema` or `schema infer` records the
 new path. `test/e2e/cli_test.go`'s `.schema.jsonc` scenario was flipped to
-declare the file in `jureuma.yaml` for exactly this reason (its coverage —
+declare the file in `zeze.yaml` for exactly this reason (its coverage —
 comments, refinements, maximum — is unchanged).
 
 ### Q22 — `key rotate` must keep passing with embedded copies. What had to
@@ -336,37 +336,37 @@ they read byte-identically and never add metadata.
   `cli_test.go`); the Q20 pair-API need is recorded here, not implemented.
 - **human-review:** done
 
-## Issue #10 follow-up — restore `JUREUMA_CONFIG` as the default run env name
+## Issue #10 follow-up — restore `ZEZE_CONFIG` as the default run env name
 (W3 of the run-envname train, 2026-10-17)
 
-CG reversed the `JUREUMA_` experiment (2026-10-17): "Make the environment
-variable name this again. JUREUMA_CONFIG. Now I understand what it is, and it
+CG reversed the `ZEZE_` experiment (2026-10-17): "Make the environment
+variable name this again. ZEZE_CONFIG. Now I understand what it is, and it
 should be the name!" The following judgment calls were made unattended while
 flipping every surface back.
 
-### Q25 — Two xdocs descriptor keyword lists still name `JUREUMA_`. Are they
+### Q25 — Two xdocs descriptor keyword lists still name `ZEZE_`. Are they
 "surfaces that name the default"?
 
-**Answer: yes — `jureuma.xdocs.md` and `internal/runner/runner.xdocs.md` carry
-`JUREUMA_` as a search keyword next to the run/injection description, so both
-were flipped to `JUREUMA_CONFIG`.** The keywords index the document variable
+**Answer: yes — `zeze.xdocs.md` and `internal/runner/runner.xdocs.md` carry
+`ZEZE_` as a search keyword next to the run/injection description, so both
+were flipped to `ZEZE_CONFIG`.** The keywords index the document variable
 that `run` injects, which is the default name; leaving them would keep the old
-default searchable while every documented surface says `JUREUMA_CONFIG`. The
+default searchable while every documented surface says `ZEZE_CONFIG`. The
 keyword is metadata only, so the choice is trivially reversible.
 
 - **confidence:** medium-high (a keyword could also be read as the
-  `JUREUMA_*` denylist namespace, but the default-name reading matches the
+  `ZEZE_*` denylist namespace, but the default-name reading matches the
   descriptors' run-focused context).
-- **action taken:** both keyword lists updated to `JUREUMA_CONFIG`; no other
+- **action taken:** both keyword lists updated to `ZEZE_CONFIG`; no other
   descriptor changed (no file lists changed).
 - **human-review:** done
 
 ### Q26 — How is the `## Unreleased` CHANGELOG entry corrected?
 
 **Answer: the entry is reworded to the final behaviour (default
-`JUREUMA_CONFIG`, `JUREUMA_` denied like any other `JUREUMA_*` name), not
+`ZEZE_CONFIG`, `ZEZE_` denied like any other `ZEZE_*` name), not
 deleted.** The brief says "correct it to the final behaviour", and the entry
-sits in the same unreleased train that briefly carried the `JUREUMA_` default;
+sits in the same unreleased train that briefly carried the `ZEZE_` default;
 released sections are untouched.
 
 - **confidence:** high (explicit brief instruction).
@@ -376,12 +376,12 @@ released sections are untouched.
 
 ### Q27 — How is the new refusal coverage asserted in `test/e2e`?
 
-**Answer: `--env-name JUREUMA_` is asserted as exit `125` with the
-`[JUREUMA:USAGE]` prefix (the runner's `runErr` kind), while a project
-`run.envName: JUREUMA_` is asserted as a refused load matching
+**Answer: `--env-name ZEZE_` is asserted as exit `125` with the
+`[ZEZE:USAGE]` prefix (the runner's `runErr` kind), while a project
+`run.envName: ZEZE_` is asserted as a refused load matching
 `/run/envName` in stderr — `config.fieldErr` never prints the rejected value,
-so the assertion keys on the field path instead.** `--env-name JUREUMA_CONFIG`
-and `run.envName: JUREUMA_CONFIG` are asserted accepted. Redaction,
+so the assertion keys on the field path instead.** `--env-name ZEZE_CONFIG`
+and `run.envName: ZEZE_CONFIG` are asserted accepted. Redaction,
 private-key-strip and exit-code assertions are unchanged.
 
 - **confidence:** high (both behaviours were reproduced by the manual proof
@@ -390,11 +390,11 @@ private-key-strip and exit-code assertions are unchanged.
   the config/runner unit tables were flipped in place.
 - **human-review:** done
 
-### Q28 — Does `internal/keystore/keystore_test.go`'s `"JUREUMA_CONFIG": false`
+### Q28 — Does `internal/keystore/keystore_test.go`'s `"ZEZE_CONFIG": false`
 case change with the default?
 
 **Answer: no — it classifies private-key variable names (`IsPrivateKeyEnv`) and
-stays correct either way.** `JUREUMA_CONFIG` is not a private-key name in any
+stays correct either way.** `ZEZE_CONFIG` is not a private-key name in any
 world; the run-env-name default is a different concern. The case was left
 untouched on purpose.
 
@@ -402,10 +402,10 @@ untouched on purpose.
 - **action taken:** none for that test.
 - **human-review:** done
 
-## W4 — project key binding in `jureuma.yaml` (issue #14)
+## W4 — project key binding in `zeze.yaml` (issue #14)
 
 CG's directive (2026-10-17): "a project will use a key pair, and the key pair
-that the project will use will be specified by the jureuma.yaml of the
+that the project will use will be specified by the zeze.yaml of the
 project." The W4 brief (`w4-project-key-binding.md`) is the contract; the
 judgment calls below were made unattended.
 
@@ -418,7 +418,7 @@ different key, that key is written as the `key:` binding and every pair
 processed after it uses the bound key — so a fresh two-pair project now ends
 with one key, not two.** The brief's mission sentence is explicit ("One
 project, one key, every configured pair") and bullet 1 applies to a binding
-that exists by the time the next pair is processed ("when `jureuma.yaml` names
+that exists by the time the next pair is processed ("when `zeze.yaml` names
 a key … a pair with no recorded identity … uses the bound key"). The W3
 assertion `TestNamedPairsAndFileFlags: "want one key per new pair"` was
 flipped to "want one project key" accordingly, with the shared-key and
@@ -438,7 +438,7 @@ contradict. Add it anyway (brief: "absent → add it"), refuse (exit 5), or
 skip?
 
 **Answer: skip with a note. When other configured pairs already record
-different keys, `init` adds no binding and says so (`jureuma.yaml got no key
+different keys, `init` adds no binding and says so (`zeze.yaml got no key
 binding: pair X records … while pair Y uses …`); the pairs keep working
 unbound.** Writing the binding would violate the brief's own agreement rule
 ("When `key` is set, every pair's recorded identity must match it") the
@@ -484,18 +484,18 @@ byte-identical", and matches this repository's comment-preservation rule.
 - **human-review:** done
 
 ### Q32 — The brief's proof (b) says a binding disagreement "fails `run`/`set`
-with exit 5". `run` maps every jureuma-side failure to 125. Which wins?
+with exit 5". `run` maps every zeze-side failure to 125. Which wins?
 
 **Answer: `set` (and every other command) exits 5; `run` exits 125 with
-`[JUREUMA:KEY]` and the same message — the underlying error is the exit-5 key
+`[ZEZE:KEY]` and the same message — the underlying error is the exit-5 key
 error.** `run`'s contract ("run returns the child's code, or `125` for a
-jureuma-side failure", `[JUREUMA:<KIND>]` prefix) is pinned by the design
+zeze-side failure", `[ZEZE:<KIND>]` prefix) is pinned by the design
 document, the command help and the suite; special-casing one key error inside
 `run` would contradict it. The manual proof records both numbers.
 
 - **confidence:** high (the run contract is explicit and test-pinned).
 - **action taken:** none in code; both exit codes captured in the manual
-  proof and asserted (`run` 125 `[JUREUMA:KEY]`, `set` 5) in
+  proof and asserted (`run` 125 `[ZEZE:KEY]`, `set` 5) in
   `internal/cli/projectkey_test.go` and `test/e2e/projectkey_test.go`.
 - **human-review:** done
 
@@ -553,7 +553,7 @@ message is not a binding disagreement ("… does not match the key bound …"),
 and `cmd_info.go` is not in this unit's ownership (`internal/cli` is scoped
 to `context.go`, `cmd_init.go`, `cmd_key.go` and tests). A binding-proof
 scenario avoids the state (`set` on a headerless plaintext alone returns the
-single-file `run jureuma init to repair` pointer instead) and the
+single-file `run zeze init to repair` pointer instead) and the
 recommendation for a later unit is a `keyID != ""` guard before `findKey`.
 
 - **confidence:** high (reproduced on the base binary and diff-verified
@@ -571,13 +571,13 @@ Only the `key:` field, or every configuration validation error?
 document now carries exit 4 (a typed `xerr` validation error), while files
 that cannot be read, are too large, or do not parse as YAML keep failing as
 general failures (exit 1).** The brief classifies the malformed binding as "a
-validation error (exit 4 on load)" and jureuma's exit taxonomy maps
+validation error (exit 4 on load)" and zeze's exit taxonomy maps
 `4` to "validation failed"; giving only the `key:` field that code while a
 malformed `run.format` or pair name kept exiting 1 would make the taxonomy
 arbitrary. Blast radius checked against the untouched suite: no test pinned
 exit 1 for a configuration-load validation error (the pinned exit-1 cases are
 pair/git-state refusals, untouched), and `run` keeps mapping every
-jureuma-side failure to 125.
+zeze-side failure to 125.
 
 - **confidence:** medium-high (consistent with the taxonomy and the brief;
   the alternative — key-only classification — was rejected as inconsistent).
@@ -643,7 +643,7 @@ record of this pair's identity says the new key".
 the single-pair path?
 
 **Answer: all-or-nothing holds for everything a pair can refuse — unreadable
-files, old jureuma state, a missing key and a mismatched recorded key all
+files, old zeze state, a missing key and a mismatched recorded key all
 fail in the preparation phase, before the first write (and before the new key
 is even generated). A mid-write I/O failure stops at the failing pair and
 reports how many pairs were written and that the binding was not updated;
@@ -655,7 +655,7 @@ per the brief; its stale-sibling residual is left for a follow-up.~~
 review overrode the byte-compatibility instruction ("correctness wins over
 byte-compatibility of the broken case").** The reproduction was exact: an
 unbound project with both pair files present ended `key rotate` with the
-plaintext `$jureuma.keyId`/`publicKey` on the old key and the encrypted file
+plaintext `$zeze.keyId`/`publicKey` on the old key and the encrypted file
 on the new one, after which every `set`, `check` and `status` exited 5 ("the
 two files disagree on the pair key") with no way back from the CLI. The
 single-pair path now refreshes the recorded identity of a headered
@@ -680,7 +680,7 @@ truthful, value-free line when the sibling identity is re-keyed.
 
 ## W5 — init key picker defaults to "create a new key" (issue #15, 2026-10-18)
 
-CG reported that pressing Enter in `jureuma init`'s stored-key picker
+CG reported that pressing Enter in `zeze init`'s stored-key picker
 re-prompts instead of selecting the synthetic "create a new key" entry. The
 judgment calls below were made unattended (Mode: dnd).
 

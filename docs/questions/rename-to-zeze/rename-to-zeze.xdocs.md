@@ -1,7 +1,7 @@
 ---
 subject: zeze-docs-questions-rename-to-zeze
 description: "DND question ledger for the 2026-10-22 rename run that moves the project, the CLI and every artifact to the ZeZé identity in the breaking release 0.4.0."
-parent: jureuma-docs-questions
+parent: zeze-docs-questions
 children: []
 files: {}
 documents:

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 // maxDepth bounds $ref expansion so recursive schemas terminate.
@@ -496,7 +496,7 @@ func intersect(a, b map[string]bool) map[string]bool {
 }
 
 // Secret reports whether the schema marks the pointer, or any ancestor of it,
-// with "x-jureuma-secret": true in any branch that could apply.
+// with "x-zeze-secret": true in any branch that could apply.
 func (s *Schema) Secret(pointer string) bool {
 	toks, err := doc.ParsePointer(pointer)
 	if err != nil {
@@ -553,9 +553,9 @@ func (s *Schema) nodeSecret(n *doc.Value, depth int) bool {
 	return false
 }
 
-// SecretValueKeywords reports schema locations marked x-jureuma-secret that
+// SecretValueKeywords reports schema locations marked x-zeze-secret that
 // also carry default, examples, const, or enum, which could embed secrets
-// (used by "jureuma check" warnings). Pointers are schema pointers.
+// (used by "zeze check" warnings). Pointers are schema pointers.
 func (s *Schema) SecretValueKeywords() []Issue {
 	var out []Issue
 	var walk func(n *doc.Value, ptr string)

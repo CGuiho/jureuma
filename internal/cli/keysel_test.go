@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/keystore"
+	"github.com/CGuiho/zeze/internal/keystore"
 )
 
 const testKeyID = "k_0123456789abcdef0123456789abcdef"
@@ -34,11 +34,11 @@ func TestShortKeyID(t *testing.T) {
 }
 
 func TestShortPublicKey(t *testing.T) {
-	full := "jureuma-pk-1:" + strings.Repeat("A", 43)
-	if got := shortPublicKey(full); got != "jureuma-pk-1:"+strings.Repeat("A", shortKeyRunes) {
+	full := "zeze-pk-1:" + strings.Repeat("A", 43)
+	if got := shortPublicKey(full); got != "zeze-pk-1:"+strings.Repeat("A", shortKeyRunes) {
 		t.Errorf("shortPublicKey = %q", got)
 	}
-	if got := shortPublicKey("jureuma-pk-1:short"); got != "jureuma-pk-1:short" {
+	if got := shortPublicKey("zeze-pk-1:short"); got != "zeze-pk-1:short" {
 		t.Errorf("shortPublicKey(short) = %q", got)
 	}
 	if got := shortPublicKey(""); got != noLabel {
@@ -48,15 +48,15 @@ func TestShortPublicKey(t *testing.T) {
 
 func TestRenderKeyLines(t *testing.T) {
 	entries := []keystore.Entry{
-		testEntry("k_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "jureuma", "jureuma-pk-1:"+strings.Repeat("A", 43), false),
-		testEntry("k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "", "jureuma-pk-1:"+strings.Repeat("B", 43), true),
+		testEntry("k_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "zeze", "zeze-pk-1:"+strings.Repeat("A", 43), false),
+		testEntry("k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "", "zeze-pk-1:"+strings.Repeat("B", 43), true),
 	}
 	lines := renderKeyLines(entries)
 	if len(lines) != 2 {
 		t.Fatalf("got %d lines, want 2", len(lines))
 	}
-	wantActive := "jureuma  k_aaaaaaaaaaaa  jureuma-pk-1:" + strings.Repeat("A", shortKeyRunes) + "  active"
-	wantRetired := "—" + strings.Repeat(" ", len("jureuma")-1) + "  k_bbbbbbbbbbbb  jureuma-pk-1:" + strings.Repeat("B", shortKeyRunes) + "  retired"
+	wantActive := "zeze  k_aaaaaaaaaaaa  zeze-pk-1:" + strings.Repeat("A", shortKeyRunes) + "  active"
+	wantRetired := "—" + strings.Repeat(" ", len("zeze")-1) + "  k_bbbbbbbbbbbb  zeze-pk-1:" + strings.Repeat("B", shortKeyRunes) + "  retired"
 	if lines[0] != wantActive {
 		t.Errorf("active line = %q\nwant        %q", lines[0], wantActive)
 	}
@@ -67,7 +67,7 @@ func TestRenderKeyLines(t *testing.T) {
 
 func TestRenderKeyLinesCollapsesLabelWhitespace(t *testing.T) {
 	entries := []keystore.Entry{
-		testEntry(testKeyID, "two\nwords\t here", "jureuma-pk-1:"+strings.Repeat("A", 43), false),
+		testEntry(testKeyID, "two\nwords\t here", "zeze-pk-1:"+strings.Repeat("A", 43), false),
 	}
 	lines := renderKeyLines(entries)
 	if len(lines) != 1 || strings.ContainsAny(lines[0], "\n\t") {
@@ -84,7 +84,7 @@ type panicReader struct{}
 func (panicReader) Read([]byte) (int, error) { panic("picker read stdin outside a TTY") }
 
 func TestPickKeyNonTTYNeverReads(t *testing.T) {
-	entries := []keystore.Entry{testEntry(testKeyID, "jureuma", "jureuma-pk-1:"+strings.Repeat("A", 43), false)}
+	entries := []keystore.Entry{testEntry(testKeyID, "zeze", "zeze-pk-1:"+strings.Repeat("A", 43), false)}
 	var out bytes.Buffer
 	got, err := pickKey(entries, panicReader{}, &out, false)
 	if !errors.Is(err, ErrNoInteractiveSelection) {
@@ -107,8 +107,8 @@ func TestPickKeyNoEntries(t *testing.T) {
 
 func TestPickKeyTTYSelections(t *testing.T) {
 	entries := []keystore.Entry{
-		testEntry("k_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "one", "jureuma-pk-1:"+strings.Repeat("A", 43), false),
-		testEntry("k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "two", "jureuma-pk-1:"+strings.Repeat("B", 43), true),
+		testEntry("k_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "one", "zeze-pk-1:"+strings.Repeat("A", 43), false),
+		testEntry("k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "two", "zeze-pk-1:"+strings.Repeat("B", 43), true),
 	}
 	cases := []struct {
 		name  string
@@ -139,7 +139,7 @@ func TestPickKeyTTYSelections(t *testing.T) {
 }
 
 func TestPickKeyCancel(t *testing.T) {
-	entries := []keystore.Entry{testEntry(testKeyID, "one", "jureuma-pk-1:"+strings.Repeat("A", 43), false)}
+	entries := []keystore.Entry{testEntry(testKeyID, "one", "zeze-pk-1:"+strings.Repeat("A", 43), false)}
 	for name, input := range map[string]string{"empty line": "\n", "eof": ""} {
 		t.Run(name, func(t *testing.T) {
 			var out bytes.Buffer
@@ -159,8 +159,8 @@ func syntheticEntry(label string) keystore.Entry {
 // defaultEntries lists two stored keys plus the synthetic default entry.
 func defaultEntries() []keystore.Entry {
 	return []keystore.Entry{
-		testEntry("k_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "one", "jureuma-pk-1:"+strings.Repeat("A", 43), false),
-		testEntry("k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "two", "jureuma-pk-1:"+strings.Repeat("B", 43), true),
+		testEntry("k_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "one", "zeze-pk-1:"+strings.Repeat("A", 43), false),
+		testEntry("k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "two", "zeze-pk-1:"+strings.Repeat("B", 43), true),
 		syntheticEntry("create a new key"),
 	}
 }
@@ -175,7 +175,7 @@ func TestRenderKeyLinesWithDefaultMarksSyntheticDefault(t *testing.T) {
 	if def != "create a new key (default)" {
 		t.Fatalf("default line = %q, want %q", def, "create a new key (default)")
 	}
-	for _, unwanted := range []string{"—", "active", "retired", "k_", "jureuma-pk-1:"} {
+	for _, unwanted := range []string{"—", "active", "retired", "k_", "zeze-pk-1:"} {
 		if strings.Contains(def, unwanted) {
 			t.Errorf("default line renders %q as a key column: %q", unwanted, def)
 		}
@@ -183,8 +183,8 @@ func TestRenderKeyLinesWithDefaultMarksSyntheticDefault(t *testing.T) {
 	// Real entries keep the current columns (label column padded to the
 	// widest label in the listing) and gain no marker.
 	width := len("create a new key")
-	wantOne := "one" + strings.Repeat(" ", width-len("one")) + "  k_aaaaaaaaaaaa  jureuma-pk-1:" + strings.Repeat("A", shortKeyRunes) + "  active"
-	wantTwo := "two" + strings.Repeat(" ", width-len("two")) + "  k_bbbbbbbbbbbb  jureuma-pk-1:" + strings.Repeat("B", shortKeyRunes) + "  retired"
+	wantOne := "one" + strings.Repeat(" ", width-len("one")) + "  k_aaaaaaaaaaaa  zeze-pk-1:" + strings.Repeat("A", shortKeyRunes) + "  active"
+	wantTwo := "two" + strings.Repeat(" ", width-len("two")) + "  k_bbbbbbbbbbbb  zeze-pk-1:" + strings.Repeat("B", shortKeyRunes) + "  retired"
 	if lines[0] != wantOne {
 		t.Errorf("real line = %q\nwant     %q", lines[0], wantOne)
 	}
@@ -281,7 +281,7 @@ func TestPickKeyDefaultNoEntries(t *testing.T) {
 func TestPickKeyNoDefaultEmptyLineReprompts(t *testing.T) {
 	// Without a default the empty line keeps today's behavior: the number
 	// hint, a re-prompt, and cancellation only at EOF.
-	entries := []keystore.Entry{testEntry(testKeyID, "one", "jureuma-pk-1:"+strings.Repeat("A", 43), false)}
+	entries := []keystore.Entry{testEntry(testKeyID, "one", "zeze-pk-1:"+strings.Repeat("A", 43), false)}
 	for name, pick := range map[string]func([]keystore.Entry, io.Reader, io.Writer, bool) (keystore.Entry, error){
 		"pickKey": pickKey,
 		"out-of-range index": func(en []keystore.Entry, in io.Reader, out io.Writer, tty bool) (keystore.Entry, error) {
@@ -311,13 +311,13 @@ func TestDefaultKeyLabel(t *testing.T) {
 		root   string
 		want   string
 	}{
-		{"https remote", "https://github.com/CGuiho/jureuma.git", "/work/jureuma", "jureuma"},
-		{"https remote without .git", "https://github.com/CGuiho/jureuma", "/work/jureuma", "jureuma"},
-		{"scp remote", "git@github.com:CGuiho/jureuma.git", "/work/jureuma", "jureuma"},
-		{"scp remote without owner", "git@github.com:jureuma.git", "/work/jureuma", "jureuma"},
-		{"ssh remote", "ssh://git@github.com/CGuiho/jureuma.git", "/work/jureuma", "jureuma"},
-		{"trailing slash", "https://github.com/CGuiho/jureuma.git/", "/work/jureuma", "jureuma"},
-		{"path remote", "/srv/git/jureuma.git", "/work/jureuma", "jureuma"},
+		{"https remote", "https://github.com/CGuiho/zeze.git", "/work/zeze", "zeze"},
+		{"https remote without .git", "https://github.com/CGuiho/zeze", "/work/zeze", "zeze"},
+		{"scp remote", "git@github.com:CGuiho/zeze.git", "/work/zeze", "zeze"},
+		{"scp remote without owner", "git@github.com:zeze.git", "/work/zeze", "zeze"},
+		{"ssh remote", "ssh://git@github.com/CGuiho/zeze.git", "/work/zeze", "zeze"},
+		{"trailing slash", "https://github.com/CGuiho/zeze.git/", "/work/zeze", "zeze"},
+		{"path remote", "/srv/git/zeze.git", "/work/zeze", "zeze"},
 		{"remote without repository path", "https://github.com", "/work/my-project", "my-project"},
 		{"no remote", "", "/work/my-project", "my-project"},
 		{"project root name", "", "/", ""},

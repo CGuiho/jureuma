@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "jureuma global configuration (jureuma.global.yaml)",
-  "description": "User-wide configuration for the jureuma CLI, stored in ~/.guiho/jureuma/jureuma.global.yaml.",
+  "title": "zeze global configuration (zeze.global.yaml)",
+  "description": "User-wide configuration for the zeze CLI, stored in ~/.guiho/zeze/zeze.global.yaml.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "protections": {
-      "description": "Global-only protection settings. Never read from jureuma.yaml.",
+      "description": "Global-only protection settings. Never read from zeze.yaml.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

@@ -1,4 +1,4 @@
-// Package keystore resolves, stores, retires and lists jureuma private keys.
+// Package keystore resolves, stores, retires and lists zeze private keys.
 //
 // Errors name sources (environment variable names, key file paths relative to
 // the CLI home) but never key material or file contents.
@@ -15,14 +15,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/paths"
 )
 
 // Environment variable names.
 const (
-	EnvPrivateKey       = "JUREUMA_PRIVATE_KEY"
-	EnvPrivateKeyPrefix = "JUREUMA_PRIVATE_KEY_"
+	EnvPrivateKey       = "ZEZE_PRIVATE_KEY"
+	EnvPrivateKeyPrefix = "ZEZE_PRIVATE_KEY_"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 	maxKeyFile = 64 << 10
 )
 
-// Store resolves private keys. Home is the CLI home (~/.guiho/jureuma).
+// Store resolves private keys. Home is the CLI home (~/.guiho/zeze).
 type Store struct {
 	Home   string
 	Getenv func(string) string
@@ -41,7 +41,7 @@ type Store struct {
 // New returns a Store for home that reads the process environment.
 func New(home string) *Store { return &Store{Home: home, Getenv: os.Getenv} }
 
-// Source names where a key came from, e.g. "env:JUREUMA_PRIVATE_KEY" or
+// Source names where a key came from, e.g. "env:ZEZE_PRIVATE_KEY" or
 // "file:keys/k_….json".
 type Source string
 
@@ -83,7 +83,7 @@ var ErrInvalidKeyID = errors.New("invalid key ID")
 // ErrAlreadyRetired is returned by Retire when a retired copy already exists.
 var ErrAlreadyRetired = errors.New("key is already retired")
 
-// EnvName returns JUREUMA_PRIVATE_KEY_<UPPER(keyID)>.
+// EnvName returns ZEZE_PRIVATE_KEY_<UPPER(keyID)>.
 func EnvName(keyID string) string { return EnvPrivateKeyPrefix + strings.ToUpper(keyID) }
 
 // IsPrivateKeyEnv reports whether name is a private-key variable that must be
@@ -133,12 +133,12 @@ func fileSource(rel ...string) Source {
 }
 
 // Find returns the private key for keyID from, in order: env
-// JUREUMA_PRIVATE_KEY_<UPPER(keyID)>, env JUREUMA_PRIVATE_KEY (only if it
+// ZEZE_PRIVATE_KEY_<UPPER(keyID)>, env ZEZE_PRIVATE_KEY (only if it
 // matches), keys/<keyID>.json, keys/retired/<keyID>.json.
 //
 // It returns ErrNoKey when none exists, *MismatchError when a dedicated source
 // holds a different key, and *InvalidKeyError when a source is malformed or
-// insecure. An unparsable JUREUMA_PRIVATE_KEY does not hide a later valid
+// insecure. An unparsable ZEZE_PRIVATE_KEY does not hide a later valid
 // source; it is reported only when nothing else matches.
 func (s *Store) Find(keyID string) (crypt.PrivateKey, Source, error) {
 	var zero crypt.PrivateKey

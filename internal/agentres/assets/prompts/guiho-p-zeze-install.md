@@ -1,0 +1,74 @@
+---
+name: guiho-p-zeze-install
+purpose: Install the zeze CLI without initializing a project.
+description: Use when an agent must install and verify zeze while keeping project initialization as a separate explicit task.
+created: 2026-10-13
+version: "0.3.1"
+owner: zeze-prompts
+flags: []
+tags:
+  - installation
+  - lifecycle
+keywords:
+  - zeze
+  - install
+  - checksums
+  - stable launcher
+metadata:
+  version: "0.3.1"
+---
+
+Install zeze, the GUIHO agent-safe configuration CLI (https://github.com/CGuiho/zeze).
+zeze keeps configuration and secrets in a committed encrypted JSON file, a gitignored
+plaintext JSON file, and a committed JSON Schema, and lets agents set values and inject them
+into processes without ever reading them.
+
+Install it by running exactly one command, chosen by the host operating system:
+
+- Windows (PowerShell):
+  irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1 | iex
+- macOS or Linux (POSIX sh):
+  curl -fsSL https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.sh | sh
+
+To install an exact version or a release channel, add --version 'X.Y.Z' or --channel '<name>'
+to the install.sh command, or -Version 'X.Y.Z' or -Channel '<name>' to the install.ps1 command:
+
+- macOS or Linux:
+  curl -fsSL https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.sh | sh -s -- --version 'X.Y.Z'
+  curl -fsSL https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.sh | sh -s -- --channel 'canary'
+- Windows (PowerShell):
+  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1))) -Version 'X.Y.Z'
+  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1))) -Channel 'canary'
+
+Never install zeze through a package manager (npm, Bun, pip, Homebrew, or similar); no such
+package exists or is supported.
+
+When the installer finishes, verify with `zeze --version` (it prints a raw SemVer such as
+`0.3.1`). If the command is not found, open a new shell or follow the PATH instruction the
+installer printed.
+
+If the installer fails, fall back to a manual binary installation:
+1. Download the asset matching the host platform from
+   https://github.com/CGuiho/zeze/releases/latest - for example
+   `zeze-windows-amd64.exe` or `zeze-linux-amd64` - and verify its SHA-256
+   digest against the release's `checksums.txt`.
+2. Place the binary at `$HOME/.guiho/bin/zeze` (`zeze.exe` on Windows),
+   creating the directory when needed.
+3. On macOS and Linux, mark it executable with `chmod +x`. Ensure `$HOME/.guiho/bin`
+   is on the `PATH`, then verify with `zeze --version`.
+
+If installation fails, explain the failure to the user. Following the user's zeze
+`agent.evolution.issues.bugs` policy (default `always-ask`: ask first and wait for approval),
+create an issue at https://github.com/CGuiho/zeze/issues/new describing the operating
+system, architecture, the exact install command, the requested version or channel, and the
+error output. Include no secrets, tokens, or configuration values. After creating the issue,
+give the user its URL.
+
+Finish by running `zeze init` in the project root. It installs the `guiho-s-zeze` agent
+skill, applies the permanent zeze instruction to `AGENTS.md` so that every future agent
+knows how to use zeze safely, creates the configuration files, and asks the user for the
+agent-evolution policy. If it needs answers and no interactive terminal is available, ask the
+user to run `zeze init` themselves. Then verify again with `zeze --version`.
+
+From now on, never read any `*.unencrypted.*` file or anything under `~/.guiho/zeze/`, and
+never pass `--dangerously-bypass-protections` unless the user explicitly asks for it.

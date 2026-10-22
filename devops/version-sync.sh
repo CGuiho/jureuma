@@ -6,13 +6,13 @@
 #   --check    only verify; exit 1 when a file pins another version
 #
 # Files:
-#   internal/config/examples/jureuma.yaml          pinned schema URL comment
-#   internal/config/examples/jureuma.global.yaml   pinned schema URL comment
+#   internal/config/examples/zeze.yaml          pinned schema URL comment
+#   internal/config/examples/zeze.global.yaml   pinned schema URL comment
 #   internal/agentres/assets/instruction.md        frontmatter version and metadata.version
-#   internal/agentres/assets/prompts/guiho-p-jureuma.md           (same)
-#   internal/agentres/assets/prompts/guiho-p-jureuma-install.md   (same)
-#   internal/agentres/assets/prompts/guiho-p-jureuma-uninstall.md (same)
-#   internal/agentres/assets/skills/guiho-s-jureuma/SKILL.md      (same)
+#   internal/agentres/assets/prompts/guiho-p-zeze.md           (same)
+#   internal/agentres/assets/prompts/guiho-p-zeze-install.md   (same)
+#   internal/agentres/assets/prompts/guiho-p-zeze-uninstall.md (same)
+#   internal/agentres/assets/skills/guiho-s-zeze/SKILL.md      (same)
 set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 check=false
@@ -26,12 +26,12 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 [ -n "$version" ] || { echo 'error: a version is required' >&2; exit 2; }
-JUREUMA_VERSION=$version "$root/devops/version.sh" >/dev/null
+ZEZE_VERSION=$version "$root/devops/version.sh" >/dev/null
 
-prefix='https://github.com/CGuiho/jureuma/releases/download/v'
+prefix='https://github.com/CGuiho/zeze/releases/download/v'
 status=0
-for pair in "internal/config/examples/jureuma.yaml:jureuma.schema.json" \
-            "internal/config/examples/jureuma.global.yaml:jureuma.global.schema.json"; do
+for pair in "internal/config/examples/zeze.yaml:zeze.schema.json" \
+            "internal/config/examples/zeze.global.yaml:zeze.global.schema.json"; do
   file="$root/${pair%%:*}"
   schema=${pair#*:}
   want="# yaml-language-server: \$schema=$prefix$version/$schema"
@@ -60,10 +60,10 @@ done
 # artifacts convention 0002). Only version fields inside the frontmatter are
 # rewritten; the rest of the file is passed through untouched.
 for rel in internal/agentres/assets/instruction.md \
-           internal/agentres/assets/prompts/guiho-p-jureuma.md \
-           internal/agentres/assets/prompts/guiho-p-jureuma-install.md \
-           internal/agentres/assets/prompts/guiho-p-jureuma-uninstall.md \
-           internal/agentres/assets/skills/guiho-s-jureuma/SKILL.md; do
+           internal/agentres/assets/prompts/guiho-p-zeze.md \
+           internal/agentres/assets/prompts/guiho-p-zeze-install.md \
+           internal/agentres/assets/prompts/guiho-p-zeze-uninstall.md \
+           internal/agentres/assets/skills/guiho-s-zeze/SKILL.md; do
   file="$root/$rel"
   tmp="$file.version-sync.$$"
   rc=0

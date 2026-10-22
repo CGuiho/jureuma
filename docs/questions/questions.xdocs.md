@@ -1,10 +1,10 @@
 ---
-subject: jureuma-docs-questions
+subject: zeze-docs-questions
 description: "Per-plan DND question ledgers recording every question an unattended executor answered itself, with the safest reversible choice and its rationale."
-parent: jureuma-docs
+parent: zeze-docs
 children:
-  - jureuma-docs-questions-release-0.1.0
-  - jureuma-docs-questions-key-identity-headers
+  - zeze-docs-questions-release-0.1.0
+  - zeze-docs-questions-key-identity-headers
   - zeze-docs-questions-rename-to-zeze
 files: {}
 documents: {}
@@ -19,7 +19,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-questions
+# zeze-docs-questions
 
 Question ledgers for unattended (DND) runs. During execution or review the
 agent never stops to ask the human: every material question is answered with

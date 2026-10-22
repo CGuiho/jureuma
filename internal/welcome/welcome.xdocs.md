@@ -1,7 +1,7 @@
 ---
-subject: jureuma-welcome
-description: "Left-aligned welcome page printed by a bare jureuma invocation: JUREUMA ANSI Shadow logo, tagline, author, platform/version/author block and help hint, in blue and the GUIHO palette when stdout is a terminal."
-parent: jureuma-internal
+subject: zeze-welcome
+description: "Left-aligned welcome page printed by a bare zeze invocation: ZEZE ANSI Shadow logo, tagline, author, platform/version/author block and help hint, in blue and the GUIHO palette when stdout is a terminal."
+parent: zeze-internal
 children: []
 files:
   "welcome.go": "Logo glyphs, Render and colour detection (NO_COLOR, TERM=dumb)."
@@ -17,9 +17,9 @@ flags: []
 status: stable
 ---
 
-# jureuma-welcome
+# zeze-welcome
 
-Left-aligned welcome page printed by a bare `jureuma` invocation, modelled on the RunX welcome but not centered: JUREUMA logo, tagline, author, platform/version/author block and help hint. Colour uses blue for the logo and version, with the GUIHO slate and off-white only when stdout is a terminal and `NO_COLOR` is unset.
+Left-aligned welcome page printed by a bare `zeze` invocation, modelled on the RunX welcome but not centered: ZEZE logo, tagline, author, platform/version/author block and help hint. Colour uses blue for the logo and version, with the GUIHO slate and off-white only when stdout is a terminal and `NO_COLOR` is unset.
 
 ## Files
 

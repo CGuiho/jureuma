@@ -1,7 +1,7 @@
 ---
-subject: jureuma-schema
+subject: zeze-schema
 description: "JSON Schema loading, supported-subset checks, validation with value-free issues, and schema infer."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "schema.go": "Schema loading and compilation."
@@ -17,13 +17,13 @@ tags:
   - "schema"
 keywords:
   - "JSON Schema"
-  - "x-jureuma-secret"
+  - "x-zeze-secret"
   - "schema infer"
 flags: []
 status: stable
 ---
 
-# jureuma-schema
+# zeze-schema
 
 JSON Schema loading, supported-subset checks, validation with value-free issues, and schema infer.
 

@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/paths"
 )
 
 // State file names under <home>/state.
@@ -22,7 +22,7 @@ const (
 
 const (
 	protectionsKeySize = 32
-	protectionsDomain  = "jureuma-protections-v1\n"
+	protectionsDomain  = "zeze-protections-v1\n"
 	protectionsAlg     = "HMAC-SHA256"
 )
 

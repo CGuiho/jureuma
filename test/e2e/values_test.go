@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
+	"github.com/CGuiho/zeze/internal/crypt"
 )
 
 func TestSetTypingAndPaths(t *testing.T) {
@@ -41,11 +41,11 @@ func TestSetTypingAndPaths(t *testing.T) {
 		t.Fatalf("--json object not expanded per leaf: %v", enc["obj"])
 	}
 	// set mirrors into the existing .json plaintext file, keeping the pair's
-	// $jureuma identity header and $schema pointer beside the body.
+	// $zeze identity header and $schema pointer beside the body.
 	if stripWS(bodyWithoutMeta(p.read("config.unencrypted.json"))) != stripWS(`{"s":"123","n":123,"f":1.50,"b":true,"z":null,"stdin":"from-stdin-value","file":"from-file-value","obj":{"host":"h","port":5432},"a":{"b":{"c":"deep"}},"arr":[0,2,3],"a/b":"slash-key"}`) {
 		t.Fatalf("plaintext mirror differs:\n%s", p.read("config.unencrypted.json"))
 	}
-	if plain := p.read("config.unencrypted.json"); !strings.Contains(plain, `"$jureuma"`) || !strings.Contains(plain, `"$schema": "./config.schema.json"`) {
+	if plain := p.read("config.unencrypted.json"); !strings.Contains(plain, `"$zeze"`) || !strings.Contains(plain, `"$schema": "./config.schema.json"`) {
 		t.Fatalf("the mirror must keep the identity header and $schema pointer:\n%s", plain)
 	}
 
@@ -55,7 +55,7 @@ func TestSetTypingAndPaths(t *testing.T) {
 		{"set", "/arr/0/x", "through-a-number"}, // passes through a number leaf
 		{"set", "/arr/5", "--json", "9"},        // beyond len
 		{"set", "/n", "--json", "{bad json"},    // invalid JSON
-		{"set", "/$jureuma/x", "meta"},          // reserved
+		{"set", "/$zeze/x", "meta"},          // reserved
 		{"set", "no-slash", "x"},                // not a pointer
 		{"set", "/twice", "x", "--value-stdin"}, // two sources
 		{"set", "/none"},                        // no value
@@ -256,10 +256,10 @@ func TestCheckFailures(t *testing.T) {
 	p.write(".gitignore", gi)
 
 	// Swapped publicKey (recipient key replaced, keyId consistent) is detected
-	// against git HEAD. A jureuma.yaml key binding refuses the swap even
+	// against git HEAD. A zeze.yaml key binding refuses the swap even
 	// earlier, as a key error; the git-HEAD detection is exercised here on a
 	// project that binds no key.
-	p.git("add", ".gitignore", "config.encrypted.json", "config.schema.json", "jureuma.yaml")
+	p.git("add", ".gitignore", "config.encrypted.json", "config.schema.json", "zeze.yaml")
 	p.git("commit", "-q", "-m", "e2e")
 	orig := p.read("config.encrypted.json")
 	meta := p.encMeta("config.encrypted.json")
@@ -270,9 +270,9 @@ func TestCheckFailures(t *testing.T) {
 	p.write("config.encrypted.json", swapped)
 	r = p.run("check")
 	if r.code != 5 || !strings.Contains(r.stderr, "key bound") {
-		t.Fatalf("a swapped key must disagree with the jureuma.yaml binding: want exit 5\n%s", r)
+		t.Fatalf("a swapped key must disagree with the zeze.yaml binding: want exit 5\n%s", r)
 	}
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	r = p.run("check")
 	if !strings.Contains(r.stdout, "differs from the version at git HEAD") {
 		t.Fatalf("swapped publicKey not reported\n%s", r)
@@ -295,11 +295,11 @@ func TestCheckFailures(t *testing.T) {
 	}
 	// A private key from the environment that is not the file's key.
 	p.write("config.encrypted.json", orig)
-	envName := "JUREUMA_PRIVATE_KEY_" + strings.ToUpper(meta["keyId"].(string))
+	envName := "ZEZE_PRIVATE_KEY_" + strings.ToUpper(meta["keyId"].(string))
 	r = p.runEnv([]string{envName + "=" + otherSK.String()}, "check")
 	if r.code != 5 {
 		t.Fatalf("wrong private key in %s: want exit 5\n%s", envName, r)
 	}
-	assertNo(t, "key mismatch output", r.out(), otherSK.String(), strings.TrimPrefix(otherSK.String(), "jureuma-sk-1:"))
+	assertNo(t, "key mismatch output", r.out(), otherSK.String(), strings.TrimPrefix(otherSK.String(), "zeze-sk-1:"))
 	p.expect(0, "check")
 }

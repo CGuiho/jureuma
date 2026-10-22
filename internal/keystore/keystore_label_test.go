@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
+	"github.com/CGuiho/zeze/internal/crypt"
 )
 
 // entryFor returns the listed entry for keyID.
@@ -28,7 +28,7 @@ func entryFor(t *testing.T, s *Store, keyID string) Entry {
 func TestSaveLabeledRoundTrip(t *testing.T) {
 	sk, id := newKey(t)
 	s := newStore(t, nil)
-	path, err := s.SaveLabeled(sk, "jureuma")
+	path, err := s.SaveLabeled(sk, "zeze")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +40,8 @@ func TestSaveLabeledRoundTrip(t *testing.T) {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		t.Fatal(err)
 	}
-	if raw["label"] != "jureuma" {
-		t.Fatalf("key file label = %v, want jureuma", raw["label"])
+	if raw["label"] != "zeze" {
+		t.Fatalf("key file label = %v, want zeze", raw["label"])
 	}
 	// The key still loads through the normal lookup path.
 	got, src, err := s.Find(id)
@@ -53,8 +53,8 @@ func TestSaveLabeledRoundTrip(t *testing.T) {
 	}
 	// And the listing surfaces the label and the public key.
 	en := entryFor(t, s, id)
-	if en.Label != "jureuma" {
-		t.Fatalf("listed label = %q, want jureuma", en.Label)
+	if en.Label != "zeze" {
+		t.Fatalf("listed label = %q, want zeze", en.Label)
 	}
 	if en.PublicKey != sk.Public().String() {
 		t.Fatal("listed public key does not match")

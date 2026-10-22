@@ -1,7 +1,7 @@
 ---
-subject: jureuma-docs-questions-key-identity-headers
+subject: zeze-docs-questions-key-identity-headers
 description: "DND question ledger for the key-identity-headers train (issue #13): every question the unattended workers answer themselves, with the safest reversible choice."
-parent: jureuma-docs-questions
+parent: zeze-docs-questions
 children: []
 files: {}
 documents:
@@ -18,7 +18,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-questions-key-identity-headers
+# zeze-docs-questions-key-identity-headers
 
 Question ledger for the key-identity-headers train (issue #13), started
 2026-10-17.

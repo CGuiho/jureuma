@@ -1,7 +1,7 @@
 #!/bin/sh
-# Print the jureuma version for builds.
+# Print the zeze version for builds.
 #
-# Order: $JUREUMA_VERSION, then the exact v<semver> Git tag at HEAD (created
+# Order: $ZEZE_VERSION, then the exact v<semver> Git tag at HEAD (created
 # only by Mirror), then 0.0.0-dev. With --release, a development version is an
 # error, because release artifacts must carry the exact tagged SemVer.
 set -eu
@@ -17,14 +17,14 @@ case "${1:-}" in
 esac
 
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-version=${JUREUMA_VERSION:-}
+version=${ZEZE_VERSION:-}
 if [ -z "$version" ]; then
   tag=$(git -C "$root" describe --tags --exact-match --match 'v[0-9]*' HEAD 2>/dev/null || true)
   version=${tag#v}
 fi
 if [ -z "$version" ]; then
   if [ "$release" = true ]; then
-    echo 'error: no release version: HEAD has no exact v<semver> tag and JUREUMA_VERSION is unset' >&2
+    echo 'error: no release version: HEAD has no exact v<semver> tag and ZEZE_VERSION is unset' >&2
     exit 1
   fi
   version=0.0.0-dev

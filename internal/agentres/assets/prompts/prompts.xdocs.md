@@ -1,13 +1,13 @@
 ---
-subject: jureuma-agentres-prompts
+subject: zeze-agentres-prompts
 description: "One-time agent prompts, each published as a release asset <id>.md."
-parent: jureuma-agentres-assets
+parent: zeze-agentres-assets
 children: []
 files: {}
 documents:
-  "guiho-p-jureuma.md": "Default prompt: set up jureuma in a project."
-  "guiho-p-jureuma-install.md": "Install prompt referenced by the README."
-  "guiho-p-jureuma-uninstall.md": "Uninstall prompt."
+  "guiho-p-zeze.md": "Default prompt: set up zeze in a project."
+  "guiho-p-zeze-install.md": "Install prompt referenced by the README."
+  "guiho-p-zeze-uninstall.md": "Uninstall prompt."
 tags:
   - "agents"
 keywords:
@@ -17,12 +17,12 @@ flags: []
 status: stable
 ---
 
-# jureuma-agentres-prompts
+# zeze-agentres-prompts
 
 One-time agent prompts, each published as a release asset <id>.md.
 
 ## Documents
 
-- [guiho-p-jureuma.md](guiho-p-jureuma.md): Default prompt: set up jureuma in a project.
-- [guiho-p-jureuma-install.md](guiho-p-jureuma-install.md): Install prompt referenced by the README.
-- [guiho-p-jureuma-uninstall.md](guiho-p-jureuma-uninstall.md): Uninstall prompt.
+- [guiho-p-zeze.md](guiho-p-zeze.md): Default prompt: set up zeze in a project.
+- [guiho-p-zeze-install.md](guiho-p-zeze-install.md): Install prompt referenced by the README.
+- [guiho-p-zeze-uninstall.md](guiho-p-zeze-uninstall.md): Uninstall prompt.

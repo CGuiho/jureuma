@@ -1,11 +1,11 @@
 ---
-subject: jureuma-config-examples
+subject: zeze-config-examples
 description: "Complete configuration examples embedded in the binary and published as release assets; their yaml-language-server schema URLs pin the release version (kept in sync by devops/version-sync.sh)."
-parent: jureuma-config
+parent: zeze-config
 children: []
 files:
-  "jureuma.yaml": "Project configuration example."
-  "jureuma.global.yaml": "Global configuration example."
+  "zeze.yaml": "Project configuration example."
+  "zeze.global.yaml": "Global configuration example."
 documents: {}
 tags:
   - "configuration"
@@ -17,11 +17,11 @@ flags: []
 status: stable
 ---
 
-# jureuma-config-examples
+# zeze-config-examples
 
 Complete configuration examples embedded in the binary and published as release assets; their yaml-language-server schema URLs pin the release version (kept in sync by devops/version-sync.sh).
 
 ## Files
 
-- `jureuma.yaml`: Project configuration example.
-- `jureuma.global.yaml`: Global configuration example.
+- `zeze.yaml`: Project configuration example.
+- `zeze.global.yaml`: Global configuration example.

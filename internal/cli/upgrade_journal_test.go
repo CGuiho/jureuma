@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/update"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/update"
 )
 
 // journalFixture builds an installer-managed home with a staging directory
 // and an interrupted upgrade transaction journal.
 type journalFixture struct {
 	root         string // the user home
-	home         string // <root>/.guiho/jureuma
+	home         string // <root>/.guiho/zeze
 	stage        string
 	candidate    string
 	versionDir   string // <home>/versions/0.2.0
@@ -31,17 +31,17 @@ type journalFixture struct {
 func newJournalFixture(t *testing.T) *journalFixture {
 	t.Helper()
 	root := t.TempDir()
-	t.Setenv("JUREUMA_USER_HOME", root)
+	t.Setenv("ZEZE_USER_HOME", root)
 	t.Setenv("HOME", root)
 	t.Setenv("USERPROFILE", root)
 	f := &journalFixture{
 		root:         root,
-		home:         filepath.Join(root, ".guiho", "jureuma"),
-		stage:        filepath.Join(root, ".guiho", ".temp", "jureuma-upgrade-test"),
-		manifestPath: filepath.Join(root, ".guiho", "jureuma", installedFile),
-		currentPath:  filepath.Join(root, ".guiho", "jureuma", currentFile),
+		home:         filepath.Join(root, ".guiho", "zeze"),
+		stage:        filepath.Join(root, ".guiho", ".temp", "zeze-upgrade-test"),
+		manifestPath: filepath.Join(root, ".guiho", "zeze", installedFile),
+		currentPath:  filepath.Join(root, ".guiho", "zeze", currentFile),
 	}
-	f.candidate = filepath.Join(f.home, "versions", ".candidate-jureuma-upgrade-test")
+	f.candidate = filepath.Join(f.home, "versions", ".candidate-zeze-upgrade-test")
 	f.versionDir = filepath.Join(f.home, "versions", "0.2.0")
 	for _, d := range []string{filepath.Join(f.home, "state"), f.stage} {
 		if err := os.MkdirAll(d, 0o700); err != nil {
@@ -52,7 +52,7 @@ func newJournalFixture(t *testing.T) *journalFixture {
 	if err != nil || len(dests) == 0 {
 		t.Fatalf("skill destinations: %v %v", dests, err)
 	}
-	f.skillTarget = filepath.Join(dests[0], "guiho-s-jureuma")
+	f.skillTarget = filepath.Join(dests[0], "guiho-s-zeze")
 	f.j = newUpgradeJournal("0.2.0", "0.1.0", f.stage, f.candidate)
 	return f
 }
@@ -100,7 +100,7 @@ func (f *journalFixture) journalGone(t *testing.T) {
 // with the previous versions staged as backups.
 func (f *journalFixture) interrupted(t *testing.T) {
 	t.Helper()
-	f.write(t, filepath.Join(f.stage, "backup-version", "jureuma"), "old-payload")
+	f.write(t, filepath.Join(f.stage, "backup-version", "zeze"), "old-payload")
 	f.write(t, filepath.Join(f.stage, "backup-manifest.json"), "old-manifest")
 	f.write(t, filepath.Join(f.stage, "backup-current.json"), "old-current")
 	f.write(t, filepath.Join(f.stage, "backup-agents.md"), "old-agents")
@@ -118,7 +118,7 @@ func (f *journalFixture) interrupted(t *testing.T) {
 	f.j.AgentsHad = true
 	f.j.AgentsBackup = filepath.Join(f.stage, "backup-agents.md")
 
-	f.write(t, filepath.Join(f.versionDir, "jureuma"), "new-payload")
+	f.write(t, filepath.Join(f.versionDir, "zeze"), "new-payload")
 	f.write(t, filepath.Join(f.skillTarget, "SKILL.md"), "new-skill")
 	f.write(t, f.manifestPath, "new-manifest")
 	f.write(t, f.currentPath, "new-current")
@@ -129,7 +129,7 @@ func (f *journalFixture) interrupted(t *testing.T) {
 func (f *journalFixture) assertRestored(t *testing.T) {
 	t.Helper()
 	for path, want := range map[string]string{
-		filepath.Join(f.versionDir, "jureuma"):   "old-payload",
+		filepath.Join(f.versionDir, "zeze"):      "old-payload",
 		filepath.Join(f.skillTarget, "SKILL.md"): "old-skill",
 		f.manifestPath:                           "old-manifest",
 		f.currentPath:                            "old-current",
@@ -180,7 +180,7 @@ func TestLoadJournalRefusesUnsafeJournals(t *testing.T) {
 			f.j.ManifestBackup = filepath.Join(f.home, "backup.json")
 		},
 		"skill target outside the skill destinations": func(f *journalFixture) {
-			f.j.SkillWrites = []string{filepath.Join(f.home, "state", "guiho-s-jureuma")}
+			f.j.SkillWrites = []string{filepath.Join(f.home, "state", "guiho-s-zeze")}
 		},
 		"skill backup outside the staging directory": func(f *journalFixture) {
 			f.j.SkillBackups = map[string]string{f.skillTarget: filepath.Join(f.root, "backup-skill")}
@@ -266,7 +266,7 @@ func TestRepairLeavesTargetsWhoseBackupIsGone(t *testing.T) {
 	f.j.ManifestBackup = filepath.Join(f.stage, "backup-manifest.json") // never staged
 	f.j.WritesCurrent = true
 	f.j.CurrentBackup = filepath.Join(f.stage, "backup-current.json") // never staged
-	f.write(t, filepath.Join(f.versionDir, "jureuma"), "new-payload")
+	f.write(t, filepath.Join(f.versionDir, "zeze"), "new-payload")
 	f.write(t, f.manifestPath, "new-manifest")
 	f.write(t, f.currentPath, "new-current")
 	f.save(t)
@@ -274,7 +274,7 @@ func TestRepairLeavesTargetsWhoseBackupIsGone(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A recorded backup that is gone was never written: the targets stand.
-	for _, path := range []string{filepath.Join(f.versionDir, "jureuma"), f.manifestPath, f.currentPath} {
+	for _, path := range []string{filepath.Join(f.versionDir, "zeze"), f.manifestPath, f.currentPath} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("%s must be left alone: %v", path, err)
 		}
@@ -287,7 +287,7 @@ func TestRepairRemovesWhatTheTransactionCreated(t *testing.T) {
 	f.j.Phase = phaseArtifactReplace
 	f.j.CreatesVersion = true // versions/0.2.0 did not exist before
 	f.j.SkillWrites = []string{f.skillTarget}
-	f.write(t, filepath.Join(f.versionDir, "jureuma"), "new-payload")
+	f.write(t, filepath.Join(f.versionDir, "zeze"), "new-payload")
 	f.write(t, filepath.Join(f.skillTarget, "SKILL.md"), "new-skill")
 	f.write(t, f.manifestPath, "old-manifest") // not written by the transaction
 	f.save(t)
@@ -308,13 +308,13 @@ func TestRepairRestoresAReplacedVersionDirectory(t *testing.T) {
 	f.j.Phase = phaseArtifactReplace
 	f.j.VersionBackup = filepath.Join(f.stage, "backup-version")
 	f.j.CreatesVersion = true
-	f.write(t, filepath.Join(f.stage, "backup-version", "jureuma"), "old-payload")
-	f.write(t, filepath.Join(f.versionDir, "jureuma"), "new-payload")
+	f.write(t, filepath.Join(f.stage, "backup-version", "zeze"), "old-payload")
+	f.write(t, filepath.Join(f.versionDir, "zeze"), "new-payload")
 	f.save(t)
 	if err := repairJournal(f.home, nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := f.read(t, filepath.Join(f.versionDir, "jureuma")); got != "old-payload" {
+	if got := f.read(t, filepath.Join(f.versionDir, "zeze")); got != "old-payload" {
 		t.Fatalf("versions/0.2.0 = %q, want the staged original", got)
 	}
 	f.gone(t, f.stage)
@@ -351,21 +351,21 @@ func TestPlanArtifactsRecordsARollbackPlan(t *testing.T) {
 	f := newJournalFixture(t)
 	f.agentsPath = filepath.Join(f.root, "project", "AGENTS.md")
 	// The pre-transaction state.
-	f.write(t, filepath.Join(f.home, "versions", "0.2.0", "jureuma"), "old-payload")
+	f.write(t, filepath.Join(f.home, "versions", "0.2.0", "zeze"), "old-payload")
 	f.write(t, filepath.Join(f.skillTarget, "SKILL.md"), "old-skill")
 	f.write(t, f.manifestPath, "old-manifest")
 	f.write(t, f.currentPath, "old-current")
 
 	tx := &upgradeTx{
-		home: f.home, stage: f.stage, version: "0.2.0", payloadName: "jureuma",
+		home: f.home, stage: f.stage, version: "0.2.0", payloadName: "zeze",
 		j: newUpgradeJournal("0.2.0", "0.1.0", f.stage, f.candidate),
 	}
 	man := &update.Manifest{
-		Schema: 1, Name: "jureuma", Version: "0.2.0",
+		Schema: 1, Name: "zeze", Version: "0.2.0",
 		Artifacts: []update.Artifact{{
-			ID: "guiho-s-jureuma", Kind: "skill", Asset: "guiho-s-jureuma.zip",
+			ID: "guiho-s-zeze", Kind: "skill", Asset: "guiho-s-zeze.zip",
 			OS: "any", Arch: "any",
-			InstalledPath: "versions/0.2.0/artifacts/skills/guiho-s-jureuma",
+			InstalledPath: "versions/0.2.0/artifacts/skills/guiho-s-zeze",
 		}},
 	}
 	if err := tx.planArtifacts(man); err != nil {
@@ -376,7 +376,7 @@ func TestPlanArtifactsRecordsARollbackPlan(t *testing.T) {
 	if err := os.Rename(f.versionDir, tx.j.VersionBackup); err != nil {
 		t.Fatal(err)
 	}
-	f.write(t, filepath.Join(f.versionDir, "jureuma"), "new-payload")
+	f.write(t, filepath.Join(f.versionDir, "zeze"), "new-payload")
 	if err := os.Rename(f.skillTarget, tx.j.SkillBackups[f.skillTarget]); err != nil {
 		t.Fatal(err)
 	}
@@ -386,7 +386,7 @@ func TestPlanArtifactsRecordsARollbackPlan(t *testing.T) {
 	if err := repairJournal(f.home, nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := f.read(t, filepath.Join(f.versionDir, "jureuma")); got != "old-payload" {
+	if got := f.read(t, filepath.Join(f.versionDir, "zeze")); got != "old-payload" {
 		t.Fatalf("versions/0.2.0 = %q, want the original", got)
 	}
 	if got := f.read(t, filepath.Join(f.skillTarget, "SKILL.md")); got != "old-skill" {
@@ -406,7 +406,7 @@ func TestRepairUpgradeSkipsALiveTransaction(t *testing.T) {
 	f := newJournalFixture(t)
 	f.j.Phase = phaseArtifactReplace
 	f.j.CreatesVersion = true
-	f.write(t, filepath.Join(f.versionDir, "jureuma"), "new-payload")
+	f.write(t, filepath.Join(f.versionDir, "zeze"), "new-payload")
 	live := startLiveHelper(t)
 	defer func() {
 		_ = live.Process.Kill()
@@ -416,7 +416,7 @@ func TestRepairUpgradeSkipsALiveTransaction(t *testing.T) {
 	f.save(t)
 	repairUpgrade(f.home, nil)
 	// The live transaction is left alone.
-	if got := f.read(t, filepath.Join(f.versionDir, "jureuma")); got != "new-payload" {
+	if got := f.read(t, filepath.Join(f.versionDir, "zeze")); got != "new-payload" {
 		t.Fatalf("versions/0.2.0 = %q, want untouched", got)
 	}
 	if _, err := os.Stat(journalPath(f.home)); err != nil {
@@ -432,7 +432,7 @@ func TestRepairUpgradeSkipsALiveTransaction(t *testing.T) {
 
 // TestHelperLive holds a live process for TestRepairUpgradeSkipsALiveTransaction.
 func TestHelperLive(t *testing.T) {
-	if os.Getenv("JUREUMA_TEST_LIVE") != "1" {
+	if os.Getenv("ZEZE_TEST_LIVE") != "1" {
 		t.Skip("helper for TestRepairUpgradeSkipsALiveTransaction")
 	}
 	for {
@@ -443,7 +443,7 @@ func TestHelperLive(t *testing.T) {
 func startLiveHelper(t *testing.T) *exec.Cmd {
 	t.Helper()
 	cmd := exec.Command(os.Args[0], "-test.run=TestHelperLive")
-	cmd.Env = append(os.Environ(), "JUREUMA_TEST_LIVE=1")
+	cmd.Env = append(os.Environ(), "ZEZE_TEST_LIVE=1")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -466,7 +466,7 @@ func deadPID(t *testing.T) int {
 }
 
 func TestHelperExit(t *testing.T) {
-	if os.Getenv("JUREUMA_TEST_LIVE") == "1" {
+	if os.Getenv("ZEZE_TEST_LIVE") == "1" {
 		t.Fatal("wrong helper")
 	}
 }

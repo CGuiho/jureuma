@@ -8,12 +8,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/keystore"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/keystore"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -93,7 +93,7 @@ func (a *app) cmdKeyList() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "list the stored keys by label, short key ID and public-key prefix",
-		Long: `Lists every key stored in ~/.guiho/jureuma/keys/ (active keys first, then retired
+		Long: `Lists every key stored in ~/.guiho/zeze/keys/ (active keys first, then retired
 keys), one line each: label, short key ID, the beginning of the public key, and the
 state. Labels, key IDs and public-key prefixes are non-secret metadata; private keys
 are never listed. Keys without a label (created before labels existed) show a
@@ -123,7 +123,7 @@ func (a *app) cmdKeyExport() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "export [keyId]",
 		Short: "[human-only] print a private key for backup",
-		Long: `Prints the private key (jureuma-sk-1:...) of the pair's key, or of the given key ID
+		Long: `Prints the private key (zeze-sk-1:...) of the pair's key, or of the given key ID
 (active or retired), so a human can back it up or store it as a CI secret.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -172,12 +172,12 @@ func (a *app) cmdKeyRotate() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rotate",
 		Short: "generate a new key pair and re-encrypt every value to it",
-		Long: `Generates a new key pair (saved to ~/.guiho/jureuma/keys/), decrypts every value with the
+		Long: `Generates a new key pair (saved to ~/.guiho/zeze/keys/), decrypts every value with the
 old key (and retired keys for older ciphertexts), re-encrypts it to the new key, writes the
 encrypted file atomically, and then moves the old key to keys/retired/. Every recorded
 identity of the pair follows the new key: a headered unencrypted sibling is re-keyed (body,
 $schema pointer, comments and formatting kept; a headerless plaintext stays headerless).
-When jureuma.yaml binds a key (key:), rotation is project-wide: every configured pair that
+When zeze.yaml binds a key (key:), rotation is project-wide: every configured pair that
 records the bound key is rotated to ONE new key (a pair recording another key refuses before
 anything is written), and the binding is updated once with the same one-line splice. Rotation
 does not revoke values already in git history: rotate the underlying secrets after a key leak.`,
@@ -208,7 +208,7 @@ does not revoke values already in git history: rotate the underlying secrets aft
 				return err
 			}
 			// Preflight the sibling write before anything is written: a pair
-			// jureuma cannot read or repair refuses the rotation first, like
+			// zeze cannot read or repair refuses the rotation first, like
 			// project-wide rotation does.
 			plainFile, err := readPlainIfExists(p)
 			if err != nil {
@@ -288,7 +288,7 @@ does not revoke values already in git history: rotate the underlying secrets aft
 				write := &pair.PlainFile{Header: &h, Schema: plainFile.Schema, Body: plainFile.Body}
 				if err := pair.WritePlainFile(p.UnencryptedPath, write); err != nil {
 					return xerr.WrapMsg(xerr.CodeOf(err), xerr.KindOf(err),
-						fmt.Sprintf("%s was rotated to %s but the %s identity in %s was not updated; the two files now disagree on the pair key and jureuma refuses the pair until %s is fixed by hand", p.Rel(p.EncryptedPath), next.Meta.KeyID, pair.MetaKey, p.Rel(p.UnencryptedPath), p.Rel(p.UnencryptedPath)), err)
+						fmt.Sprintf("%s was rotated to %s but the %s identity in %s was not updated; the two files now disagree on the pair key and zeze refuses the pair until %s is fixed by hand", p.Rel(p.EncryptedPath), next.Meta.KeyID, pair.MetaKey, p.Rel(p.UnencryptedPath), p.Rel(p.UnencryptedPath)), err)
 				}
 				updatedPlain = true
 			}
@@ -310,11 +310,11 @@ does not revoke values already in git history: rotate the underlying secrets aft
 				outf(cmd, "the new key is labeled %s\n", label)
 			}
 			if retired {
-				outf(cmd, "the old key was moved to ~/.guiho/jureuma/keys/retired/\n")
+				outf(cmd, "the old key was moved to ~/.guiho/zeze/keys/retired/\n")
 			}
 			outf(cmd, "update CI: set %s (the old %s is no longer used by this file)\n", keystore.EnvName(next.Meta.KeyID), keystore.EnvName(enc.Meta.KeyID))
 			outf(cmd, "reminder: rotation does not revoke values already in git history; rotate leaked secrets themselves\n")
-			// The jureuma.yaml key binding follows the pair: an existing
+			// The zeze.yaml key binding follows the pair: an existing
 			// binding is updated through the same one-line splice, an absent
 			// one stays absent. A binding that cannot be updated is never
 			// left silently stale: the rotation was reported above and the
@@ -350,15 +350,15 @@ type rotationPair struct {
 }
 
 // rotateProject rotates every configured pair that records the key bound in
-// jureuma.yaml to ONE new key: one generated key, every value re-encrypted to
+// zeze.yaml to ONE new key: one generated key, every value re-encrypted to
 // it (retired keys still open older ciphertexts), each pair's sync/pending
 // rebuilt with the same rules as single-pair rotation, each embedded schema
 // copy migrated, every recorded identity followed to the new key, the
-// jureuma.yaml binding updated once, and the old key retired when no pair
+// zeze.yaml binding updated once, and the old key retired when no pair
 // still uses it. Pairs with no recorded identity are skipped with a note.
 //
 // Rotation is all-or-nothing for everything a pair can refuse: unreadable
-// files, legacy jureuma state, a missing key and a pair that records another
+// files, legacy zeze state, a missing key and a pair that records another
 // key all fail before anything is written (a mismatched pair is exit 5 naming
 // the pair and both key IDs — never a silent re-encrypt).
 func rotateProject(cmd *cobra.Command, e *env, pf *pairFlags) error {
@@ -548,7 +548,7 @@ func rotateProject(cmd *cobra.Command, e *env, pf *pairFlags) error {
 		outf(cmd, "the new key is labeled %s\n", label)
 	}
 	if retired {
-		outf(cmd, "the old key was moved to ~/.guiho/jureuma/keys/retired/\n")
+		outf(cmd, "the old key was moved to ~/.guiho/zeze/keys/retired/\n")
 	}
 	outf(cmd, "updated the %s key binding: %s -> %s\n", config.ProjectFile, bound, newID)
 	outf(cmd, "project key rotated: %s -> %s (%d %s)\n", bound, newID, len(preps), plural(len(preps), "pair", "pairs"))
@@ -644,9 +644,9 @@ func (a *app) cmdKeyRetire() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "retire <keyId>",
 		Short: "delete a retired key once no ciphertext in this project uses it",
-		Long: `Permanently deletes ~/.guiho/jureuma/keys/retired/<keyId>.json. Refuses while any
-*.encrypted.json file under the project root still references the key (run jureuma encrypt
-there to migrate). Back the key up first with jureuma key export <keyId>.`,
+		Long: `Permanently deletes ~/.guiho/zeze/keys/retired/<keyId>.json. Refuses while any
+*.encrypted.json file under the project root still references the key (run zeze encrypt
+there to migrate). Back the key up first with zeze key export <keyId>.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			keyID := args[0]
@@ -673,9 +673,9 @@ there to migrate). Back the key up first with jureuma key export <keyId>.`,
 			}
 			switch state {
 			case "":
-				return xerr.Key("key %s not found in ~/.guiho/jureuma/keys/retired/", keyID)
+				return xerr.Key("key %s not found in ~/.guiho/zeze/keys/retired/", keyID)
 			case "active":
-				return xerr.Failure("key %s is active; run jureuma key rotate first", keyID)
+				return xerr.Failure("key %s is active; run zeze key rotate first", keyID)
 			}
 			usage := projectKeyUsage(e.root, keyID)
 			if len(usage) > 0 {
@@ -684,7 +684,7 @@ there to migrate). Back the key up first with jureuma key export <keyId>.`,
 					files = append(files, f+" ("+itoa(n)+")")
 				}
 				sort.Strings(files)
-				return xerr.Failure("key %s is still used by %s; run jureuma encrypt there first", keyID, strings.Join(files, ", "))
+				return xerr.Failure("key %s is still used by %s; run zeze encrypt there first", keyID, strings.Join(files, ", "))
 			}
 			if err := e.store.Delete(keyID); err != nil {
 				return xerr.Wrap(xerr.CodeKey, xerr.KindKey, err)

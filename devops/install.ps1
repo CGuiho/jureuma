@@ -1,19 +1,19 @@
 <#
 .SYNOPSIS
-Install jureuma, the GUIHO agent-safe configuration CLI.
+Install zeze, the GUIHO agent-safe configuration CLI.
 
 .DESCRIPTION
 Windows (PowerShell):
-  irm https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.ps1 | iex
-  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.ps1))) -Version '0.1.0'
-  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.ps1))) -Channel 'beta'
+  irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1 | iex
+  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1))) -Version '0.1.0'
+  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1))) -Channel 'beta'
 
 Installs the verified release payload into the immutable directory
-~/.guiho/jureuma/versions/<version>/, the released stable launcher at
-~/.guiho/bin/jureuma.exe, the active-version pointer ~/.guiho/jureuma/current.json,
-the installed artifact manifest, the guiho-s-jureuma agent skill copies and
-(inside a project) the jureuma block in AGENTS.md, and adds ~/.guiho/bin to the
-user PATH. Downloads and verification happen in ~/.guiho/.temp/jureuma-install-<id>/.
+~/.guiho/zeze/versions/<version>/, the released stable launcher at
+~/.guiho/bin/zeze.exe, the active-version pointer ~/.guiho/zeze/current.json,
+the installed artifact manifest, the guiho-s-zeze agent skill copies and
+(inside a project) the zeze block in AGENTS.md, and adds ~/.guiho/bin to the
+user PATH. Downloads and verification happen in ~/.guiho/.temp/zeze-install-<id>/.
 Any failure rolls back to the previous installation. Configuration, keys, state
 and the audit log are never touched. The outcome matches devops/install.sh.
 
@@ -21,12 +21,12 @@ The script also runs under PowerShell 7 on macOS and Linux, where it installs
 the same layout as install.sh (including the released stable launcher).
 
 Environment overrides (testing and mirrors only):
-  JUREUMA_RELEASES_URL       release catalog API (default: GitHub releases API)
-  JUREUMA_DOWNLOAD_BASE_URL  asset base; assets are <base>/<tag>/<asset>
-  JUREUMA_RELEASE_ASSET_DIR  read every release asset from this local directory
+  ZEZE_RELEASES_URL       release catalog API (default: GitHub releases API)
+  ZEZE_DOWNLOAD_BASE_URL  asset base; assets are <base>/<tag>/<asset>
+  ZEZE_RELEASE_ASSET_DIR  read every release asset from this local directory
                              instead of downloading (requires an exact version:
-                             -Version or JUREUMA_RELEASE_VERSION)
-  JUREUMA_RELEASE_VERSION    exact version to use with JUREUMA_RELEASE_ASSET_DIR
+                             -Version or ZEZE_RELEASE_VERSION)
+  ZEZE_RELEASE_VERSION    exact version to use with ZEZE_RELEASE_ASSET_DIR
 #>
 param(
   [string]$Version = '',
@@ -40,15 +40,15 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$Repo = 'CGuiho/jureuma'
-$SkillId = 'guiho-s-jureuma'
-$AgentAssets = @('guiho-s-jureuma.zip', 'jureuma-instruction.md', 'guiho-p-jureuma.md', 'guiho-p-jureuma-install.md', 'guiho-p-jureuma-uninstall.md')
+$Repo = 'CGuiho/zeze'
+$SkillId = 'guiho-s-zeze'
+$AgentAssets = @('guiho-s-zeze.zip', 'zeze-instruction.md', 'guiho-p-zeze.md', 'guiho-p-zeze-install.md', 'guiho-p-zeze-uninstall.md')
 $SemverPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
-$ReinstallSh = 'curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh'
+$ReinstallSh = 'curl -fsSL https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.sh | sh'
 
 function Show-Usage {
   Write-Output @'
-Install jureuma, the GUIHO agent-safe configuration CLI.
+Install zeze, the GUIHO agent-safe configuration CLI.
 
 Usage: install.ps1 [-Version <semver> | -Channel <name>] [-DryRun] [-NoModifyPath]
 
@@ -66,7 +66,7 @@ Re-running the installer performs a complete, safe reinstall.
 
 if ($Help) { Show-Usage; return }
 
-function Fail([string]$Message) { throw "jureuma install: $Message" }
+function Fail([string]$Message) { throw "zeze install: $Message" }
 
 $OnWindows = [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
 if ($OnWindows -and $PSVersionTable.PSVersion.Major -lt 6) {
@@ -125,9 +125,9 @@ $UserHome = [IO.Path]::GetFullPath($UserHome).TrimEnd([char[]]@('\', '/'))
 $Guiho = Join-Path $UserHome '.guiho'
 $BinDir = Join-Path $Guiho 'bin'
 $TempRoot = Join-Path $Guiho '.temp'
-$JHome = Join-Path $Guiho 'jureuma'
+$JHome = Join-Path $Guiho 'zeze'
 $VersionsDir = Join-Path $JHome 'versions'
-$ExeName = if ($OnWindows) { 'jureuma.exe' } else { 'jureuma' }
+$ExeName = if ($OnWindows) { 'zeze.exe' } else { 'zeze' }
 $Launcher = Join-Path $BinDir $ExeName
 
 # --- Platform ----------------------------------------------------------------
@@ -150,31 +150,31 @@ if ($OnWindows) {
     default { Fail "unsupported architecture: $($ri::OSArchitecture)" }
   }
 }
-$Asset = "jureuma-$os-$arch"
+$Asset = "zeze-$os-$arch"
 if ($OnWindows) { $Asset = "$Asset.exe" }
-$LauncherAsset = "jureuma-launcher-$os-$arch"
+$LauncherAsset = "zeze-launcher-$os-$arch"
 if ($OnWindows) { $LauncherAsset = "$LauncherAsset.exe" }
 
 # Local asset directory (testing, mirrors and air-gapped installs): when set,
 # every release asset is read from that directory instead of the network and
 # an exact version is required, so no release catalog is consulted.
-$AssetDir = $env:JUREUMA_RELEASE_ASSET_DIR
+$AssetDir = $env:ZEZE_RELEASE_ASSET_DIR
 if ($AssetDir) {
-  if (-not (Test-Path -LiteralPath $AssetDir -PathType Container)) { Fail "JUREUMA_RELEASE_ASSET_DIR is not a directory: $AssetDir" }
-  if (-not $Version) { $Version = [string]$env:JUREUMA_RELEASE_VERSION }
+  if (-not (Test-Path -LiteralPath $AssetDir -PathType Container)) { Fail "ZEZE_RELEASE_ASSET_DIR is not a directory: $AssetDir" }
+  if (-not $Version) { $Version = [string]$env:ZEZE_RELEASE_VERSION }
   if ($Version) { $Version = $Version -replace '^v', '' }
-  if (-not $Version) { Fail 'an exact -Version (or JUREUMA_RELEASE_VERSION) is required with JUREUMA_RELEASE_ASSET_DIR' }
+  if (-not $Version) { Fail 'an exact -Version (or ZEZE_RELEASE_VERSION) is required with ZEZE_RELEASE_ASSET_DIR' }
   if ($Version -notmatch $SemverPattern) { Fail "not a valid SemVer version: $Version" }
   $Channel = ''
 }
 
 # --- Release selection across every catalog page -----------------------------
-$ReleasesUrl = if ($env:JUREUMA_RELEASES_URL) { $env:JUREUMA_RELEASES_URL } else { "https://api.github.com/repos/$Repo/releases" }
-$DownloadBase = if ($env:JUREUMA_DOWNLOAD_BASE_URL) { $env:JUREUMA_DOWNLOAD_BASE_URL.TrimEnd('/') } else { "https://github.com/$Repo/releases/download" }
-$Headers = @{ 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'jureuma-installer' }
+$ReleasesUrl = if ($env:ZEZE_RELEASES_URL) { $env:ZEZE_RELEASES_URL } else { "https://api.github.com/repos/$Repo/releases" }
+$DownloadBase = if ($env:ZEZE_DOWNLOAD_BASE_URL) { $env:ZEZE_DOWNLOAD_BASE_URL.TrimEnd('/') } else { "https://github.com/$Repo/releases/download" }
+$Headers = @{ 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'zeze-installer' }
 $Required = @($Asset, $LauncherAsset, 'checksums.txt', 'artifacts.json') + $AgentAssets
 
-Write-Output 'jureuma installer'
+Write-Output 'zeze installer'
 if ($AssetDir) {
   $TargetVersion = $Version
   $Tag = "v$TargetVersion"
@@ -256,7 +256,7 @@ function Test-PathListContains([string]$PathValue, [string]$Directory) {
 }
 $PathPresent = Test-PathListContains $env:PATH $BinDir
 $ProjectRoot = (Get-Location).ProviderPath
-$ApplyInstruction = (Test-Path -LiteralPath (Join-Path $ProjectRoot 'jureuma.yaml') -PathType Leaf) -or (
+$ApplyInstruction = (Test-Path -LiteralPath (Join-Path $ProjectRoot 'zeze.yaml') -PathType Leaf) -or (
   (Test-Path -LiteralPath (Join-Path $ProjectRoot 'AGENTS.md') -PathType Leaf) -and (Test-Path -LiteralPath (Join-Path $ProjectRoot '.git')))
 
 if ($DryRun) {
@@ -266,7 +266,7 @@ if ($DryRun) {
   Write-Output "  install $(Join-Path $VersionsDir $TargetVersion) (immutable) and point $CurrentPath at it"
   Write-Output "  install the stable launcher $Launcher ($LauncherAsset)"
   Write-Output "  install the $SkillId skill into the supported global agent-skill directories"
-  if ($ApplyInstruction) { Write-Output "  apply the jureuma block in $(Join-Path $ProjectRoot 'AGENTS.md')" }
+  if ($ApplyInstruction) { Write-Output "  apply the zeze block in $(Join-Path $ProjectRoot 'AGENTS.md')" }
   if (-not $PathPresent -and -not $NoModifyPath) { Write-Output "  add $BinDir to the user PATH" }
   Write-Output 'Dry run: nothing was changed.'
   return
@@ -277,21 +277,21 @@ $Utf8NoBom = New-Object System.Text.UTF8Encoding -ArgumentList $false
 function Get-Sha256([string]$Path) { return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant() }
 function Invoke-Quiet([string]$Exe, [string[]]$Arguments) {
   $ErrorActionPreference = 'Continue'  # native stderr must not become a terminating error
-  $old = $env:JUREUMA_NO_UPDATE_CHECK
-  $env:JUREUMA_NO_UPDATE_CHECK = '1'
+  $old = $env:ZEZE_NO_UPDATE_CHECK
+  $env:ZEZE_NO_UPDATE_CHECK = '1'
   try {
     $out = & $Exe @Arguments 2>$null
     return [pscustomobject]@{ Code = $LASTEXITCODE; Output = (($out | Out-String).Trim()) }
-  } finally { $env:JUREUMA_NO_UPDATE_CHECK = $old }
+  } finally { $env:ZEZE_NO_UPDATE_CHECK = $old }
 }
 
 # --- Staging -----------------------------------------------------------------
 New-Item -ItemType Directory -Force -Path $TempRoot | Out-Null
 $Id = [Guid]::NewGuid().ToString('N').Substring(0, 12)
-$Stage = Join-Path $TempRoot "jureuma-install-$Id"
+$Stage = Join-Path $TempRoot "zeze-install-$Id"
 $StageFull = [IO.Path]::GetFullPath($Stage)
 $TempPrefix = [IO.Path]::GetFullPath($TempRoot).TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
-if (-not $StageFull.StartsWith($TempPrefix + 'jureuma-install-', [StringComparison]::Ordinal)) { Fail 'the staging directory is outside ~/.guiho/.temp' }
+if (-not $StageFull.StartsWith($TempPrefix + 'zeze-install-', [StringComparison]::Ordinal)) { Fail 'the staging directory is outside ~/.guiho/.temp' }
 New-Item -ItemType Directory -Path $Stage | Out-Null
 $Dl = Join-Path $Stage 'dl'
 New-Item -ItemType Directory -Path $Dl | Out-Null
@@ -337,11 +337,11 @@ try {
     if ($Name -match '[\\/]' -or $Name -eq '.' -or $Name -eq '..') { Fail "unsafe asset name: $Name" }
     if ($AssetDir) {
       $src = Join-Path $AssetDir $Name
-      if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Fail "asset not found in JUREUMA_RELEASE_ASSET_DIR: $Name" }
+      if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Fail "asset not found in ZEZE_RELEASE_ASSET_DIR: $Name" }
       Copy-Item -LiteralPath $src -Destination (Join-Path $Dl $Name)
       return
     }
-    try { Invoke-WebRequest -Uri "$BaseUrl/$Name" -OutFile (Join-Path $Dl $Name) -Headers @{ 'User-Agent' = 'jureuma-installer' } -UseBasicParsing }
+    try { Invoke-WebRequest -Uri "$BaseUrl/$Name" -OutFile (Join-Path $Dl $Name) -Headers @{ 'User-Agent' = 'zeze-installer' } -UseBasicParsing }
     catch { Fail "download failed: $Name" }
   }
   Write-Output ''
@@ -380,19 +380,19 @@ try {
   }
   Write-Output '[OK] SHA-256 verification complete.'
 
-  # Skill archive: every entry must stay below guiho-s-jureuma/.
+  # Skill archive: every entry must stay below guiho-s-zeze/.
   Add-Type -AssemblyName System.IO.Compression.FileSystem
-  $zipPath = Join-Path $Dl 'guiho-s-jureuma.zip'
+  $zipPath = Join-Path $Dl 'guiho-s-zeze.zip'
   $zip = [IO.Compression.ZipFile]::OpenRead($zipPath)
   try {
     foreach ($e in $zip.Entries) {
       $n = $e.FullName.Replace('\', '/')
-      if (-not $n.StartsWith("$SkillId/") -or $n -match '(^|/)\.\.(/|$)' -or $n.StartsWith('/')) { Fail 'guiho-s-jureuma.zip contains unexpected paths' }
+      if (-not $n.StartsWith("$SkillId/") -or $n -match '(^|/)\.\.(/|$)' -or $n.StartsWith('/')) { Fail 'guiho-s-zeze.zip contains unexpected paths' }
     }
   } finally { $zip.Dispose() }
   $SkillStage = Join-Path $Stage 'skill'
   Expand-Archive -LiteralPath $zipPath -DestinationPath $SkillStage
-  if (-not (Test-Path -LiteralPath (Join-Path (Join-Path $SkillStage $SkillId) 'SKILL.md'))) { Fail "guiho-s-jureuma.zip is missing $SkillId/SKILL.md" }
+  if (-not (Test-Path -LiteralPath (Join-Path (Join-Path $SkillStage $SkillId) 'SKILL.md'))) { Fail "guiho-s-zeze.zip is missing $SkillId/SKILL.md" }
 
   # Candidate checks.
   $CandidateExe = Join-Path $Dl $Asset
@@ -410,10 +410,10 @@ try {
   foreach ($d in @('skills', 'prompts', 'instruction', 'schemas', 'examples')) { New-Item -ItemType Directory -Force -Path (Join-Path $art $d) | Out-Null }
   Copy-Item -LiteralPath $CandidateExe -Destination (Join-Path $CandidateDir $ExeName)
   Copy-Item -LiteralPath (Join-Path $SkillStage $SkillId) -Destination (Join-Path (Join-Path $art 'skills') $SkillId) -Recurse
-  foreach ($p in @('guiho-p-jureuma', 'guiho-p-jureuma-install', 'guiho-p-jureuma-uninstall')) { Copy-Item -LiteralPath (Join-Path $Dl "$p.md") -Destination (Join-Path (Join-Path $art 'prompts') "$p.md") }
-  Copy-Item -LiteralPath (Join-Path $Dl 'jureuma-instruction.md') -Destination (Join-Path (Join-Path $art 'instruction') 'jureuma-instruction.md')
-  foreach ($f in @('jureuma.schema.json', 'jureuma.global.schema.json')) { if (Test-Path -LiteralPath (Join-Path $Dl $f)) { Copy-Item -LiteralPath (Join-Path $Dl $f) -Destination (Join-Path (Join-Path $art 'schemas') $f) } }
-  foreach ($f in @('jureuma.example.yaml', 'jureuma.global.example.yaml')) { if (Test-Path -LiteralPath (Join-Path $Dl $f)) { Copy-Item -LiteralPath (Join-Path $Dl $f) -Destination (Join-Path (Join-Path $art 'examples') $f) } }
+  foreach ($p in @('guiho-p-zeze', 'guiho-p-zeze-install', 'guiho-p-zeze-uninstall')) { Copy-Item -LiteralPath (Join-Path $Dl "$p.md") -Destination (Join-Path (Join-Path $art 'prompts') "$p.md") }
+  Copy-Item -LiteralPath (Join-Path $Dl 'zeze-instruction.md') -Destination (Join-Path (Join-Path $art 'instruction') 'zeze-instruction.md')
+  foreach ($f in @('zeze.schema.json', 'zeze.global.schema.json')) { if (Test-Path -LiteralPath (Join-Path $Dl $f)) { Copy-Item -LiteralPath (Join-Path $Dl $f) -Destination (Join-Path (Join-Path $art 'schemas') $f) } }
+  foreach ($f in @('zeze.example.yaml', 'zeze.global.example.yaml')) { if (Test-Path -LiteralPath (Join-Path $Dl $f)) { Copy-Item -LiteralPath (Join-Path $Dl $f) -Destination (Join-Path (Join-Path $art 'examples') $f) } }
   Copy-Item -LiteralPath (Join-Path $Dl 'artifacts.json') -Destination (Join-Path $art 'artifacts.json')
   Copy-Item -LiteralPath (Join-Path $Dl 'checksums.txt') -Destination (Join-Path $art 'checksums.txt')
   if (-not $OnWindows) {
@@ -423,7 +423,7 @@ try {
   if (Test-Path -LiteralPath $VersionDir) {
     $T.VersionBackup = Join-Path $Stage 'backup-version'
     try { Move-Item -LiteralPath $VersionDir -Destination $T.VersionBackup }
-    catch { $T.VersionBackup = $null; Fail "cannot replace $VersionDir; stop running jureuma processes and retry" }
+    catch { $T.VersionBackup = $null; Fail "cannot replace $VersionDir; stop running zeze processes and retry" }
   }
   Move-Item -LiteralPath $CandidateDir -Destination $VersionDir
   $T.CreatedVersion = $true
@@ -508,7 +508,7 @@ try {
       Copy-Item -LiteralPath $T.AgentsTarget -Destination $T.AgentsBackup
     }
     $r = Invoke-Quiet $Launcher @('agent', 'instruction', 'apply')
-    if ($r.Code -ne 0) { Fail 'could not apply the jureuma block to AGENTS.md' }
+    if ($r.Code -ne 0) { Fail 'could not apply the zeze block to AGENTS.md' }
   }
   $T.Committed = $true
 } catch {
@@ -518,7 +518,7 @@ try {
   foreach ($p in @((Join-Path $JHome ".current.json.$Id"), $CandidateDir)) {
     if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue }
   }
-  if ((Test-Path -LiteralPath $Stage) -and ([IO.Path]::GetFullPath($Stage)).StartsWith($TempPrefix + 'jureuma-install-', [StringComparison]::Ordinal)) {
+  if ((Test-Path -LiteralPath $Stage) -and ([IO.Path]::GetFullPath($Stage)).StartsWith($TempPrefix + 'zeze-install-', [StringComparison]::Ordinal)) {
     Remove-Item -LiteralPath $Stage -Recurse -Force -ErrorAction SilentlyContinue
   }
 }
@@ -540,7 +540,7 @@ if (-not $NoModifyPath) {
     if ($existing -notmatch '\.guiho/bin') {
       $nl = if ($existing.Contains("`r`n")) { "`r`n" } else { "`n" }
       $prefix = if ($existing.Length -eq 0 -or $existing.EndsWith("`n")) { '' } else { $nl }
-      [IO.File]::AppendAllText($bashrc, "$prefix# Added by the jureuma installer (GUIHO shared bin directory).$nl" + 'export PATH="$HOME/.guiho/bin:$PATH"' + $nl, $Utf8NoBom)
+      [IO.File]::AppendAllText($bashrc, "$prefix# Added by the zeze installer (GUIHO shared bin directory).$nl" + 'export PATH="$HOME/.guiho/bin:$PATH"' + $nl, $Utf8NoBom)
       Write-Output "[OK] Added ~/.guiho/bin to Git Bash startup ($bashrc)."
     }
     if (-not $PathPresent) { $pathNote = 'Open a new terminal so the updated user Path applies everywhere.' }
@@ -550,13 +550,13 @@ if (-not $NoModifyPath) {
     if ($os -eq 'darwin' -and -not (Test-Path -LiteralPath (Join-Path $UserHome '.zshrc'))) { $files += (Join-Path $UserHome '.zshrc') }
     foreach ($f in $files) {
       if ((Test-Path -LiteralPath $f) -and ([IO.File]::ReadAllText($f) -match '\.guiho/bin')) { continue }
-      [IO.File]::AppendAllText($f, "`n# Added by the jureuma installer (GUIHO shared bin directory).`n" + 'export PATH="$HOME/.guiho/bin:$PATH"' + "`n", $Utf8NoBom)
+      [IO.File]::AppendAllText($f, "`n# Added by the zeze installer (GUIHO shared bin directory).`n" + 'export PATH="$HOME/.guiho/bin:$PATH"' + "`n", $Utf8NoBom)
       Write-Output "[OK] Added ~/.guiho/bin to PATH in $f"
     }
     if (-not $PathPresent) { $pathNote = 'Open a new shell, or run: export PATH="$HOME/.guiho/bin:$PATH"' }
   }
 } elseif (-not $PathPresent) {
-  $pathNote = "Add $BinDir to PATH to run jureuma by name."
+  $pathNote = "Add $BinDir to PATH to run zeze by name."
 }
 
 # --- Disposable state and obsolete payloads ----------------------------------
@@ -568,11 +568,11 @@ foreach ($d in @(Get-ChildItem -LiteralPath $VersionsDir -Directory)) {
 }
 
 Write-Output ''
-Write-Output "[OK] Installed jureuma $TargetVersion"
+Write-Output "[OK] Installed zeze $TargetVersion"
 Write-Output "  command:   $Launcher"
 Write-Output "  payload:   $Payload"
 Write-Output "  CLI home:  $JHome"
 foreach ($root in $skillRoots) { Write-Output "  skill:     $(Join-Path $root $SkillId)" }
-if ($T.AgentsTarget) { Write-Output "  AGENTS.md: $($T.AgentsTarget) (jureuma block)" }
+if ($T.AgentsTarget) { Write-Output "  AGENTS.md: $($T.AgentsTarget) (zeze block)" }
 if ($pathNote) { Write-Output $pathNote }
-Write-Output 'Next: run `jureuma init` in your project root, then `jureuma --version`.'
+Write-Output 'Next: run `zeze init` in your project root, then `zeze --version`.'

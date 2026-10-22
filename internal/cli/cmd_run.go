@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/runner"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/runner"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -22,25 +22,25 @@ func (a *app) cmdRun() *cobra.Command {
 		Aliases: []string{"inject"},
 		Short:   "run a command with the decrypted configuration injected, output redacted",
 		Long: `Decrypts the configuration in memory, validates it, and starts the command with it injected.
-JUREUMA_PRIVATE_KEY and every JUREUMA_PRIVATE_KEY_* variable are always removed from the
+ZEZE_PRIVATE_KEY and every ZEZE_PRIVATE_KEY_* variable are always removed from the
 child's environment.
 
 --format json (default): the whole document, compact JSON, in --env-name (default
-  JUREUMA_CONFIG).
+  ZEZE_CONFIG).
 --format flatten: one variable per leaf (/database/url -> DATABASE_URL), with --prefix.
-  Code-loading names (LD_*, DYLD_*, NODE_OPTIONS, PYTHONPATH, ...) and JUREUMA_* are refused.
+  Code-loading names (LD_*, DYLD_*, NODE_OPTIONS, PYTHONPATH, ...) and ZEZE_* are refused.
 --format file: --env-name holds a path to the document (an in-memory /dev/fd file on Linux,
   otherwise a 0600 file removed when the child exits).
 --env NAME=/pointer injects selected values in addition (repeatable).
 Existing environment variables win unless --override is given.
 
 The child's stdout and stderr are redacted: every string value of 4+ characters, every
-value marked x-jureuma-secret, and every private key (always) become [REDACTED].
-run returns the child's exit code; a jureuma-side failure exits 125 with a
-[JUREUMA:<KIND>] message on stderr.`,
-		Example: `  jureuma run -- node server.js
-  jureuma run --format flatten --prefix APP_ -- ./start.sh
-  jureuma run --env DATABASE_URL=/database/url -- psql "$DATABASE_URL"`,
+value marked x-zeze-secret, and every private key (always) become [REDACTED].
+run returns the child's exit code; a zeze-side failure exits 125 with a
+[ZEZE:<KIND>] message on stderr.`,
+		Example: `  zeze run -- node server.js
+  zeze run --format flatten --prefix APP_ -- ./start.sh
+  zeze run --env DATABASE_URL=/database/url -- psql "$DATABASE_URL"`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := loadEnv()
@@ -79,8 +79,8 @@ run returns the child's exit code; a jureuma-side failure exits 125 with a
 			}
 			if sch != nil {
 				if issues := sch.Validate(plain); len(issues) > 0 {
-					// The issues follow the [JUREUMA:VALIDATION] line so that
-					// every jureuma-side failure starts with the fixed prefix.
+					// The issues follow the [ZEZE:VALIDATION] line so that
+					// every zeze-side failure starts with the fixed prefix.
 					lines := make([]string, len(issues))
 					for i, is := range issues {
 						lines[i] = "\n  " + is.String()
@@ -129,7 +129,7 @@ run returns the child's exit code; a jureuma-side failure exits 125 with a
 	addPairFlags(c, &pf)
 	f := c.Flags()
 	f.SetInterspersed(false)
-	f.StringVar(&format, "format", config.DefaultFormat, "injection format: json, flatten or file (default from jureuma.yaml run.format)")
+	f.StringVar(&format, "format", config.DefaultFormat, "injection format: json, flatten or file (default from zeze.yaml run.format)")
 	f.StringVar(&envName, "env-name", config.DefaultEnvName, "variable for --format json/file (default from run.envName)")
 	f.StringVar(&prefix, "prefix", "", "prefix for --format flatten variable names")
 	f.StringArrayVar(&envs, "env", nil, "inject one value as NAME=/json/pointer (repeatable)")

@@ -25,12 +25,12 @@ type harness struct {
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	h := &harness{t: t, home: t.TempDir(), proj: t.TempDir()}
-	t.Setenv("JUREUMA_USER_HOME", h.home)
+	t.Setenv("ZEZE_USER_HOME", h.home)
 	// HOME matches the override, so the bypass is not refused as relocated.
 	t.Setenv("HOME", h.home)
 	t.Setenv("USERPROFILE", h.home)
-	t.Setenv("JUREUMA_NO_UPDATE_CHECK", "1")
-	t.Setenv("JUREUMA_PRIVATE_KEY", "")
+	t.Setenv("ZEZE_NO_UPDATE_CHECK", "1")
+	t.Setenv("ZEZE_PRIVATE_KEY", "")
 	if _, err := exec.LookPath("git"); err == nil {
 		if out, err := exec.Command("git", "init", "-q", h.proj).CombinedOutput(); err != nil {
 			t.Fatalf("git init: %v %s", err, out)
@@ -40,7 +40,7 @@ func newHarness(t *testing.T) *harness {
 	return h
 }
 
-// run executes jureuma and records its output in the sentinel transcript.
+// run executes zeze and records its output in the sentinel transcript.
 func (h *harness) run(stdin string, args ...string) (int, string) {
 	h.t.Helper()
 	code, out := h.runRaw(stdin, args...)
@@ -58,7 +58,7 @@ func (h *harness) expect(code int, stdin string, args ...string) string {
 	h.t.Helper()
 	got, out := h.run(stdin, args...)
 	if got != code {
-		h.t.Fatalf("jureuma %s: exit %d, want %d\n%s", strings.Join(args, " "), got, code, out)
+		h.t.Fatalf("zeze %s: exit %d, want %d\n%s", strings.Join(args, " "), got, code, out)
 	}
 	return out
 }
@@ -89,7 +89,7 @@ func TestEndToEndNoValueLeaks(t *testing.T) {
 		`"action": "read"`,
 		`"resource": "*.unencrypted.json"`,
 		`"resource": "*.unencrypted.jsonc"`,
-		`"resource": "$HOME/.guiho/jureuma/*"`,
+		`"resource": "$HOME/.guiho/zeze/*"`,
 		`"effect": "deny"`,
 	} {
 		if !strings.Contains(string(ocfg), want) {
@@ -111,7 +111,7 @@ func TestEndToEndNoValueLeaks(t *testing.T) {
 	h.expect(0, "", "unset", "/list/0", "--allow-invalid")
 	h.expect(1, "", "schema", "infer")
 	h.expect(0, "", "schema", "infer", "--force")
-	out := h.expect(0, "", "run", "--", "sh", "-c", `printf '%s\n' "$JUREUMA_CONFIG"`)
+	out := h.expect(0, "", "run", "--", "sh", "-c", `printf '%s\n' "$ZEZE_CONFIG"`)
 	if !strings.Contains(out, "[REDACTED]") {
 		t.Fatalf("run output not redacted: %s", out)
 	}
@@ -122,13 +122,13 @@ func TestEndToEndNoValueLeaks(t *testing.T) {
 	if code, _ := h.run("", "run", "--", "sh", "-c", "exit 9"); code != 9 {
 		t.Fatalf("child exit code not passed through: %d", code)
 	}
-	if code, out := h.run("", "run", "--format", "nope", "--", "true"); code != 125 || !strings.HasPrefix(out, "[JUREUMA:USAGE]") {
+	if code, out := h.run("", "run", "--format", "nope", "--", "true"); code != 125 || !strings.HasPrefix(out, "[ZEZE:USAGE]") {
 		t.Fatalf("run usage failure: %d %s", code, out)
 	}
 	// Human-only commands refuse without a terminal.
 	for _, args := range [][]string{{"get", "/db/url"}, {"decrypt", "--keep-both"}, {"key", "show", "--private"}, {"key", "export"}} {
 		code, out := h.run("", args...)
-		if code != 3 || !strings.HasPrefix(out, "[PROTECTED] jureuma ") {
+		if code != 3 || !strings.HasPrefix(out, "[PROTECTED] zeze ") {
 			t.Fatalf("%v: exit %d %s", args, code, out)
 		}
 	}
@@ -137,7 +137,7 @@ func TestEndToEndNoValueLeaks(t *testing.T) {
 	h.expect(0, "", "status")
 
 	// The transcript, the audit log and the committed files contain no value.
-	audit, _ := os.ReadFile(filepath.Join(h.home, ".guiho", "jureuma", "audit.log"))
+	audit, _ := os.ReadFile(filepath.Join(h.home, ".guiho", "zeze", "audit.log"))
 	enc, _ := os.ReadFile(filepath.Join(h.proj, "config.encrypted.json"))
 	sch, _ := os.ReadFile(filepath.Join(h.proj, "config.schema.json"))
 	for name, data := range map[string][]byte{"output": h.trans.Bytes(), "audit.log": audit, "encrypted": enc, "schema": sch} {
@@ -158,7 +158,7 @@ func TestEndToEndNoValueLeaks(t *testing.T) {
 		t.Fatal("bypass decrypt failed")
 	}
 	// The bypass is refused when disabled or when the protections block was edited by hand.
-	global := filepath.Join(h.home, ".guiho", "jureuma", "jureuma.global.yaml")
+	global := filepath.Join(h.home, ".guiho", "zeze", "zeze.global.yaml")
 	data, _ := os.ReadFile(global)
 	edited := strings.Replace(string(data), "agentEnvMarkers: []", "agentEnvMarkers: [MY_AGENT]", 1)
 	os.WriteFile(global, []byte(edited), 0o600)
@@ -183,7 +183,7 @@ func TestUsageAndHelp(t *testing.T) {
 	h.expect(2, "", "set")
 	h.expect(2, "", "list", "--bogus")
 	h.expect(2, "", "list", "--help-tree", "--help-tree-depth", "0")
-	if out := h.expect(0, "", "set", "--help-docs"); !strings.HasPrefix(out, "# jureuma set\n") {
+	if out := h.expect(0, "", "set", "--help-docs"); !strings.HasPrefix(out, "# zeze set\n") {
 		t.Fatalf("help-docs: %s", out)
 	}
 	tree := h.expect(0, "", "--help-tree")
@@ -208,24 +208,24 @@ func TestUsageAndHelp(t *testing.T) {
 func TestAgentCommands(t *testing.T) {
 	h := newHarness(t)
 	out := h.expect(0, "", "agent", "prompt", "list")
-	if !strings.Contains(out, "guiho-p-jureuma (default)") {
+	if !strings.Contains(out, "guiho-p-zeze (default)") {
 		t.Fatalf("prompt list: %s", out)
 	}
-	if out := h.expect(0, "", "agent", "prompt", "show"); !strings.HasPrefix(out, "---\nname: guiho-p-jureuma\n") {
+	if out := h.expect(0, "", "agent", "prompt", "show"); !strings.HasPrefix(out, "---\nname: guiho-p-zeze\n") {
 		t.Fatalf("prompt show must print the raw prompt with its metadata: %s", out)
 	}
 	h.expect(2, "", "agent", "prompt", "show", "nope")
 	h.expect(0, "", "agent", "skill", "install")
 	h.expect(0, "", "agent", "skill", "list")
-	skillMD, err := os.ReadFile(filepath.Join(h.home, ".agents", "skills", "guiho-s-jureuma", "SKILL.md"))
+	skillMD, err := os.ReadFile(filepath.Join(h.home, ".agents", "skills", "guiho-s-zeze", "SKILL.md"))
 	if err != nil || !bytes.Contains(skillMD, []byte("metadata:\n  version: \"")) {
 		t.Fatalf("installed SKILL.md must carry metadata.version: %v", err)
 	}
-	if out := h.expect(0, "", "agent", "instruction", "show"); strings.Contains(out, "---") || strings.Contains(out, "name: guiho-i-jureuma") {
+	if out := h.expect(0, "", "agent", "instruction", "show"); strings.Contains(out, "---") || strings.Contains(out, "name: guiho-i-zeze") {
 		t.Fatalf("instruction show must print the block body without frontmatter: %s", out)
 	}
 	h.expect(0, "", "agent", "instruction", "apply")
-	if agents, _ := os.ReadFile(filepath.Join(h.proj, "AGENTS.md")); bytes.Contains(agents, []byte("name: guiho-i-jureuma")) || bytes.Contains(agents, []byte("metadata:")) {
+	if agents, _ := os.ReadFile(filepath.Join(h.proj, "AGENTS.md")); bytes.Contains(agents, []byte("name: guiho-i-zeze")) || bytes.Contains(agents, []byte("metadata:")) {
 		t.Fatal("applied AGENTS.md block contains artifact frontmatter")
 	}
 	h.expect(0, "", "agent", "instruction", "upgrade")
@@ -243,8 +243,8 @@ func TestUninstallPlan(t *testing.T) {
 	}
 	h.expect(1, "", "uninstall")
 	h.expect(0, "", "uninstall", "--yes", "--preserve-config")
-	home := filepath.Join(h.home, ".guiho", "jureuma")
-	if _, err := os.Stat(filepath.Join(home, "jureuma.global.yaml")); err != nil {
+	home := filepath.Join(h.home, ".guiho", "zeze")
+	if _, err := os.Stat(filepath.Join(home, "zeze.global.yaml")); err != nil {
 		t.Fatal("--preserve-config removed the global configuration")
 	}
 	if ents, _ := os.ReadDir(filepath.Join(home, "keys")); len(ents) == 0 {
@@ -254,7 +254,7 @@ func TestUninstallPlan(t *testing.T) {
 		t.Fatal("state should be removed without --preserve-data")
 	}
 	agents, _ := os.ReadFile(filepath.Join(h.proj, "AGENTS.md"))
-	if strings.Contains(string(agents), "jureuma managed block") {
+	if strings.Contains(string(agents), "zeze managed block") {
 		t.Fatal("AGENTS.md block not removed")
 	}
 }

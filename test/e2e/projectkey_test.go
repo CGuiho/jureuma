@@ -11,30 +11,30 @@ import (
 // material appears anywhere in this file.
 const boundKeyOther = "k_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
-// init with a created or explicitly chosen key binds it in jureuma.yaml with a
+// init with a created or explicitly chosen key binds it in zeze.yaml with a
 // one-line splice that keeps every comment byte-identical; an already-equal
 // binding is never rewritten.
 func TestProjectKeyBindingOnInit(t *testing.T) {
 	p := newProject(t)
 	const head = "# project configuration\n# keep this comment\n\npairs:\n  - name: config   # the only pair\n"
-	p.write("jureuma.yaml", head)
+	p.write("zeze.yaml", head)
 	p.init()
 	keyID, _ := p.privateKey()
-	got := p.read("jureuma.yaml")
+	got := p.read("zeze.yaml")
 	if !strings.HasPrefix(got, head) || !strings.HasSuffix(got, "key: "+keyID+"\n") {
 		t.Fatalf("binding not spliced in without touching comments:\n%s", got)
 	}
 	// Already equal: a second init leaves the file byte-identical.
 	p.init()
-	if again := p.read("jureuma.yaml"); again != got {
+	if again := p.read("zeze.yaml"); again != got {
 		t.Fatalf("init rewrote an equal binding:\n%s", again)
 	}
 	// The same through an explicitly chosen stored key.
 	p.remove("config.encrypted.json")
 	p.remove("config.unencrypted.json")
-	p.write("jureuma.yaml", head)
+	p.write("zeze.yaml", head)
 	p.init("--key-id", keyID)
-	got = p.read("jureuma.yaml")
+	got = p.read("zeze.yaml")
 	if !strings.HasPrefix(got, head) || !strings.HasSuffix(got, "key: "+keyID+"\n") {
 		t.Fatalf("--key-id binding not spliced in:\n%s", got)
 	}
@@ -52,15 +52,15 @@ func TestProjectKeyBindingMismatchFailsLoudly(t *testing.T) {
 	p := newProject(t)
 	p.setup(`{"svc":{"url":"mismatch-bind-value"}}`)
 	keyID, _ := p.privateKey()
-	p.write("jureuma.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
+	p.write("zeze.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
 	r := p.run("set", "/svc/url", "x")
 	if r.code != 5 || !strings.Contains(r.stderr, boundKeyOther) || !strings.Contains(r.stderr, keyID) {
 		t.Fatalf("mismatched binding: want exit 5 naming both keys\n%s", r)
 	}
 	// run maps the same key error to 125 with its kind prefix.
 	r = p.run("run", "--", "true")
-	if r.code != 125 || !strings.HasPrefix(r.stderr, "[JUREUMA:KEY]") || !strings.Contains(r.stderr, boundKeyOther) {
-		t.Fatalf("mismatched binding on run: want 125 [JUREUMA:KEY]\n%s", r)
+	if r.code != 125 || !strings.HasPrefix(r.stderr, "[ZEZE:KEY]") || !strings.Contains(r.stderr, boundKeyOther) {
+		t.Fatalf("mismatched binding on run: want 125 [ZEZE:KEY]\n%s", r)
 	}
 	if got := p.encMeta("config.encrypted.json")["keyId"]; got != keyID {
 		t.Fatalf("pair silently re-keyed: %v", got)
@@ -75,9 +75,9 @@ func TestProjectKeyBindingNoIdentityIsNotDisagreement(t *testing.T) {
 	p.setup(`{"a":"identity-free-value"}`)
 	p.remove("config.encrypted.json")
 	p.write("config.unencrypted.json", `{"a":"identity-free-value"}`)
-	p.write("jureuma.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
+	p.write("zeze.yaml", "key: "+boundKeyOther+"\npairs:\n  - name: config\n")
 	r := p.run("set", "/b", "--json", "1")
-	if r.code != 1 || !strings.Contains(r.stderr, "run jureuma init to repair") {
+	if r.code != 1 || !strings.Contains(r.stderr, "run zeze init to repair") {
 		t.Fatalf("headerless plaintext: want the repair pointer, exit 1\n%s", r)
 	}
 	if strings.Contains(r.out(), boundKeyOther) {
@@ -92,14 +92,14 @@ func TestProjectKeyBindingFollowsRotation(t *testing.T) {
 	p.setup(`{"svc":{"url":"rotate-bind-value"}}`)
 	oldID, _ := p.privateKey()
 	r := p.expect(0, "key", "rotate")
-	if !strings.Contains(r.stdout, "updated the jureuma.yaml key binding") {
+	if !strings.Contains(r.stdout, "updated the zeze.yaml key binding") {
 		t.Fatalf("rotate did not report the binding update:\n%s", r)
 	}
 	newID := p.encMeta("config.encrypted.json")["keyId"].(string)
 	if newID == oldID {
 		t.Fatal("rotate did not change the pair key")
 	}
-	if yml := p.read("jureuma.yaml"); !strings.Contains(yml, "key: "+newID) || strings.Contains(yml, oldID) {
+	if yml := p.read("zeze.yaml"); !strings.Contains(yml, "key: "+newID) || strings.Contains(yml, oldID) {
 		t.Fatalf("binding not updated to %s:\n%s", newID, yml)
 	}
 	p.expect(0, "set", "/n", "--json", "2")
@@ -111,7 +111,7 @@ func TestProjectKeyBindingMalformedRejected(t *testing.T) {
 	p := newProject(t)
 	p.setup(`{"a":"malformed-bind-value"}`)
 	for _, val := range []string{"my-label", `""`, "k_" + strings.Repeat("A", 32), "[k_x]"} {
-		p.write("jureuma.yaml", "key: "+val+"\npairs:\n  - name: config\n")
+		p.write("zeze.yaml", "key: "+val+"\npairs:\n  - name: config\n")
 		for _, args := range [][]string{{"set", "/a", "x"}, {"init", "--agent-deny-rules", "no"}, {"check"}} {
 			r := p.run(args...)
 			if r.code != 4 {
@@ -129,7 +129,7 @@ func TestProjectKeyBindingMalformedRejected(t *testing.T) {
 func TestProjectKeyBindingRotateRotatesWholeProject(t *testing.T) {
 	needSh(t)
 	p := newProject(t)
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: production\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: production\n")
 	p.init()
 	keyID, _ := p.privateKey()
 	if n := len(p.keyFiles()); n != 1 {
@@ -142,7 +142,7 @@ func TestProjectKeyBindingRotateRotatesWholeProject(t *testing.T) {
 		"rotated config.encrypted.json: " + keyID,
 		"rotated production.encrypted.json: " + keyID,
 		"project key rotated: " + keyID,
-		"updated the jureuma.yaml key binding: " + keyID,
+		"updated the zeze.yaml key binding: " + keyID,
 	} {
 		if !strings.Contains(r.stdout, want) {
 			t.Fatalf("rotate output misses %q:\n%s", want, r.stdout)
@@ -168,7 +168,7 @@ func TestProjectKeyBindingRotateRotatesWholeProject(t *testing.T) {
 		}
 	}
 	// The binding is updated exactly once and still parses.
-	if yml := p.read("jureuma.yaml"); strings.Count(yml, "key: ") != 1 || !strings.Contains(yml, "key: "+newID+"\n") {
+	if yml := p.read("zeze.yaml"); strings.Count(yml, "key: ") != 1 || !strings.Contains(yml, "key: "+newID+"\n") {
 		t.Fatalf("binding not updated once to %s:\n%s", newID, yml)
 	}
 	// The old key is retired (moved, not left active).
@@ -179,7 +179,7 @@ func TestProjectKeyBindingRotateRotatesWholeProject(t *testing.T) {
 		t.Fatalf("the old key was not retired: %v", err)
 	}
 	// run, check and set pass for both pairs.
-	p.expect(0, "run", "--", "sh", "-c", `test -n "$JUREUMA_CONFIG"`)
+	p.expect(0, "run", "--", "sh", "-c", `test -n "$ZEZE_CONFIG"`)
 	p.expect(0, "check")
 	p.expect(0, "set", "/n", "--json", "1")
 	p.expect(0, "set", "--name", "production", "/n", "--json", "1")
@@ -195,12 +195,12 @@ func TestProjectKeyBindingRotateRotatesWholeProject(t *testing.T) {
 // rotation before anything is written.
 func TestProjectKeyBindingRotateRefusesMixedKeys(t *testing.T) {
 	p := newProject(t)
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	p.init()
 	keyA, _ := p.privateKey()
 	// A second pair gets its own key: with pairs that disagree, init binds
 	// nothing.
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n  - name: other\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n  - name: other\n")
 	p.init()
 	files, _ := filepath.Glob(filepath.Join(p.jhome(), "keys", "k_*.json"))
 	if len(files) != 2 {
@@ -210,9 +210,9 @@ func TestProjectKeyBindingRotateRefusesMixedKeys(t *testing.T) {
 	if keyB == keyA {
 		t.Fatal("the second pair should carry its own key")
 	}
-	p.write("jureuma.yaml", "key: "+keyA+"\npairs:\n  - name: config\n  - name: other\n")
+	p.write("zeze.yaml", "key: "+keyA+"\npairs:\n  - name: config\n  - name: other\n")
 	before := map[string]string{
-		"jureuma.yaml":          p.read("jureuma.yaml"),
+		"zeze.yaml":          p.read("zeze.yaml"),
 		"config.encrypted.json": p.read("config.encrypted.json"),
 		"other.encrypted.json":  p.read("other.encrypted.json"),
 	}
@@ -244,11 +244,11 @@ func TestStatusAndCheckWithoutRecordedKey(t *testing.T) {
 	p.remove("config.encrypted.json")
 	p.write("config.unencrypted.json", `{"a":"no-identity-value"}`)
 	r := p.expect(0, "status")
-	if !strings.Contains(r.out(), "no $jureuma identity") {
+	if !strings.Contains(r.out(), "no $zeze identity") {
 		t.Fatalf("status must report the missing identity:\n%s", r)
 	}
 	r = p.run("check")
-	if r.code != 1 || !strings.Contains(r.out(), "run jureuma init to repair") {
+	if r.code != 1 || !strings.Contains(r.out(), "run zeze init to repair") {
 		t.Fatalf("check: want exit 1 with the repair pointer\n%s", r)
 	}
 	if strings.Contains(r.out(), "invalid key ID") {
@@ -260,16 +260,16 @@ func TestStatusAndCheckWithoutRecordedKey(t *testing.T) {
 // with a note while the rest of the project rotates.
 func TestProjectKeyBindingRotateSkipsIdentitylessPair(t *testing.T) {
 	p := newProject(t)
-	p.write("jureuma.yaml", "pairs:\n  - name: config\n")
+	p.write("zeze.yaml", "pairs:\n  - name: config\n")
 	p.init()
 	keyID, _ := p.privateKey()
-	p.write("jureuma.yaml", "key: "+keyID+"\npairs:\n  - name: config\n  - name: empty\n")
+	p.write("zeze.yaml", "key: "+keyID+"\npairs:\n  - name: config\n  - name: empty\n")
 	r := p.expect(0, "key", "rotate")
 	if !strings.Contains(r.stderr, "note: pair empty records no key; skipped") {
 		t.Fatalf("the identityless pair must be skipped with a note:\n%s", r)
 	}
 	newID := p.encMeta("config.encrypted.json")["keyId"].(string)
-	if newID == keyID || !strings.Contains(p.read("jureuma.yaml"), "key: "+newID) {
-		t.Fatalf("the bound pair was not rotated and re-bound:\n%s", p.read("jureuma.yaml"))
+	if newID == keyID || !strings.Contains(p.read("zeze.yaml"), "key: "+newID) {
+		t.Fatalf("the bound pair was not rotated and re-bound:\n%s", p.read("zeze.yaml"))
 	}
 }

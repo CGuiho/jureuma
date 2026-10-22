@@ -30,7 +30,7 @@ func TestRenderPlain(t *testing.T) {
 		"\n" + Logo()[0] + "\n",
 		"\n" + Tagline + "\n" + Author + "\n\nPlatform",
 		"\n\nPlatform  Linux x64\nVersion   v0.1.0\nAuthor    GUIHO (www.guiho.co)\n\n",
-		"Run jureuma --help to see available commands.\n\n",
+		"Run zeze --help to see available commands.\n\n",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q\n%s", want, out)

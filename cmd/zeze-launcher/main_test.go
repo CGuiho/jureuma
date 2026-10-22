@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/paths"
+	"github.com/CGuiho/zeze/internal/paths"
 )
 
-// isolateHome points JUREUMA_USER_HOME at a temporary home and returns the
-// jureuma CLI home it implies. Tests never touch the real home.
+// isolateHome points ZEZE_USER_HOME at a temporary home and returns the
+// zeze CLI home it implies. Tests never touch the real home.
 func isolateHome(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
@@ -24,7 +24,7 @@ func isolateHome(t *testing.T) string {
 	return jhome
 }
 
-// installPayload creates versions/<version>/jureuma as a regular file.
+// installPayload creates versions/<version>/zeze as a regular file.
 func installPayload(t *testing.T, jhome, version string) string {
 	t.Helper()
 	path := filepath.Join(jhome, "versions", version, payloadName())

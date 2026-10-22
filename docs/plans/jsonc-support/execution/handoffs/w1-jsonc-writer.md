@@ -4,12 +4,12 @@
 
 Mode: dnd · Role: workhorse (engineer) · Harness: OpenCode native background
 subagent (`general`) · Model: `xiaomi/mimo-v2.6-pro` (provider-default
-thinking, no variant) · Issue: <https://github.com/CGuiho/jureuma/issues/12>
+thinking, no variant) · Issue: <https://github.com/CGuiho/zeze/issues/12>
 
 ## Mission
 
 Make `.jsonc` a fully supported, two-way format for the human-owned files.
-Today `jureuma` reads JSONC but never writes a `.jsonc` file (the design says
+Today `zeze` reads JSONC but never writes a `.jsonc` file (the design says
 so — "no comment-preserving writer in v1"): `set`/`unset` silently skip the
 plaintext mirror, `decrypt` refuses, and the human reconciles by hand. Build
 the comment-preserving writer and wire it in, so editing a `.jsonc` file
@@ -30,7 +30,7 @@ OpenCode deny rules train lands; record the base commit when you start.
   `p.UnencryptedIsJSONC`; `decrypt` (~line 250) refuses `.jsonc`;
   `set`/`unset` help texts say "existing .json unencrypted file" (~lines 460
   and 693).
-- `internal/cli/cmd_init.go` — (~line 397) steps "missing ... (jureuma never
+- `internal/cli/cmd_init.go` — (~line 397) steps "missing ... (zeze never
   writes .jsonc files)" for a missing `.jsonc` plaintext; (~line 409) writes
   the starter schema with `doc.Marshal` (canonical JSON — valid JSONC) even
   when the resolved schema path ends in `.schema.jsonc`.
@@ -39,9 +39,9 @@ OpenCode deny rules train lands; record the base commit when you start.
   unconditionally (which would destroy comments in a `.jsonc` schema under
   `--force`).
 - Tests assert the old behavior: `test/e2e/lifecycle_test.go` (~line 211)
-  "jureuma never writes .jsonc: decrypt refuses, set leaves it alone" — flip
+  "zeze never writes .jsonc: decrypt refuses, set leaves it alone" — flip
   it to the new behavior.
-- Design `docs/2026-10-13-jureuma-design.md` (~lines 54-63) — the "Supported
+- Design `docs/2026-10-13-zeze-design.md` (~lines 54-63) — the "Supported
   Formats" table and its notes state the old contract.
 
 ## Required reading (before touching anything)
@@ -50,12 +50,12 @@ OpenCode deny rules train lands; record the base commit when you start.
   contract: lenient JSONC; trailing commas accepted when reading and never
   emitted when writing; comments must not affect the data; "when rewriting a
   file, preserve existing comments and formatting wherever possible".
-- `docs/2026-10-13-jureuma-design.md` — Supported Formats, Pairs and schema,
+- `docs/2026-10-13-zeze-design.md` — Supported Formats, Pairs and schema,
   Schema resolution, "The `set` mirror never replaces an unsaved human edit",
-  the encrypt/decrypt workflows; `docs/2026-10-13-jureuma-implementation-contracts.md`.
+  the encrypt/decrypt workflows; `docs/2026-10-13-zeze-implementation-contracts.md`.
 - Skills: `guiho-s-0001-guiho`, `guiho-s-0004-working-with-cg`,
   `guiho-s-0040-explorer`, `guiho-s-0032-git-commit`, `guiho-s-0016-docs`,
-  `guiho-s-runx`, `guiho-s-jureuma`.
+  `guiho-s-runx`, `guiho-s-zeze`.
 - `guiho-convention-0001-cli.md` (no flag changes; help text must comply).
 - The jsonc.org draft specification (reference implementation: Microsoft
   `jsonc-parser`, whose `modify`/`applyEdits` compute minimal edits) — this
@@ -153,9 +153,9 @@ OpenCode config, other projects.
 - `runx run go-fmt-check`, `runx run go-vet-cross`, `runx run go-test`,
   `runx run test-e2e`, `runx run test-smoke` — all exit 0; then
   `runx run docs-check` and `runx run ci-check`.
-- Manual proof in a throwaway temp project (`JUREUMA_USER_HOME` outside the
+- Manual proof in a throwaway temp project (`ZEZE_USER_HOME` outside the
   repo): hand-write a `.jsonc` plaintext with comments and a trailing comma,
-  `jureuma set` a nested value and show the comments survive; repeat with
+  `zeze set` a nested value and show the comments survive; repeat with
   `decrypt`.
 
 ## Deliverable and commit
@@ -165,7 +165,7 @@ OpenCode config, other projects.
   `Add a comment-preserving JSONC writer` and
   `Write .jsonc files from set, decrypt and schema writes`.
 - Commit through the serialized index:
-  `flock -w 120 /tmp/opencode/jureuma-git.lock -c 'cd /root/swe/jureuma && git add <paths> && git commit -m "..."'`.
+  `flock -w 120 /tmp/opencode/zeze-git.lock -c 'cd /root/swe/zeze && git add <paths> && git commit -m "..."'`.
   Never push.
 - Report: base commit, commit hashes, changed files, exact commands + exit
   codes, test names, deviations from the brief and why, residual

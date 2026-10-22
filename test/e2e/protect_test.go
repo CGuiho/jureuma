@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const protectedPrefix = "[PROTECTED] jureuma "
+const protectedPrefix = "[PROTECTED] zeze "
 
 func TestHumanOnlyCommandsRefuseWithoutTerminal(t *testing.T) {
 	p := newProject(t)
@@ -31,7 +31,7 @@ func TestHumanOnlyCommandsRefuseWithoutTerminal(t *testing.T) {
 	envs := [][]string{
 		nil,
 		{"CLAUDECODE=1"},
-		{"JUREUMA_AGENT=1"},
+		{"ZEZE_AGENT=1"},
 		{"CODEX_SANDBOX=seatbelt"},
 	}
 	plainBefore := p.read("config.unencrypted.json")
@@ -45,7 +45,7 @@ func TestHumanOnlyCommandsRefuseWithoutTerminal(t *testing.T) {
 			if strings.Contains(r.out(), "dangerously") {
 				t.Fatalf("refusal hints at the bypass flag\n%s", r)
 			}
-			assertNo(t, "refusal", r.out(), secret, sk, strings.TrimPrefix(sk, "jureuma-sk-1:"))
+			assertNo(t, "refusal", r.out(), secret, sk, strings.TrimPrefix(sk, "zeze-sk-1:"))
 		}
 	}
 	if p.exists("config.unencrypted.json") {
@@ -54,10 +54,10 @@ func TestHumanOnlyCommandsRefuseWithoutTerminal(t *testing.T) {
 	p.write("config.unencrypted.json", plainBefore)
 	// key show without --private is not protected and never prints the key.
 	r := p.expect(0, "key", "show")
-	if !strings.Contains(r.stdout, keyID) || !strings.Contains(r.stdout, "jureuma-pk-1:") {
+	if !strings.Contains(r.stdout, keyID) || !strings.Contains(r.stdout, "zeze-pk-1:") {
 		t.Fatalf("key show:\n%s", r)
 	}
-	assertNo(t, "key show", r.out(), sk, strings.TrimPrefix(sk, "jureuma-sk-1:"))
+	assertNo(t, "key show", r.out(), sk, strings.TrimPrefix(sk, "zeze-sk-1:"))
 
 	// Refusals are audited, without values.
 	events := p.auditEvents()
@@ -241,7 +241,7 @@ func TestBypassFlag(t *testing.T) {
 	if bypassed != 4 || !sawMarker {
 		t.Fatalf("want 4 bypassed events with the caller's markers, got %d (marker %v)\n%s", bypassed, sawMarker, p.auditLog())
 	}
-	assertNo(t, "audit.log", p.auditLog(), secret, sk, strings.TrimPrefix(sk, "jureuma-sk-1:"), "42}")
+	assertNo(t, "audit.log", p.auditLog(), secret, sk, strings.TrimPrefix(sk, "zeze-sk-1:"), "42}")
 	if fi, err := os.Stat(filepath.Join(p.jhome(), "audit.log")); err != nil || fi.Mode().Perm()&0o077 != 0 {
 		t.Fatalf("audit.log mode: %v %v", fi, err)
 	}
@@ -256,7 +256,7 @@ func TestBypassFlag(t *testing.T) {
 func TestAllowBypassFalseAndTamperedProtections(t *testing.T) {
 	p := newProject(t)
 	p.setup(`{"k":"protections-secret"}`)
-	global := filepath.Join(p.jhome(), "jureuma.global.yaml")
+	global := filepath.Join(p.jhome(), "zeze.global.yaml")
 	orig, err := os.ReadFile(global)
 	if err != nil {
 		t.Fatal(err)
@@ -278,8 +278,8 @@ func TestAllowBypassFalseAndTamperedProtections(t *testing.T) {
 		assertNo(t, "refusal", r.out(), "protections-secret")
 	}
 	r := p.run("run", "--dangerously-bypass-protections", "--", "true")
-	if r.code != 125 || !strings.HasPrefix(r.stderr, "[JUREUMA:PROTECTED]") {
-		t.Fatalf("run bypass with allowBypass false: want 125 [JUREUMA:PROTECTED]\n%s", r)
+	if r.code != 125 || !strings.HasPrefix(r.stderr, "[ZEZE:PROTECTED]") {
+		t.Fatalf("run bypass with allowBypass false: want 125 [ZEZE:PROTECTED]\n%s", r)
 	}
 	// A hand-edited protections block (seal mismatch) also refuses the bypass.
 	os.WriteFile(global, []byte(strings.Replace(string(orig), "agentEnvMarkers: []", "agentEnvMarkers: [SOMETHING]", 1)), 0o600)
@@ -290,12 +290,12 @@ func TestAllowBypassFalseAndTamperedProtections(t *testing.T) {
 	// Protections in the project file are rejected outright.
 	os.WriteFile(global, orig, 0o600)
 	p.expect(0, "get", "/k", "--dangerously-bypass-protections")
-	proj := p.read("jureuma.yaml")
-	p.write("jureuma.yaml", proj+"protections:\n  allowBypass: true\n")
+	proj := p.read("zeze.yaml")
+	p.write("zeze.yaml", proj+"protections:\n  allowBypass: true\n")
 	if r := p.run("status"); r.code == 0 {
-		t.Fatalf("protections in jureuma.yaml must be rejected\n%s", r)
+		t.Fatalf("protections in zeze.yaml must be rejected\n%s", r)
 	}
-	p.write("jureuma.yaml", proj)
+	p.write("zeze.yaml", proj)
 	refusals := 0
 	for _, ev := range p.auditEvents() {
 		if ev["outcome"] == "bypass-refused" {

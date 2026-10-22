@@ -1,40 +1,40 @@
 #!/bin/sh
-# jureuma installer for macOS and Linux (POSIX sh).
+# zeze installer for macOS and Linux (POSIX sh).
 #
-#   curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.sh | sh
 #   curl -fsSL .../install.sh | sh -s -- --version 0.1.0
 #   curl -fsSL .../install.sh | sh -s -- --channel beta
 #   curl -fsSL .../install.sh | sh -s -- --dry-run
 #
 # Installs the verified release payload into the immutable directory
-# ~/.guiho/jureuma/versions/<version>/, the released stable launcher at
-# ~/.guiho/bin/jureuma, the active-version pointer ~/.guiho/jureuma/current.json,
-# the installed artifact manifest, the guiho-s-jureuma agent skill copies and
-# (inside a project) the jureuma block in AGENTS.md, and adds ~/.guiho/bin to
+# ~/.guiho/zeze/versions/<version>/, the released stable launcher at
+# ~/.guiho/bin/zeze, the active-version pointer ~/.guiho/zeze/current.json,
+# the installed artifact manifest, the guiho-s-zeze agent skill copies and
+# (inside a project) the zeze block in AGENTS.md, and adds ~/.guiho/bin to
 # PATH. All downloads and verification happen in a unique staging directory
-# ~/.guiho/.temp/jureuma-install-<id>/. Any failure rolls back to the previous
+# ~/.guiho/.temp/zeze-install-<id>/. Any failure rolls back to the previous
 # installation. Configuration, keys, state and the audit log are never touched.
 #
 # Environment overrides (testing and mirrors only):
-#   JUREUMA_RELEASES_URL       release catalog API (default: GitHub releases API)
-#   JUREUMA_DOWNLOAD_BASE_URL  asset base; assets are <base>/<tag>/<asset>
-#   JUREUMA_RELEASE_ASSET_DIR  read every release asset from this local
+#   ZEZE_RELEASES_URL       release catalog API (default: GitHub releases API)
+#   ZEZE_DOWNLOAD_BASE_URL  asset base; assets are <base>/<tag>/<asset>
+#   ZEZE_RELEASE_ASSET_DIR  read every release asset from this local
 #                              directory instead of downloading (requires an
-#                              exact version: --version or JUREUMA_RELEASE_VERSION)
-#   JUREUMA_RELEASE_VERSION    exact version to use with JUREUMA_RELEASE_ASSET_DIR
+#                              exact version: --version or ZEZE_RELEASE_VERSION)
+#   ZEZE_RELEASE_VERSION    exact version to use with ZEZE_RELEASE_ASSET_DIR
 set -eu
 
-REPO=CGuiho/jureuma
-RELEASES_URL=${JUREUMA_RELEASES_URL:-https://api.github.com/repos/$REPO/releases}
-DOWNLOAD_BASE=${JUREUMA_DOWNLOAD_BASE_URL:-https://github.com/$REPO/releases/download}
-ASSET_DIR=${JUREUMA_RELEASE_ASSET_DIR:-}
+REPO=CGuiho/zeze
+RELEASES_URL=${ZEZE_RELEASES_URL:-https://api.github.com/repos/$REPO/releases}
+DOWNLOAD_BASE=${ZEZE_DOWNLOAD_BASE_URL:-https://github.com/$REPO/releases/download}
+ASSET_DIR=${ZEZE_RELEASE_ASSET_DIR:-}
 SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
-AGENT_ASSETS='guiho-s-jureuma.zip jureuma-instruction.md guiho-p-jureuma.md guiho-p-jureuma-install.md guiho-p-jureuma-uninstall.md'
-SKILL_ID=guiho-s-jureuma
+AGENT_ASSETS='guiho-s-zeze.zip zeze-instruction.md guiho-p-zeze.md guiho-p-zeze-install.md guiho-p-zeze-uninstall.md'
+SKILL_ID=guiho-s-zeze
 
 usage() {
   cat <<'EOF'
-Install jureuma, the GUIHO agent-safe configuration CLI.
+Install zeze, the GUIHO agent-safe configuration CLI.
 
 Usage: install.sh [--version <semver> | --channel <name>] [--dry-run] [--no-modify-path]
 
@@ -102,9 +102,9 @@ USER_HOME=${HOME%/}
 GUIHO="$USER_HOME/.guiho"
 BIN="$GUIHO/bin"
 TEMP_ROOT="$GUIHO/.temp"
-JHOME="$GUIHO/jureuma"
+JHOME="$GUIHO/zeze"
 VERSIONS="$JHOME/versions"
-LAUNCHER="$BIN/jureuma"
+LAUNCHER="$BIN/zeze"
 
 # 3. Platform.
 os_name=$(uname -s)
@@ -122,22 +122,22 @@ esac
 if [ "$os" = darwin ] && [ "$arch" = amd64 ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = 1 ]; then
   arch=arm64
 fi
-ASSET="jureuma-$os-$arch"
-LAUNCHER_ASSET="jureuma-launcher-$os-$arch"
+ASSET="zeze-$os-$arch"
+LAUNCHER_ASSET="zeze-launcher-$os-$arch"
 
 # Local asset directory (testing, mirrors and air-gapped installs): when set,
 # every release asset is read from that directory instead of the network and
 # an exact version is required, so no release catalog is consulted.
 if [ -n "$ASSET_DIR" ]; then
-  [ -d "$ASSET_DIR" ] || die "JUREUMA_RELEASE_ASSET_DIR is not a directory: $ASSET_DIR"
-  if [ -z "$want_version" ]; then want_version=${JUREUMA_RELEASE_VERSION:-}; want_version=${want_version#v}; fi
-  [ -n "$want_version" ] || die 'an exact --version (or JUREUMA_RELEASE_VERSION) is required with JUREUMA_RELEASE_ASSET_DIR'
+  [ -d "$ASSET_DIR" ] || die "ZEZE_RELEASE_ASSET_DIR is not a directory: $ASSET_DIR"
+  if [ -z "$want_version" ]; then want_version=${ZEZE_RELEASE_VERSION:-}; want_version=${want_version#v}; fi
+  [ -n "$want_version" ] || die 'an exact --version (or ZEZE_RELEASE_VERSION) is required with ZEZE_RELEASE_ASSET_DIR'
   printf '%s\n' "$want_version" | grep -Eq "$SEMVER_RE" || die "not a valid SemVer version: $want_version"
   want_channel=
 fi
 
 # 2. Release selection across every catalog page.
-fetch() { curl -fsSL --retry 2 --connect-timeout 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: jureuma-installer' "$@"; }
+fetch() { curl -fsSL --retry 2 --connect-timeout 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: zeze-installer' "$@"; }
 
 # Tokenise GitHub's JSON (one token per line) and emit one line per release:
 # <tag>\t<draft>\t<space-separated asset names>, then "#count <n>".
@@ -213,7 +213,7 @@ select_release() {
     END { if (best != "") printf "%s\t%s\n", besttag, best }'
 }
 
-say 'jureuma installer'
+say 'zeze installer'
 if [ -n "$ASSET_DIR" ]; then
   VERSION=$want_version
   TAG="v$VERSION"
@@ -257,7 +257,7 @@ say "Version:      $VERSION (tag $TAG)"
 say "Platform:     $os/$arch"
 say "Asset:        $ASSET"
 say "Source URL:   $BASE_URL/$ASSET"
-say "Payload:      $VERSIONS/$VERSION/jureuma"
+say "Payload:      $VERSIONS/$VERSION/zeze"
 say "Launcher:     $LAUNCHER ($LAUNCHER_ASSET)"
 say "CLI home:     $JHOME"
 if [ -n "$current_active" ]; then say "Installed:    $current_active (reinstall/upgrade; configuration, keys, state and audit log are preserved)"; fi
@@ -272,8 +272,8 @@ if [ "$dry_run" = true ]; then
   say "  install $VERSIONS/$VERSION/ (immutable) and point $JHOME/current.json at it"
   say "  install the stable launcher $LAUNCHER ($LAUNCHER_ASSET)"
   say "  install the $SKILL_ID skill into the supported global agent-skill directories"
-  if [ -f "$PWD/AGENTS.md" ] && { [ -e "$PWD/.git" ] || [ -f "$PWD/jureuma.yaml" ]; } || [ -f "$PWD/jureuma.yaml" ]; then
-    say "  apply the jureuma block in $PWD/AGENTS.md"
+  if [ -f "$PWD/AGENTS.md" ] && { [ -e "$PWD/.git" ] || [ -f "$PWD/zeze.yaml" ]; } || [ -f "$PWD/zeze.yaml" ]; then
+    say "  apply the zeze block in $PWD/AGENTS.md"
   fi
   if [ "$path_present" = false ] && [ "$modify_path" = true ]; then say "  add $BIN to PATH in your shell startup files"; fi
   say 'Dry run: nothing was changed.'
@@ -282,13 +282,13 @@ fi
 
 # 6. Staging directory (unique, CLI-owned, strict child of ~/.guiho/.temp).
 mkdir -p "$TEMP_ROOT"
-STAGE=$(mktemp -d "$TEMP_ROOT/jureuma-install-XXXXXXXX") || die 'cannot create the staging directory'
+STAGE=$(mktemp -d "$TEMP_ROOT/zeze-install-XXXXXXXX") || die 'cannot create the staging directory'
 case "$STAGE" in
-  "$TEMP_ROOT"/jureuma-install-*) ;;
+  "$TEMP_ROOT"/zeze-install-*) ;;
   *) die 'the staging directory is outside ~/.guiho/.temp' ;;
 esac
 case "$STAGE" in */../*|*/./*) die 'the staging directory path is not canonical' ;; esac
-ID=${STAGE##*/jureuma-install-}
+ID=${STAGE##*/zeze-install-}
 
 # Transaction state for rollback.
 committed=false
@@ -331,7 +331,7 @@ cleanup() {
   if [ "$committed" != true ] && [ "$status" -ne 0 ]; then rollback; fi
   rm -f -- "$JHOME/.current.json.$ID" "$JHOME/.installed-artifacts.json.$ID"
   rm -rf -- "${VERSIONS:?}/.candidate-$ID"
-  case "$STAGE" in "$TEMP_ROOT"/jureuma-install-?*) rm -rf -- "$STAGE" ;; esac
+  case "$STAGE" in "$TEMP_ROOT"/zeze-install-?*) rm -rf -- "$STAGE" ;; esac
   exit "$status"
 }
 trap cleanup EXIT
@@ -339,11 +339,11 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
 
-# 7. Download (or copy from JUREUMA_RELEASE_ASSET_DIR).
+# 7. Download (or copy from ZEZE_RELEASE_ASSET_DIR).
 download() {
   case "$1" in */*|..|.) die "unsafe asset name: $1" ;; esac
   if [ -n "$ASSET_DIR" ]; then
-    [ -f "$ASSET_DIR/$1" ] || die "asset not found in JUREUMA_RELEASE_ASSET_DIR: $1"
+    [ -f "$ASSET_DIR/$1" ] || die "asset not found in ZEZE_RELEASE_ASSET_DIR: $1"
     cp -- "$ASSET_DIR/$1" "$STAGE/dl/$1" || die "cannot copy asset: $1"
     return
   fi
@@ -400,42 +400,42 @@ done
 say '[OK] SHA-256 verification complete.'
 
 # Unpack the skill archive (entries must stay inside the archive root).
-unzip -Z1 "$STAGE/dl/guiho-s-jureuma.zip" > "$STAGE/zip-list" || die 'cannot list guiho-s-jureuma.zip'
+unzip -Z1 "$STAGE/dl/guiho-s-zeze.zip" > "$STAGE/zip-list" || die 'cannot list guiho-s-zeze.zip'
 if grep -Eq '(^/|(^|/)\.\.(/|$))' "$STAGE/zip-list" || grep -vq "^$SKILL_ID/" "$STAGE/zip-list"; then
-  die 'guiho-s-jureuma.zip contains unexpected paths'
+  die 'guiho-s-zeze.zip contains unexpected paths'
 fi
 mkdir -p "$STAGE/skill"
-unzip -q "$STAGE/dl/guiho-s-jureuma.zip" -d "$STAGE/skill" || die 'cannot unpack guiho-s-jureuma.zip'
-[ -f "$STAGE/skill/$SKILL_ID/SKILL.md" ] || die "guiho-s-jureuma.zip is missing $SKILL_ID/SKILL.md"
+unzip -q "$STAGE/dl/guiho-s-zeze.zip" -d "$STAGE/skill" || die 'cannot unpack guiho-s-zeze.zip'
+[ -f "$STAGE/skill/$SKILL_ID/SKILL.md" ] || die "guiho-s-zeze.zip is missing $SKILL_ID/SKILL.md"
 
 # 9. Candidate checks.
 chmod 0755 "$STAGE/dl/$ASSET"
-got=$(JUREUMA_NO_UPDATE_CHECK=1 "$STAGE/dl/$ASSET" --version 2>/dev/null) || die 'the downloaded payload failed to run'
+got=$(ZEZE_NO_UPDATE_CHECK=1 "$STAGE/dl/$ASSET" --version 2>/dev/null) || die 'the downloaded payload failed to run'
 [ "$got" = "$VERSION" ] || die "the downloaded payload reports version $got, expected $VERSION"
-JUREUMA_NO_UPDATE_CHECK=1 "$STAGE/dl/$ASSET" __self-test >/dev/null 2>&1 || die 'the downloaded payload failed its self-test'
+ZEZE_NO_UPDATE_CHECK=1 "$STAGE/dl/$ASSET" __self-test >/dev/null 2>&1 || die 'the downloaded payload failed its self-test'
 say "[OK] Payload self-test passed ($VERSION)."
 
 # 10. Immutable version directory (built beside its final place, then renamed).
 mkdir -p "$VERSIONS"
 CAND="$VERSIONS/.candidate-$ID"
 mkdir -p "$CAND/artifacts/skills" "$CAND/artifacts/prompts" "$CAND/artifacts/instruction" "$CAND/artifacts/schemas" "$CAND/artifacts/examples"
-cp -- "$STAGE/dl/$ASSET" "$CAND/jureuma"
+cp -- "$STAGE/dl/$ASSET" "$CAND/zeze"
 cp -R -- "$STAGE/skill/$SKILL_ID" "$CAND/artifacts/skills/$SKILL_ID"
-for p in guiho-p-jureuma guiho-p-jureuma-install guiho-p-jureuma-uninstall; do cp -- "$STAGE/dl/$p.md" "$CAND/artifacts/prompts/$p.md"; done
-cp -- "$STAGE/dl/jureuma-instruction.md" "$CAND/artifacts/instruction/jureuma-instruction.md"
-for f in jureuma.schema.json jureuma.global.schema.json; do [ ! -f "$STAGE/dl/$f" ] || cp -- "$STAGE/dl/$f" "$CAND/artifacts/schemas/$f"; done
-for f in jureuma.example.yaml jureuma.global.example.yaml; do [ ! -f "$STAGE/dl/$f" ] || cp -- "$STAGE/dl/$f" "$CAND/artifacts/examples/$f"; done
+for p in guiho-p-zeze guiho-p-zeze-install guiho-p-zeze-uninstall; do cp -- "$STAGE/dl/$p.md" "$CAND/artifacts/prompts/$p.md"; done
+cp -- "$STAGE/dl/zeze-instruction.md" "$CAND/artifacts/instruction/zeze-instruction.md"
+for f in zeze.schema.json zeze.global.schema.json; do [ ! -f "$STAGE/dl/$f" ] || cp -- "$STAGE/dl/$f" "$CAND/artifacts/schemas/$f"; done
+for f in zeze.example.yaml zeze.global.example.yaml; do [ ! -f "$STAGE/dl/$f" ] || cp -- "$STAGE/dl/$f" "$CAND/artifacts/examples/$f"; done
 cp -- "$MANIFEST" "$CAND/artifacts/artifacts.json"
 cp -- "$STAGE/dl/checksums.txt" "$CAND/artifacts/checksums.txt"
 find "$CAND" -type f -exec chmod a-w {} +
-chmod 0555 "$CAND/jureuma"
+chmod 0555 "$CAND/zeze"
 if [ -e "$VERSIONS/$VERSION" ]; then
   version_backup="$STAGE/backup-version"
   mv -- "$VERSIONS/$VERSION" "$version_backup"
 fi
 mv -- "$CAND" "$VERSIONS/$VERSION"
 created_version=true
-PAYLOAD="$VERSIONS/$VERSION/jureuma"
+PAYLOAD="$VERSIONS/$VERSION/zeze"
 
 # 11. Stable launcher: the released launcher binary for this target.
 chmod 0755 "$STAGE/dl/$LAUNCHER_ASSET"
@@ -498,7 +498,7 @@ if [ -f "$JHOME/current.json" ]; then
     previous_active=$(sed -n 's/.*"previous":"\([^"]*\)".*/\1/p' "$JHOME/current.json")
   fi
 fi
-if [ -n "$previous_active" ] && printf '%s\n' "$previous_active" | grep -Eq "$SEMVER_RE" && [ -x "$VERSIONS/$previous_active/jureuma" ]; then
+if [ -n "$previous_active" ] && printf '%s\n' "$previous_active" | grep -Eq "$SEMVER_RE" && [ -x "$VERSIONS/$previous_active/zeze" ]; then
   prev_json="\"$previous_active\""
 else
   previous_active=
@@ -507,18 +507,18 @@ fi
 printf '{"protocol":1,"active":"%s","previous":%s}\n' "$VERSION" "$prev_json" > "$JHOME/.current.json.$ID"
 current_written=true
 mv -f -- "$JHOME/.current.json.$ID" "$JHOME/current.json"
-got=$(JUREUMA_NO_UPDATE_CHECK=1 "$LAUNCHER" --version 2>/dev/null) || die 'the launcher failed to run the new payload'
+got=$(ZEZE_NO_UPDATE_CHECK=1 "$LAUNCHER" --version 2>/dev/null) || die 'the launcher failed to run the new payload'
 [ "$got" = "$VERSION" ] || die "the launcher reports version $got, expected $VERSION"
 say "[OK] Activated $VERSION through $LAUNCHER."
 
 # 15. Managed AGENTS.md block, only when run from a project root.
-if [ -f "$PWD/jureuma.yaml" ] || { [ -f "$PWD/AGENTS.md" ] && [ -e "$PWD/.git" ]; }; then
+if [ -f "$PWD/zeze.yaml" ] || { [ -f "$PWD/AGENTS.md" ] && [ -e "$PWD/.git" ]; }; then
   agents_target="$PWD/AGENTS.md"
   if [ -f "$agents_target" ]; then
     agents_backup="$STAGE/backup-AGENTS.md"
     cp -p -- "$agents_target" "$agents_backup"
   fi
-  JUREUMA_NO_UPDATE_CHECK=1 "$LAUNCHER" agent instruction apply || die 'could not apply the jureuma block to AGENTS.md'
+  ZEZE_NO_UPDATE_CHECK=1 "$LAUNCHER" agent instruction apply || die 'could not apply the zeze block to AGENTS.md'
 fi
 
 committed=true
@@ -533,7 +533,7 @@ if [ "$modify_path" = true ]; then
   [ "$os" = darwin ] && [ ! -f "$USER_HOME/.zshrc" ] && files="$files $USER_HOME/.zshrc"
   for f in $files; do
     if [ -f "$f" ] && grep -q '\.guiho/bin' "$f"; then continue; fi
-    { printf '\n# Added by the jureuma installer (GUIHO shared bin directory).\n'; printf '%s\n' "$line"; } >> "$f" || warn "could not update $f"
+    { printf '\n# Added by the zeze installer (GUIHO shared bin directory).\n'; printf '%s\n' "$line"; } >> "$f" || warn "could not update $f"
     say "[OK] Added ~/.guiho/bin to PATH in $f"
   done
   if [ "$path_present" = false ]; then path_note="Open a new shell, or run: export PATH=\"\$HOME/.guiho/bin:\$PATH\""; fi
@@ -554,11 +554,11 @@ done
 
 # 19. Summary.
 say ''
-say "[OK] Installed jureuma $VERSION"
+say "[OK] Installed zeze $VERSION"
 say "  launcher:  $LAUNCHER"
 say "  payload:   $PAYLOAD"
 say "  CLI home:  $JHOME"
 for root in $skill_roots; do say "  skill:     $root/$SKILL_ID"; done
-[ -z "$agents_target" ] || say "  AGENTS.md: $agents_target (jureuma block)"
+[ -z "$agents_target" ] || say "  AGENTS.md: $agents_target (zeze block)"
 [ -z "$path_note" ] || say "$path_note"
-say 'Next: run "jureuma init" in your project root, then "jureuma --version".'
+say 'Next: run "zeze init" in your project root, then "zeze --version".'

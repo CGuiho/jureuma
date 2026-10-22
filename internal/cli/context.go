@@ -14,14 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/gate"
-	"github.com/CGuiho/jureuma/internal/keystore"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/gate"
+	"github.com/CGuiho/zeze/internal/keystore"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -32,10 +32,10 @@ type pairFlags struct {
 
 func addPairFlags(c *cobra.Command, pf *pairFlags) {
 	f := c.Flags()
-	f.StringVar(&pf.name, "name", "", "pair stem, e.g. production or apps/api/config (default: first pair in jureuma.yaml, else config)")
+	f.StringVar(&pf.name, "name", "", "pair stem, e.g. production or apps/api/config (default: first pair in zeze.yaml, else config)")
 	f.StringVar(&pf.enc, "encrypted-file", "", "encrypted file path (must contain .encrypted.)")
 	f.StringVar(&pf.unenc, "unencrypted-file", "", "unencrypted file path (must contain .unencrypted.)")
-	f.StringVar(&pf.schema, "schema-file", "", "schema file path (overrides jureuma.yaml and $jureuma.schema)")
+	f.StringVar(&pf.schema, "schema-file", "", "schema file path (overrides zeze.yaml and $zeze.schema)")
 }
 
 func (pf *pairFlags) explicit() bool {
@@ -96,8 +96,8 @@ func (e *env) resolvePair(o pair.Options) (*pair.Pair, error) {
 	return p, e.checkProjectKey(p)
 }
 
-// checkProjectKey enforces jureuma.yaml's key binding against the identity the
-// pair's files record — the encrypted file's $jureuma.keyId, or the
+// checkProjectKey enforces zeze.yaml's key binding against the identity the
+// pair's files record — the encrypted file's $zeze.keyId, or the
 // unencrypted file's when the encrypted file is missing. A disagreement is a
 // key error (exit 5) naming the binding and the file; it is never a silent
 // re-encrypt. A pair with no recorded identity (both files absent, or a
@@ -118,7 +118,7 @@ func (e *env) checkProjectKey(p *pair.Pair) error {
 }
 
 // recordedKeyID returns the key ID the pair's files record — the encrypted
-// file's $jureuma.keyId, or the unencrypted file's when the encrypted file is
+// file's $zeze.keyId, or the unencrypted file's when the encrypted file is
 // missing ("" when neither records one). Files that cannot be read are
 // skipped: their own read reports the problem, which keeps init able to
 // repair them.
@@ -168,17 +168,17 @@ func (e *env) findKey(keyID string) (*crypt.PrivateKey, keystore.Source, error) 
 }
 
 // requireKey returns the private key matching the encrypted file and checks
-// that it derives $jureuma.publicKey.
+// that it derives $zeze.publicKey.
 func (e *env) requireKey(enc *pair.Encrypted) (crypt.PrivateKey, error) {
 	sk, _, err := e.findKey(enc.Meta.KeyID)
 	if err != nil {
 		return crypt.PrivateKey{}, err
 	}
 	if sk == nil {
-		return crypt.PrivateKey{}, xerr.Key("private key %s not available (set %s or restore %s)", enc.Meta.KeyID, keystore.EnvName(enc.Meta.KeyID), filepath.Join("~", ".guiho", "jureuma", "keys", enc.Meta.KeyID+".json"))
+		return crypt.PrivateKey{}, xerr.Key("private key %s not available (set %s or restore %s)", enc.Meta.KeyID, keystore.EnvName(enc.Meta.KeyID), filepath.Join("~", ".guiho", "zeze", "keys", enc.Meta.KeyID+".json"))
 	}
 	if sk.Public().String() != enc.Meta.PublicKey {
-		return crypt.PrivateKey{}, xerr.Key("the private key does not match $jureuma.publicKey")
+		return crypt.PrivateKey{}, xerr.Key("the private key does not match $zeze.publicKey")
 	}
 	return *sk, nil
 }
@@ -187,7 +187,7 @@ func (e *env) lock(p *pair.Pair) (func(), error) {
 	unlock, err := paths.Lock(e.home, p.EncryptedPath)
 	if err != nil {
 		if errors.Is(err, paths.ErrLocked) {
-			return nil, xerr.Failure("%s is locked by another jureuma process", p.Rel(p.EncryptedPath))
+			return nil, xerr.Failure("%s is locked by another zeze process", p.Rel(p.EncryptedPath))
 		}
 		return nil, xerr.Failure("cannot take the pair lock")
 	}
@@ -235,7 +235,7 @@ func fileSHA256(path string) (string, error) {
 
 // readPlainIfExists returns nil when the unencrypted file is missing. The
 // full pair reader is the only plaintext parser in the CLI: it keeps the
-// $jureuma identity header and the top-level $schema pointer apart from the
+// $zeze identity header and the top-level $schema pointer apart from the
 // body, so no flow can turn reserved metadata into a value or drop it on
 // write.
 func readPlainIfExists(p *pair.Pair) (*pair.PlainFile, error) {
@@ -286,7 +286,7 @@ func schemaCopyState(e *env, p *pair.Pair, enc *pair.Encrypted, sk *crypt.Privat
 }
 
 // setSchemaCopy embeds the local schema document in the encrypted metadata
-// (as $jureuma.schema { path, c }). When a copy is already stored and want is
+// (as $zeze.schema { path, c }). When a copy is already stored and want is
 // true, it is replaced only when a key holder can prove it differs from the
 // local file, or when the stored copy is encrypted under a key other than the
 // file's (a retired key), so unchanged writes stay byte-identical while
@@ -360,7 +360,7 @@ func (e *env) checkBypass(cmd *cobra.Command, files []string) error {
 	intact, err := config.ProtectionsIntact(e.home, e.glob)
 	if err != nil || !intact {
 		_ = e.audit(cmd, files, "bypass-refused", true)
-		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is refused: the protections block in %s does not match its seal (a human must re-run jureuma init interactively)", config.GlobalFile)
+		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is refused: the protections block in %s does not match its seal (a human must re-run zeze init interactively)", config.GlobalFile)
 	}
 	if err := e.audit(cmd, files, "bypassed", true); err != nil {
 		return xerr.Protected("[PROTECTED] --dangerously-bypass-protections is refused: the audit log cannot be written")

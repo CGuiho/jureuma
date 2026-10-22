@@ -5,14 +5,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // Denied reports whether flatten mode refuses to produce name: names that
 // load or run code (LD_*, DYLD_*, GIT_*, JAVA_*, BASH_ENV, PAGER, EDITOR,
-// PATH, ...) or belong to jureuma (JUREUMA_*); see config.DeniedEnvName.
+// PATH, ...) or belong to zeze (ZEZE_*); see config.DeniedEnvName.
 // --env may still map them explicitly.
 func Denied(name string) bool {
 	return config.DeniedEnvName(name)

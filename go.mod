@@ -1,4 +1,4 @@
-module github.com/CGuiho/jureuma
+module github.com/CGuiho/zeze
 
 go 1.26.5
 

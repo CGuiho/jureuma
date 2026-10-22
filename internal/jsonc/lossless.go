@@ -14,7 +14,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 // Edit errors: fixed strings, never document text.

@@ -8,14 +8,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/keystore"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/runner"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/keystore"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/runner"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -148,12 +148,12 @@ const (
 )
 
 var stateHints = map[string]string{
-	pair.StateUnencryptedNewer:   "run jureuma encrypt",
-	pair.StateEncryptedNewer:     "a human runs jureuma decrypt",
+	pair.StateUnencryptedNewer:   "run zeze encrypt",
+	pair.StateEncryptedNewer:     "a human runs zeze decrypt",
 	pair.StateConflict:           "a human resolves it, then encrypt --force or decrypt --force",
 	pair.StateUnencryptedMissing: "normal on agent and CI machines",
 	pair.StateKeyUnavailable:     "normal on agent machines; only encrypted-side changes are detected",
-	stateEncryptedMissing:        "run jureuma set to rebuild the encrypted sibling, or jureuma encrypt",
+	stateEncryptedMissing:        "run zeze set to rebuild the encrypted sibling, or zeze encrypt",
 }
 
 // schemaNote reports the pair's schema metadata without values: the $schema
@@ -178,15 +178,15 @@ func schemaNote(e *env, p *pair.Pair, pf *pair.PlainFile, enc *pair.Encrypted, s
 	state := schemaCopyState(e, p, enc, sk)
 	switch state {
 	case "differs":
-		warns = append(warns, "the schema copy embedded in the encrypted file differs from "+p.Rel(p.SchemaPath)+" (run jureuma schema infer to refresh it)")
+		warns = append(warns, "the schema copy embedded in the encrypted file differs from "+p.Rel(p.SchemaPath)+" (run zeze schema infer to refresh it)")
 	case "none":
 		if enc != nil {
-			warns = append(warns, "the encrypted file carries no embedded schema copy (run jureuma encrypt or jureuma init to add it)")
+			warns = append(warns, "the encrypted file carries no embedded schema copy (run zeze encrypt or zeze init to add it)")
 		}
 	}
 	if enc != nil && enc.Meta.SchemaCopy != "" {
 		if id, ok := crypt.CiphertextKeyID(enc.Meta.SchemaCopy); ok && id != enc.Meta.KeyID {
-			warns = append(warns, "the embedded schema copy is encrypted under "+id+", not the file's key (run jureuma encrypt to migrate it)")
+			warns = append(warns, "the embedded schema copy is encrypted under "+id+", not the file's key (run zeze encrypt to migrate it)")
 		}
 	}
 	return "pointer " + pointer + ", embedded copy " + state, warns
@@ -201,7 +201,7 @@ func sameFilePath(a, b string) bool {
 	return errA == nil && errB == nil && ra == rb
 }
 
-// legacyNote reports whether a pair file carries old jureuma state (format 1
+// legacyNote reports whether a pair file carries old zeze state (format 1
 // or malformed): the message is the repair pointer, without values.
 func legacyNote(file string, format int) string {
 	if format == 0 || format == pair.FormatVersion {
@@ -217,11 +217,11 @@ func (a *app) cmdStatus() *cobra.Command {
 		Use:   "status",
 		Short: "show the sync state of the pair, per path (read-only)",
 		Long: `Reports the pair's state across all four file states (only the unencrypted file, only the
-encrypted file, both, or legacy jureuma state) and, when both files exist, compares them
+encrypted file, both, or legacy zeze state) and, when both files exist, compares them
 with the last sync per path and overall: in-sync, unencrypted-newer, encrypted-newer,
 conflict, unencrypted-missing or key-unavailable. Reports the $schema pointer and the
 embedded schema copy, warns when both files exist and when a file carries a legacy
-$jureuma header. Never modifies anything and never prints values.`,
+$zeze header. Never modifies anything and never prints values.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkOutput(output); err != nil {
@@ -246,7 +246,7 @@ $jureuma header. Never modifies anything and never prints values.`,
 				}
 			}
 			if enc == nil && plainFile == nil {
-				return xerr.Failure("%s: not found (run jureuma encrypt if the configuration is decrypted, or jureuma init)", p.Rel(p.EncryptedPath))
+				return xerr.Failure("%s: not found (run zeze encrypt if the configuration is decrypted, or zeze init)", p.Rel(p.EncryptedPath))
 			}
 			if err := checkIdentity(cmd, plainFile, enc); err != nil {
 				return err
@@ -267,7 +267,7 @@ $jureuma header. Never modifies anything and never prints values.`,
 				}
 			}
 			if enc != nil && sk != nil && sk.Public().String() != enc.Meta.PublicKey {
-				return xerr.Key("the private key does not match $jureuma.publicKey")
+				return xerr.Key("the private key does not match $zeze.publicKey")
 			}
 			overall := stateEncryptedMissing
 			var rep pair.Report
@@ -286,7 +286,7 @@ $jureuma header. Never modifies anything and never prints values.`,
 			headWarn := ""
 			if enc != nil {
 				if hp, ok := pair.HeadPublicKey(p.EncryptedPath); ok && hp != enc.Meta.PublicKey {
-					headWarn = "$jureuma.publicKey differs from the version at git HEAD; verify the recipient key before encrypting new values"
+					headWarn = "$zeze.publicKey differs from the version at git HEAD; verify the recipient key before encrypting new values"
 				}
 			}
 			schNote, schWarns := schemaNote(e, p, plainFile, enc, sk)
@@ -306,7 +306,7 @@ $jureuma header. Never modifies anything and never prints values.`,
 			}
 			bothWarn := ""
 			if enc != nil && plainFile != nil {
-				bothWarn = "both files exist (the riskiest state): run jureuma encrypt or jureuma decrypt to keep only one side"
+				bothWarn = "both files exist (the riskiest state): run zeze encrypt or zeze decrypt to keep only one side"
 			}
 			if output == "json" {
 				type ps struct {
@@ -417,13 +417,13 @@ func (a *app) cmdCheck() *cobra.Command {
 		Use:   "check",
 		Short: "check schema, gitignore, tracked plaintext, keys, env names and deny rules",
 		Long: `Checks every configured pair (or the selected one) in each of its four file states (only
-the unencrypted file, only the encrypted file, both, or legacy jureuma state): the
-encrypted file and its keyId, the $jureuma identity headers, the $schema pointer and the
+the unencrypted file, only the encrypted file, both, or legacy zeze state): the
+encrypted file and its keyId, the $zeze identity headers, the $schema pointer and the
 embedded schema copy (presence, path match, drift), the .gitignore block, that no
 unencrypted file is tracked by git, the schema (present, supported, still the starter,
 secret paths carrying default/examples/const/enum), the structure of the encrypted file,
 and with the private key the whole decrypted document. Also warns when both files exist
-(the riskiest state), when a file carries a legacy $jureuma header, when $jureuma.publicKey
+(the riskiest state), when a file carries a legacy $zeze header, when $zeze.publicKey
 differs from git HEAD, when values are encrypted under other keys, when flattened env names
 collide, and when the agent-tool deny rules are absent. Exit 5 for key problems, 4 for
 validation problems, 1 for anything else.`,
@@ -438,9 +438,9 @@ validation problems, 1 for anything else.`,
 				ch.fail(xerr.CodeFailure, "%v", e.globErr)
 			}
 			if pair.HasGitignoreBlock(e.root) {
-				ch.ok(".gitignore contains the jureuma managed block")
+				ch.ok(".gitignore contains the zeze managed block")
 			} else {
-				ch.fail(xerr.CodeFailure, ".gitignore lacks the jureuma managed block (run jureuma init)")
+				ch.fail(xerr.CodeFailure, ".gitignore lacks the zeze managed block (run zeze init)")
 			}
 			pairs, err := e.pairs(&pf)
 			if err != nil {
@@ -452,12 +452,12 @@ validation problems, 1 for anything else.`,
 			if denyRulesPresent(e.root) {
 				ch.ok("agent-tool deny rules for *.unencrypted.* are present")
 			} else {
-				ch.warn("agent-tool deny rules for *.unencrypted.* are absent (jureuma init offers to add them)")
+				ch.warn("agent-tool deny rules for *.unencrypted.* are absent (zeze init offers to add them)")
 			}
 			if opencodeDenyRulesPresent(e.root) {
 				ch.ok("OpenCode deny rules for *.unencrypted.* are present")
 			} else {
-				ch.warn("OpenCode deny rules for *.unencrypted.* are absent (jureuma init offers to add them)")
+				ch.warn("OpenCode deny rules for *.unencrypted.* are absent (zeze init offers to add them)")
 			}
 			outf(cmd, "%d %s, %d %s\n", ch.fails, plural(ch.fails, "failure", "failures"), ch.warns, plural(ch.warns, "warning", "warnings"))
 			if ch.fails > 0 {
@@ -486,9 +486,9 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 	case encErr != nil:
 		ch.fail(xerr.CodeOf(encErr), "%s: %v", label, encErr)
 	case enc == nil && pf == nil:
-		ch.fail(xerr.CodeFailure, "%s: neither %s nor %s exists (run jureuma init)", label, p.Rel(p.EncryptedPath), p.Rel(p.UnencryptedPath))
+		ch.fail(xerr.CodeFailure, "%s: neither %s nor %s exists (run zeze init)", label, p.Rel(p.EncryptedPath), p.Rel(p.UnencryptedPath))
 	case enc == nil:
-		ch.info("%s: %s is missing (normal while the pair is decrypted; jureuma set rebuilds it, or jureuma encrypt)", label, p.Rel(p.EncryptedPath))
+		ch.info("%s: %s is missing (normal while the pair is decrypted; zeze set rebuilds it, or zeze encrypt)", label, p.Rel(p.EncryptedPath))
 	default:
 		ch.ok("%s: %s is valid (keyId matches publicKey)", label, p.Rel(p.EncryptedPath))
 	}
@@ -512,7 +512,7 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 		}
 	}
 	if enc != nil && pf != nil {
-		ch.warn("%s: both files exist (the riskiest state): run jureuma encrypt or jureuma decrypt to keep only one side", label)
+		ch.warn("%s: both files exist (the riskiest state): run zeze encrypt or zeze decrypt to keep only one side", label)
 	}
 	if ws, err := pair.CheckIdentity(pf, enc); err != nil {
 		ch.fail(xerr.CodeOf(err), "%s: %v", label, err)
@@ -559,14 +559,14 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 	}
 	var sch *schema.Schema
 	if !fileExists(p.SchemaPath) {
-		ch.fail(xerr.CodeValidation, "%s: schema %s is missing (run jureuma schema infer)", label, p.Rel(p.SchemaPath))
+		ch.fail(xerr.CodeValidation, "%s: schema %s is missing (run zeze schema infer)", label, p.Rel(p.SchemaPath))
 	} else if s, err := loadSchema(p); err != nil {
 		ch.fail(xerr.CodeValidation, "%s: %v", label, err)
 	} else {
 		sch = s
 		ch.ok("%s: schema %s is supported (%s)", label, p.Rel(p.SchemaPath), schNote)
 		if schema.IsStarter(s.Raw()) {
-			ch.warn("%s: %s is still the permissive starter schema (run jureuma schema infer, then refine it)", label, p.Rel(p.SchemaPath))
+			ch.warn("%s: %s is still the permissive starter schema (run zeze schema infer, then refine it)", label, p.Rel(p.SchemaPath))
 		}
 		for _, is := range s.SecretValueKeywords() {
 			ch.warn("%s: schema %s", label, is.String())
@@ -585,7 +585,7 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 		return
 	}
 	if hp, ok := pair.HeadPublicKey(p.EncryptedPath); ok && hp != enc.Meta.PublicKey {
-		ch.warn("%s: $jureuma.publicKey differs from the version at git HEAD; verify the recipient key", label)
+		ch.warn("%s: $zeze.publicKey differs from the version at git HEAD; verify the recipient key", label)
 	}
 	ids := pair.CiphertextKeyIDs(enc.Body)
 	others := make([]string, 0)
@@ -596,7 +596,7 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 	}
 	sort.Strings(others)
 	for _, id := range others {
-		ch.warn("%s: %d %s encrypted under %s, not the file's key (run jureuma encrypt to migrate)", label, ids[id], plural(ids[id], "value is", "values are"), id)
+		ch.warn("%s: %d %s encrypted under %s, not the file's key (run zeze encrypt to migrate)", label, ids[id], plural(ids[id], "value is", "values are"), id)
 	}
 	eff := e.effective()
 	var ptrs []string
@@ -615,7 +615,7 @@ func (a *app) checkPair(ch *checker, e *env, p *pair.Pair) {
 		return
 	}
 	if sk.Public().String() != enc.Meta.PublicKey {
-		ch.fail(xerr.CodeKey, "%s: the private key does not match $jureuma.publicKey", label)
+		ch.fail(xerr.CodeKey, "%s: the private key does not match $zeze.publicKey", label)
 		return
 	}
 	ch.ok("%s: private key %s available (%s)", label, keyID, src)

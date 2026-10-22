@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 // keyword classes of the supported draft 2020-12 subset.
@@ -45,7 +45,7 @@ var (
 	}
 )
 
-// checkSchema enforces the jureuma subset: only draft 2020-12, no unknown
+// checkSchema enforces the zeze subset: only draft 2020-12, no unknown
 // keywords except x-*, only asserted formats, only local references.
 // Errors name schema locations and keywords, never values.
 func checkSchema(n *doc.Value, ptr string, isRoot bool, anchors map[string]string) error {

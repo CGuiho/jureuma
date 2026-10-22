@@ -17,8 +17,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/keystore"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/keystore"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 	// after the "k_" prefix.
 	shortIDHex = 12
 	// shortKeyRunes is how many base64url characters of the public key a
-	// listing shows after the "jureuma-pk-1:" prefix.
+	// listing shows after the "zeze-pk-1:" prefix.
 	shortKeyRunes = 12
 )
 
@@ -67,7 +67,7 @@ func shortKeyID(id string) string {
 }
 
 // shortPublicKey renders the beginning of a public key
-// ("jureuma-pk-1:" plus the first shortKeyRunes base64url characters), or the
+// ("zeze-pk-1:" plus the first shortKeyRunes base64url characters), or the
 // no-label placeholder when the key file carried none.
 func shortPublicKey(pk string) string {
 	pk = strings.TrimSpace(pk)

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 // The comment-preserving JSONC writer (issue #12): minimal byte-span splices,

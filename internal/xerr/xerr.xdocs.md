@@ -1,7 +1,7 @@
 ---
-subject: jureuma-xerr
-description: "Errors carrying jureuma exit codes (0-5, 125) and the [JUREUMA:<KIND>] label printed by run."
-parent: jureuma-internal
+subject: zeze-xerr
+description: "Errors carrying zeze exit codes (0-5, 125) and the [ZEZE:<KIND>] label printed by run."
+parent: zeze-internal
 children: []
 files:
   "xerr.go": "Exit-code error types."
@@ -17,9 +17,9 @@ flags: []
 status: stable
 ---
 
-# jureuma-xerr
+# zeze-xerr
 
-Errors carrying jureuma exit codes (0-5, 125) and the [JUREUMA:<KIND>] label printed by run.
+Errors carrying zeze exit codes (0-5, 125) and the [ZEZE:<KIND>] label printed by run.
 
 ## Files
 

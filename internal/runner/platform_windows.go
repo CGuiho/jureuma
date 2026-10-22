@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// On Windows the console delivers Ctrl+C to the child directly; jureuma only
+// On Windows the console delivers Ctrl+C to the child directly; zeze only
 // needs to survive it until the child exits.
 var forwardedSignals = []os.Signal{os.Interrupt}
 

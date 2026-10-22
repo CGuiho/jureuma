@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // schemaFixture is a schema document (never configuration data) used as the
@@ -106,7 +106,7 @@ func TestSchemaReferenceShapes(t *testing.T) {
 	if !bytes.Equal(MarshalEncrypted(e), data2) {
 		t.Fatal("marshal must be deterministic")
 	}
-	if !strings.Contains(string(data2), `"path": "./config.schema.json"`) || !strings.Contains(string(data2), `"c": "jureuma:1:`) {
+	if !strings.Contains(string(data2), `"path": "./config.schema.json"`) || !strings.Contains(string(data2), `"c": "zeze:1:`) {
 		t.Fatalf("{ path, c } shape expected:\n%s", data2)
 	}
 	got2, err := ParseEncrypted("t.encrypted.json", data2)
@@ -155,7 +155,7 @@ func TestPlainFileRoundTripAndOldWrapperCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(p)
-	order := []string{`"$jureuma"`, `"format"`, `"publicKey"`, `"keyId"`, `"home"`, `"$schema"`, `"zeta"`, `"alpha"`, `"b"`, `"esc"`}
+	order := []string{`"$zeze"`, `"format"`, `"publicKey"`, `"keyId"`, `"home"`, `"$schema"`, `"zeta"`, `"alpha"`, `"b"`, `"esc"`}
 	last := -1
 	for _, k := range order {
 		i := strings.Index(string(data[last+1:]), k)
@@ -178,9 +178,9 @@ func TestPlainFileRoundTripAndOldWrapperCompatibility(t *testing.T) {
 		t.Fatalf("body round trip: %s", doc.Marshal(got.Body))
 	}
 	// The old wrappers stay byte-compatible: the old reader keeps rejecting
-	// the $jureuma header and keeps passing $schema through as a body key.
+	// the $zeze header and keeps passing $schema through as a body key.
 	if _, err := ReadPlain(p, false); err == nil || !strings.Contains(err.Error(), "is reserved") {
-		t.Fatalf("old ReadPlain must keep rejecting $jureuma: %v", err)
+		t.Fatalf("old ReadPlain must keep rejecting $zeze: %v", err)
 	}
 	p2 := filepath.Join(root, "other.unencrypted.json")
 	given := mustParse(t, `{"$schema":"./config.schema.json","a":1}`)
@@ -188,7 +188,7 @@ func TestPlainFileRoundTripAndOldWrapperCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 	data2, _ := os.ReadFile(p2)
-	if !strings.Contains(string(data2), `"$schema"`) || strings.Contains(string(data2), `"$jureuma"`) {
+	if !strings.Contains(string(data2), `"$schema"`) || strings.Contains(string(data2), `"$zeze"`) {
 		t.Fatalf("old WritePlain must write exactly what it is given:\n%s", data2)
 	}
 	if got, err := ReadPlain(p2, false); err != nil || got.Get(SchemaKey) == nil {
@@ -213,7 +213,7 @@ func TestPlainFileJSONCHeaderInsert(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(p)
-	for _, want := range []string{"// top", "// about a", "[2, 3,]", `"$jureuma"`, `"$schema"`} {
+	for _, want := range []string{"// top", "// about a", "[2, 3,]", `"$zeze"`, `"$schema"`} {
 		if !strings.Contains(string(data), want) {
 			t.Fatalf("header/pointer insert must preserve comments and formatting:\n%s", data)
 		}
@@ -272,7 +272,7 @@ func TestTypedRepairRefusals(t *testing.T) {
 	if !errors.Is(err, ErrMissingPlainIdentity) || xerr.CodeOf(err) != xerr.CodeFailure {
 		t.Fatalf("typed refusal: %v", err)
 	}
-	if !strings.Contains(err.Error(), "run jureuma init to repair") {
+	if !strings.Contains(err.Error(), "run zeze init to repair") {
 		t.Fatalf("the repair pointer must be exact: %q", err)
 	}
 	for _, err := range []error{LegacyHeader("config.encrypted.json"), MissingPlainIdentity("x")} {
@@ -285,15 +285,15 @@ func TestTypedRepairRefusals(t *testing.T) {
 	}
 }
 
-// legacyPlainHeader renders a hand-made format-1 $jureuma block for an
+// legacyPlainHeader renders a hand-made format-1 $zeze block for an
 // unencrypted file.
 func legacyPlainHeader(h *Header) string {
 	return `{"format": 1, "publicKey": "` + h.PublicKey + `", "keyId": "` + h.KeyID + `", "home": "` + h.Home + `"}`
 }
 
 // writeLegacyEncrypted writes a hand-made legacy encrypted file: the same
-// content this jureuma writes, with the $jureuma/format generation of old
-// jureuma.
+// content this zeze writes, with the $zeze/format generation of old
+// zeze.
 func writeLegacyEncrypted(t *testing.T, path string, e *Encrypted) {
 	t.Helper()
 	data := strings.Replace(string(MarshalEncrypted(e)), `"format": 2,`, `"format": 1,`, 1)
@@ -309,7 +309,7 @@ func assertRepairRefusal(t *testing.T, err error) {
 	if err == nil || !errors.Is(err, ErrLegacyHeader) {
 		t.Fatalf("want the typed legacy refusal, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "run jureuma init to repair") {
+	if !strings.Contains(err.Error(), "run zeze init to repair") {
 		t.Fatalf("refusal must point at init: %q", err)
 	}
 	if strings.Contains(err.Error(), sentinel) {
@@ -327,7 +327,7 @@ func TestLegacyPairRefusesMutations(t *testing.T) {
 	encPath := filepath.Join(root, "config.encrypted.json")
 	plainPath := filepath.Join(root, "config.unencrypted.json")
 	writeLegacyEncrypted(t, encPath, NewEncrypted(sk.Public(), "./config.schema.json"))
-	legacyPlain := `{"$jureuma": ` + legacyPlainHeader(h) + `, "a": 1}`
+	legacyPlain := `{"$zeze": ` + legacyPlainHeader(h) + `, "a": 1}`
 	if err := os.WriteFile(plainPath, []byte(legacyPlain), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -383,7 +383,7 @@ func TestLegacyJSONCPlainRefusesMutations(t *testing.T) {
 	encPath := filepath.Join(root, "config.encrypted.json")
 	plainPath := filepath.Join(root, "config.unencrypted.jsonc")
 	writeLegacyEncrypted(t, encPath, NewEncrypted(sk.Public(), "./config.schema.json"))
-	legacy := "// legacy note\n{\n  \"$jureuma\": " + legacyPlainHeader(h) + ", // the old header\n  \"a\": 1,\n}\n"
+	legacy := "// legacy note\n{\n  \"$zeze\": " + legacyPlainHeader(h) + ", // the old header\n  \"a\": 1,\n}\n"
 	if err := os.WriteFile(plainPath, []byte(legacy), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -454,7 +454,7 @@ func TestMalformedHeaderRefusesMutations(t *testing.T) {
 	if err := WriteEncrypted(encPath, NewEncrypted(sk.Public(), "./config.schema.json")); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(plainPath, []byte(`{"$jureuma": 1, "a": "`+sentinel+`"}`), 0o600); err != nil {
+	if err := os.WriteFile(plainPath, []byte(`{"$zeze": 1, "a": "`+sentinel+`"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	assertRepairRefusal(t, WritePlain(plainPath, mustParse(t, `{"a":1}`)))

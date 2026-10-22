@@ -1,9 +1,9 @@
 ---
-subject: jureuma-test
-description: "Container for test suites that exercise the built jureuma binary."
-parent: jureuma
+subject: zeze-test
+description: "Container for test suites that exercise the built zeze binary."
+parent: zeze
 children:
-  - jureuma-test-e2e
+  - zeze-test-e2e
 files: {}
 documents: {}
 tags:
@@ -14,10 +14,10 @@ flags: []
 status: stable
 ---
 
-# jureuma-test
+# zeze-test
 
-Container for test suites that exercise the built jureuma binary.
+Container for test suites that exercise the built zeze binary.
 
 ## Children
 
-- `jureuma-test-e2e`
+- `zeze-test-e2e`

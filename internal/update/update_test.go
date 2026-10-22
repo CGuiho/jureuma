@@ -61,7 +61,7 @@ func TestCheckCacheNoticeAndLease(t *testing.T) {
 	if err != nil || c.LatestVersion != "1.5.0" || !c.NewVersionAvailable {
 		t.Fatalf("%+v %v", c, err)
 	}
-	if n := Notice(home, "1.0.0"); n != "⚠ New version available: v1.5.0\n  run jureuma upgrade to update\n" {
+	if n := Notice(home, "1.0.0"); n != "⚠ New version available: v1.5.0\n  run zeze upgrade to update\n" {
 		t.Fatalf("notice %q", n)
 	}
 	if Notice(home, "1.5.0") != "" || Notice(home, "2.0.0") != "" {
@@ -149,7 +149,7 @@ func catalogEntries(first, n int) []string {
 }
 
 func TestFetchReleasesPaginatesToShortPage(t *testing.T) {
-	t.Setenv("JUREUMA_USER_HOME", t.TempDir())
+	t.Setenv("ZEZE_USER_HOME", t.TempDir())
 	// Page 1 is full (100 entries) and mixes valid releases with one draft and
 	// one malformed tag; page 2 is short and must stop the walk. Any request
 	// beyond page 2 fails the test through HTTP 500.
@@ -188,7 +188,7 @@ func TestFetchReleasesPaginatesToShortPage(t *testing.T) {
 }
 
 func TestFetchReleasesStopsAtPageBound(t *testing.T) {
-	t.Setenv("JUREUMA_USER_HOME", t.TempDir())
+	t.Setenv("ZEZE_USER_HOME", t.TempDir())
 	if MaxCatalogPages < 50 {
 		t.Fatalf("MaxCatalogPages = %d; the safety bound must cover the installers' 50 pages", MaxCatalogPages)
 	}

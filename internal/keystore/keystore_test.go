@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
+	"github.com/CGuiho/zeze/internal/crypt"
 )
 
 func newKey(t *testing.T) (crypt.PrivateKey, string) {
@@ -24,8 +24,8 @@ func newKey(t *testing.T) (crypt.PrivateKey, string) {
 func newStore(t *testing.T, env map[string]string) *Store {
 	t.Helper()
 	home := t.TempDir()
-	t.Setenv("JUREUMA_USER_HOME", home)
-	return &Store{Home: filepath.Join(home, ".guiho", "jureuma"), Getenv: func(k string) string { return env[k] }}
+	t.Setenv("ZEZE_USER_HOME", home)
+	return &Store{Home: filepath.Join(home, ".guiho", "zeze"), Getenv: func(k string) string { return env[k] }}
 }
 
 func assertNoSecret(t *testing.T, err error, sk crypt.PrivateKey) {
@@ -49,7 +49,7 @@ func TestFindPrecedence(t *testing.T) {
 		want    Source
 	}{
 		{"dedicated env wins", map[string]string{EnvName(id): sk.String(), EnvPrivateKey: sk.String()}, true, false, Source("env:" + EnvName(id))},
-		{"generic env next", map[string]string{EnvPrivateKey: sk.String()}, true, false, "env:JUREUMA_PRIVATE_KEY"},
+		{"generic env next", map[string]string{EnvPrivateKey: sk.String()}, true, false, "env:ZEZE_PRIVATE_KEY"},
 		{"active file", nil, true, false, Source("file:keys/" + id + ".json")},
 		{"retired file", nil, true, true, Source("file:keys/retired/" + id + ".json")},
 		{"env with whitespace", map[string]string{EnvName(id): " " + sk.String() + "\n"}, false, false, Source("env:" + EnvName(id))},
@@ -99,7 +99,7 @@ func TestMalformedGenericEnvDeferred(t *testing.T) {
 	s := newStore(t, map[string]string{EnvPrivateKey: "garbage-secret-value"})
 	_, _, err := s.Find(id)
 	var ie *InvalidKeyError
-	if !errors.As(err, &ie) || ie.Source != "env:JUREUMA_PRIVATE_KEY" {
+	if !errors.As(err, &ie) || ie.Source != "env:ZEZE_PRIVATE_KEY" {
 		t.Fatalf("want InvalidKeyError, got %v", err)
 	}
 	if strings.Contains(err.Error(), "garbage") {
@@ -284,7 +284,7 @@ func TestCorruptKeyFile(t *testing.T) {
 	_, id := newKey(t)
 	s := newStore(t, nil)
 	os.MkdirAll(filepath.Join(s.Home, "keys"), 0o700)
-	secretish := `{"privateKey": "jureuma-sk-1:SUPERSECRETVALUE", oops`
+	secretish := `{"privateKey": "zeze-sk-1:SUPERSECRETVALUE", oops`
 	os.WriteFile(filepath.Join(s.Home, "keys", id+".json"), []byte(secretish), 0o600)
 	_, _, err := s.Find(id)
 	if !errors.As(err, new(*InvalidKeyError)) {
@@ -297,21 +297,21 @@ func TestCorruptKeyFile(t *testing.T) {
 
 func TestIsPrivateKeyEnv(t *testing.T) {
 	cases := map[string]bool{
-		"JUREUMA_PRIVATE_KEY": true,
-		"JUREUMA_PRIVATE_KEY_K_5C1E0A9F3B7D2E4C8A6F1B0D9E3C7A25": true,
-		"JUREUMA_PRIVATE_KEY_ANYTHING":                           true,
-		"jureuma_private_key":                                    true,
-		"JUREUMA_PRIVATE_KEYS":                                   false,
-		"JUREUMA_CONFIG":                                         false,
-		"PATH":                                                   false,
-		"":                                                       false,
+		"ZEZE_PRIVATE_KEY": true,
+		"ZEZE_PRIVATE_KEY_K_5C1E0A9F3B7D2E4C8A6F1B0D9E3C7A25": true,
+		"ZEZE_PRIVATE_KEY_ANYTHING":                           true,
+		"zeze_private_key":                                    true,
+		"ZEZE_PRIVATE_KEYS":                                   false,
+		"ZEZE_CONFIG":                                         false,
+		"PATH":                                                false,
+		"":                                                    false,
 	}
 	for n, want := range cases {
 		if IsPrivateKeyEnv(n) != want {
 			t.Fatalf("IsPrivateKeyEnv(%q) != %v", n, want)
 		}
 	}
-	if EnvName("k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25") != "JUREUMA_PRIVATE_KEY_K_5C1E0A9F3B7D2E4C8A6F1B0D9E3C7A25" {
+	if EnvName("k_5c1e0a9f3b7d2e4c8a6f1b0d9e3c7a25") != "ZEZE_PRIVATE_KEY_K_5C1E0A9F3B7D2E4C8A6F1B0D9E3C7A25" {
 		t.Fatal("EnvName")
 	}
 }
@@ -319,9 +319,9 @@ func TestIsPrivateKeyEnv(t *testing.T) {
 func TestNewUsesOSGetenv(t *testing.T) {
 	sk, id := newKey(t)
 	home := t.TempDir()
-	t.Setenv("JUREUMA_USER_HOME", home)
+	t.Setenv("ZEZE_USER_HOME", home)
 	t.Setenv(EnvName(id), sk.String())
-	s := New(filepath.Join(home, ".guiho", "jureuma"))
+	s := New(filepath.Join(home, ".guiho", "zeze"))
 	if _, src, err := s.Find(id); err != nil || src != Source("env:"+EnvName(id)) {
 		t.Fatalf("%q %v", src, err)
 	}

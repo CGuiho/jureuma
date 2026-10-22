@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 // ConcreteTokens replaces "-" array tokens with the concrete append index, so

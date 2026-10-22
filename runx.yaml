@@ -1,6 +1,6 @@
 version: '2.0.0'
 
-namespace: 'jureuma'
+namespace: 'zeze'
 
 scripts:
   directory: 'devops'
@@ -36,7 +36,7 @@ commands:
       - uid: go-test
         id: test
         summary: 'Run every Go test with the race detector.'
-        description: 'Run go test -race -count=1 over every package. Tests use temporary JUREUMA_USER_HOME directories and never touch the real home.'
+        description: 'Run go test -race -count=1 over every package. Tests use temporary ZEZE_USER_HOME directories and never touch the real home.'
         command: 'go test -race -count=1 ./...'
 
       - uid: go-tidy
@@ -46,25 +46,25 @@ commands:
         command: 'go mod tidy'
 
   - group: build
-    summary: 'Build jureuma binaries with the version injected.'
+    summary: 'Build zeze binaries with the version injected.'
     commands:
       - uid: build
         id: host
-        summary: 'Build bin/jureuma and bin/jureuma-launcher for the host.'
-        description: 'Build the host payload and stable launcher into bin/ with -ldflags "-X main.version=<version>" on the payload, where the version comes from devops/version.sh (exact v<semver> tag at HEAD, JUREUMA_VERSION, else 0.0.0-dev).'
+        summary: 'Build bin/zeze and bin/zeze-launcher for the host.'
+        description: 'Build the host payload and stable launcher into bin/ with -ldflags "-X main.version=<version>" on the payload, where the version comes from devops/version.sh (exact v<semver> tag at HEAD, ZEZE_VERSION, else 0.0.0-dev).'
         command: 'sh devops/build.sh'
 
       - uid: build-cross
         id: cross
         summary: 'Cross-build all six release targets into dist/.'
-        description: 'Build jureuma-<os>-<arch>[.exe] payloads and jureuma-launcher-<os>-<arch>[.exe] stable launchers for linux, darwin and windows on amd64 and arm64 into dist/ (or --out <dir>), CGO disabled, trimpath, with -ldflags "-s -w -X main.version=<version>" on the payloads. Pass --release to require an exact release version.'
+        description: 'Build zeze-<os>-<arch>[.exe] payloads and zeze-launcher-<os>-<arch>[.exe] stable launchers for linux, darwin and windows on amd64 and arm64 into dist/ (or --out <dir>), CGO disabled, trimpath, with -ldflags "-s -w -X main.version=<version>" on the payloads. Pass --release to require an exact release version.'
         command: 'sh devops/cross-build.sh'
 
       - uid: run
         id: run
-        summary: 'Run jureuma from source.'
-        description: 'Run the CLI from source with go run; arguments after the selector are passed to jureuma.'
-        command: 'go run ./cmd/jureuma'
+        summary: 'Run zeze from source.'
+        description: 'Run the CLI from source with go run; arguments after the selector are passed to zeze.'
+        command: 'go run ./cmd/zeze'
 
   - group: test
     summary: 'End-to-end, smoke and installer tests.'
@@ -72,13 +72,13 @@ commands:
       - uid: test-e2e
         id: e2e
         summary: 'Run the end-to-end tests against a built binary.'
-        description: 'Run the test/e2e suite, which builds jureuma once with an injected version and drives it as a subprocess in throw-away homes and git projects (init, encrypt/decrypt, set/unset, run formats and redaction, human-only gate, bypass rules, key rotation, sentinel leak checks).'
+        description: 'Run the test/e2e suite, which builds zeze once with an injected version and drives it as a subprocess in throw-away homes and git projects (init, encrypt/decrypt, set/unset, run formats and redaction, human-only gate, bypass rules, key rotation, sentinel leak checks).'
         command: 'go test -count=1 ./test/e2e/...'
 
       - uid: test-smoke
         id: smoke
-        summary: 'Build bin/jureuma and smoke-test it in a throw-away home.'
-        description: 'Build the host binary, then run devops/smoke.sh: init, schema infer, encrypt, list, status, set, run (json, flatten, exit code), human-only get, schema violation, check, key show, usage error and uninstall --dry-run in a temporary JUREUMA_USER_HOME and git project, failing if a planted value leaks.'
+        summary: 'Build bin/zeze and smoke-test it in a throw-away home.'
+        description: 'Build the host binary, then run devops/smoke.sh: init, schema infer, encrypt, list, status, set, run (json, flatten, exit code), human-only get, schema violation, check, key show, usage error and uninstall --dry-run in a temporary ZEZE_USER_HOME and git project, failing if a planted value leaks.'
         command: 'sh devops/build.sh && sh devops/smoke.sh'
 
       - uid: test-installers
@@ -99,7 +99,7 @@ commands:
       - uid: release-prepare
         id: prepare
         summary: 'Prepare the complete release artifact set in dist/.'
-        description: 'Recreate dist/ with the six native payloads, the six stable launcher binaries, guiho-s-jureuma.zip, the three prompts, jureuma-instruction.md, both configuration schemas and examples, artifacts.json (ownership manifest) and checksums.txt, then verify it. Requires the exact v<semver> tag at HEAD (or JUREUMA_VERSION) and matching pinned schema URLs.'
+        description: 'Recreate dist/ with the six native payloads, the six stable launcher binaries, guiho-s-zeze.zip, the three prompts, zeze-instruction.md, both configuration schemas and examples, artifacts.json (ownership manifest) and checksums.txt, then verify it. Requires the exact v<semver> tag at HEAD (or ZEZE_VERSION) and matching pinned schema URLs.'
         command: 'sh devops/release-prepare.sh'
 
       - uid: release-verify
@@ -120,13 +120,13 @@ commands:
       - uid: schema-check
         id: check
         summary: 'Validate the configuration schemas and examples.'
-        description: 'Run the config and schema package tests, which compile the embedded jureuma.schema.json and jureuma.global.schema.json and validate the example files against them.'
+        description: 'Run the config and schema package tests, which compile the embedded zeze.schema.json and zeze.global.schema.json and validate the example files against them.'
         command: 'go test -count=1 ./internal/config/ ./internal/schema/'
 
       - uid: schema-publish
         id: publish
         summary: 'Upload the configuration schemas to the GitHub release.'
-        description: 'Upload internal/config/schemas/jureuma.schema.json and jureuma.global.schema.json to the existing release v<version> (gh release upload --clobber), the URLs pinned by yaml-language-server comments. Publication requires explicit authorization.'
+        description: 'Upload internal/config/schemas/zeze.schema.json and zeze.global.schema.json to the existing release v<version> (gh release upload --clobber), the URLs pinned by yaml-language-server comments. Publication requires explicit authorization.'
         command: 'sh devops/schema-publish.sh'
 
   - group: version
@@ -135,7 +135,7 @@ commands:
       - uid: version-show
         id: show
         summary: 'Print the build version.'
-        description: 'Print the version devops/version.sh resolves: JUREUMA_VERSION, else the exact v<semver> tag at HEAD, else 0.0.0-dev.'
+        description: 'Print the version devops/version.sh resolves: ZEZE_VERSION, else the exact v<semver> tag at HEAD, else 0.0.0-dev.'
         command: 'sh devops/version.sh'
 
       - uid: version-sync

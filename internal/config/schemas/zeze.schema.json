@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "jureuma project configuration (jureuma.yaml)",
-  "description": "Project configuration for the jureuma CLI. Protections are global-only and are rejected here.",
+  "title": "zeze project configuration (zeze.yaml)",
+  "description": "Project configuration for the zeze CLI. Protections are global-only and are rejected here.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "key": {
-      "description": "Key ID of the one key pair every configured pair of this project uses: k_ followed by 32 lowercase hex characters (the shape jureuma derives and validates). Optional. When set, every pair's recorded $jureuma.keyId must match it; labels are display metadata and are not accepted here, so the binding is verifiable without the keystore.",
+      "description": "Key ID of the one key pair every configured pair of this project uses: k_ followed by 32 lowercase hex characters (the shape zeze derives and validates). Optional. When set, every pair's recorded $zeze.keyId must match it; labels are display metadata and are not accepted here, so the binding is verifiable without the keystore.",
       "type": "string",
       "pattern": "^k_[0-9a-f]{32}$"
     },
@@ -68,7 +68,7 @@
       }
     },
     "run": {
-      "description": "Defaults for jureuma run.",
+      "description": "Defaults for zeze run.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -81,7 +81,7 @@
           ]
         },
         "envName": {
-          "description": "Variable that receives the document (json) or its path (file). Default JUREUMA_CONFIG.",
+          "description": "Variable that receives the document (json) or its path (file). Default ZEZE_CONFIG.",
           "type": "string",
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
         },

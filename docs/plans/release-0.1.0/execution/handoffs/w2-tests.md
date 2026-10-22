@@ -5,7 +5,7 @@
 - **Role:** workhorse (engineer). **Harness:** opencode native background
   subagent; this brief is your session.
 - **Model:** `xiaomi/mimo-v2.6-pro` — provider-default thinking, no variant.
-- **Working directory:** `/root/swe/jureuma` — work on `main`; never create
+- **Working directory:** `/root/swe/zeze` — work on `main`; never create
   branches; never push; never tag.
 
 ## Mission
@@ -24,7 +24,7 @@ inspect every release-catalog page while `update.FetchReleases` caps at
 
 ## Read before acting
 
-- `docs/2026-10-13-jureuma-implementation-contracts.md` (packages `doc`, `xerr`,
+- `docs/2026-10-13-zeze-implementation-contracts.md` (packages `doc`, `xerr`,
   `update`, `paths`);
 - `internal/doc/doc.go`, `internal/xerr/xerr.go`, `internal/update/update.go`,
   `internal/update/release.go`, `internal/paths/paths.go`;
@@ -49,7 +49,7 @@ inspect every release-catalog page while `update.FetchReleases` caps at
    change.
 6. Extend `internal/paths/paths_test.go`: `Lock` contention, stale-process
    recovery, token-checked unlock; `ProjectRoot` behavior.
-7. All tests set `JUREUMA_USER_HOME` (or temp dirs) and never touch the real
+7. All tests set `ZEZE_USER_HOME` (or temp dirs) and never touch the real
    home; no external network (httptest only); dummy values only — never
    real-looking secrets.
 
@@ -62,8 +62,8 @@ inspect every release-catalog page while `update.FetchReleases` caps at
 
 ## Commit contract
 
-- Commit only your files with `flock -w 120 /tmp/opencode/jureuma-git.lock -c
-  'cd /root/swe/jureuma && git add <paths> && git commit -m "<message>"'`.
+- Commit only your files with `flock -w 120 /tmp/opencode/zeze-git.lock -c
+  'cd /root/swe/zeze && git add <paths> && git commit -m "<message>"'`.
 - Never `git add -A`; never commit paths you do not own; never push.
 - A sibling worker owns `internal/update` touch-ups for launcher assets; keep
   to your files (`release_test.go`, `update.go` pagination, `update_test.go`).

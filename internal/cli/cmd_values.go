@@ -8,13 +8,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/CGuiho/jureuma/internal/crypt"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/pair"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/crypt"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/pair"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -40,11 +40,11 @@ into the encrypted file. Unchanged values keep their ciphertext so diffs stay sm
 under a retired key are migrated. Refuses to overwrite paths changed on the encrypted side
 (encrypted-newer or conflict) unless --force is given. --force resolves conflicts in favour
 of the unencrypted file; paths changed only on the encrypted side are kept and stay pending.
-The schema document is embedded in the encrypted file ($jureuma.schema { path, c }) and
+The schema document is embedded in the encrypted file ($zeze.schema { path, c }) and
 refreshed when it no longer matches the local schema. On success the unencrypted file is
 deleted unless --keep-both is given. When the encrypted file is missing (removed by decrypt),
 its saved copy or the version at git HEAD supplies the key and unchanged ciphertexts; with
-neither, the pair identity in the unencrypted file's $jureuma header rebuilds the sibling.
+neither, the pair identity in the unencrypted file's $zeze header rebuilds the sibling.
 Needs the private key.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -119,7 +119,7 @@ Needs the private key.`,
 					for _, b := range blocked {
 						errf(cmd, "  %s\n", b)
 					}
-					return xerr.Failure("refusing to overwrite %d %s changed on the encrypted side; run jureuma decrypt first, or pass --force", len(blocked), plural(len(blocked), "path", "paths"))
+					return xerr.Failure("refusing to overwrite %d %s changed on the encrypted side; run zeze decrypt first, or pass --force", len(blocked), plural(len(blocked), "path", "paths"))
 				}
 			}
 			pk := sk.Public()
@@ -143,7 +143,7 @@ Needs the private key.`,
 				}
 				next.Meta.Pending = kept
 				if len(kept) > 0 {
-					errf(cmd, "kept %d encrypted-side %s (still pending; run jureuma decrypt to bring %s into %s):\n", len(kept), plural(len(kept), "change", "changes"), plural(len(kept), "it", "them"), p.Rel(p.UnencryptedPath))
+					errf(cmd, "kept %d encrypted-side %s (still pending; run zeze decrypt to bring %s into %s):\n", len(kept), plural(len(kept), "change", "changes"), plural(len(kept), "it", "them"), p.Rel(p.UnencryptedPath))
 					for _, ptr := range kept {
 						errf(cmd, "  %s\n", ptr)
 					}
@@ -251,14 +251,14 @@ func (a *app) cmdDecrypt() *cobra.Command {
 		Use:   "decrypt",
 		Short: "[human-only] decrypt the encrypted file into the unencrypted file",
 		Long: `Writes every decrypted value into the unencrypted file (mode 0600, git-ignored), together
-with the pair's $jureuma identity header and its $schema pointer; a .jsonc file is updated in
+with the pair's $zeze identity header and its $schema pointer; a .jsonc file is updated in
 place: comments and formatting outside the written values survive. A missing schema file is
 restored from the copy embedded in the encrypted file; an existing one is never overwritten.
 Human-only: requires an interactive terminal, no agent environment and a typed confirmation
 word. Refuses when the unencrypted file has unsaved edits (unencrypted-newer or conflict)
 unless --force is given. On success the encrypted file is deleted
-unless --keep-both is given; a copy (ciphertext only) is saved under ~/.guiho/jureuma/state so
-the next jureuma encrypt reuses the same key and unchanged ciphertexts.`,
+unless --keep-both is given; a copy (ciphertext only) is saved under ~/.guiho/zeze/state so
+the next zeze encrypt reuses the same key and unchanged ciphertexts.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := loadEnv()
@@ -312,7 +312,7 @@ the next jureuma encrypt reuses the same key and unchanged ciphertexts.`,
 					for _, b := range blocked {
 						errf(cmd, "  %s\n", b)
 					}
-					return xerr.Failure("refusing to overwrite %d unsaved %s in %s; run jureuma encrypt first, or pass --force", len(blocked), plural(len(blocked), "edit", "edits"), p.Rel(p.UnencryptedPath))
+					return xerr.Failure("refusing to overwrite %d unsaved %s in %s; run zeze encrypt first, or pass --force", len(blocked), plural(len(blocked), "edit", "edits"), p.Rel(p.UnencryptedPath))
 				}
 			}
 			plain, err := pair.DecryptDocKeys(pair.StoreKeys(&sk, e.store), enc.Body)
@@ -358,7 +358,7 @@ the next jureuma encrypt reuses the same key and unchanged ciphertexts.`,
 			if err := os.Remove(p.EncryptedPath); err != nil {
 				return xerr.Failure("decrypted, but %s could not be removed", p.Rel(p.EncryptedPath))
 			}
-			outf(cmd, "removed %s (run jureuma encrypt to recreate it, or pass --keep-both to keep it)\n", p.Rel(p.EncryptedPath))
+			outf(cmd, "removed %s (run zeze encrypt to recreate it, or pass --keep-both to keep it)\n", p.Rel(p.EncryptedPath))
 			return nil
 		},
 	}
@@ -385,7 +385,7 @@ func restoreSchemaCopy(cmd *cobra.Command, e *env, p *pair.Pair, enc *pair.Encry
 	defer clear(text)
 	if fileExists(p.SchemaPath) {
 		if local, err := os.ReadFile(p.SchemaPath); err == nil && !bytes.Equal(local, text) {
-			errf(cmd, "warning: %s differs from the embedded schema copy; the local file was kept (run jureuma schema infer to refresh the copy)\n", p.Rel(p.SchemaPath))
+			errf(cmd, "warning: %s differs from the embedded schema copy; the local file was kept (run zeze schema infer to refresh the copy)\n", p.Rel(p.SchemaPath))
 		}
 		return nil
 	}
@@ -397,7 +397,7 @@ func restoreSchemaCopy(cmd *cobra.Command, e *env, p *pair.Pair, enc *pair.Encry
 }
 
 // plainIdentity builds the metadata of an encrypted sibling for the pair key
-// recorded in a plaintext $jureuma header. It never holds values.
+// recorded in a plaintext $zeze header. It never holds values.
 func plainIdentity(h *pair.Header, p *pair.Pair) *pair.Encrypted {
 	m := pair.Meta{
 		Format:    pair.FormatVersion,
@@ -576,15 +576,15 @@ func (a *app) cmdSet() *cobra.Command {
 		Long: `Encrypts one value at a JSON Pointer using the pair's public key, records the path as
 pending, and mirrors the value into an existing unencrypted file (.json or
 .jsonc; a .jsonc file keeps its comments and formatting). With only the unencrypted file
-present, its $jureuma header names the pair key and the encrypted sibling is built (or
+present, its $zeze header names the pair key and the encrypted sibling is built (or
 refreshed) from the document without needing the private key; the header and the $schema
 pointer are preserved as they are. The mirror never replaces an unsaved human edit. The
 value is never echoed. By default it is stored as a string; --json parses it as JSON
 (numbers, booleans, null, objects, arrays). Prefer --value-stdin so the value stays out of
 shell history; one trailing line break is dropped from stdin and --value-file input.`,
-		Example: `  printf '%s' "$DATABASE_URL" | jureuma set /database/url --value-stdin
-  jureuma set /database/pool --json 20
-  jureuma set /features/- --json '{"name":"beta","enabled":true}'`,
+		Example: `  printf '%s' "$DATABASE_URL" | zeze set /database/url --value-stdin
+  zeze set /database/pool --json 20
+  zeze set /features/- --json '{"name":"beta","enabled":true}'`,
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			toks, err := parsePointerArg(args[0])
@@ -645,14 +645,14 @@ shell history; one trailing line break is dropped from stdin and --value-file in
 			}
 			pk, err := enc.Meta.PublicKeyValue()
 			if err != nil {
-				return xerr.Failure("invalid $jureuma.publicKey")
+				return xerr.Failure("invalid $zeze.publicKey")
 			}
 			sk, _, err := e.findKey(enc.Meta.KeyID)
 			if err != nil {
 				return err
 			}
 			if sk != nil && sk.Public() != pk {
-				return xerr.Key("the local private key for %s does not match $jureuma.publicKey", enc.Meta.KeyID)
+				return xerr.Key("the local private key for %s does not match $zeze.publicKey", enc.Meta.KeyID)
 			}
 			sch, err := loadSchema(p)
 			if err != nil {
@@ -661,7 +661,7 @@ shell history; one trailing line break is dropped from stdin and --value-file in
 			warnUnvalidated(cmd, p, sch)
 			concrete := pair.ConcreteTokens(enc.Body, toks)
 			if pair.AppendWithoutArray(enc.Body, toks) {
-				return xerr.Usage("'-' appends to an existing array only; create the array first (for example jureuma set /list --json '[]')")
+				return xerr.Usage("'-' appends to an existing array only; create the array first (for example zeze set /list --json '[]')")
 			}
 			ptr := doc.FormatPointer(concrete)
 			var issues []schema.Issue
@@ -740,7 +740,7 @@ shell history; one trailing line break is dropped from stdin and --value-file in
 type skipMirror struct{ reason string }
 
 func (e *skipMirror) Error() string {
-	return e.reason + "; the value stays pending (jureuma status shows it), reconcile with jureuma decrypt or encrypt"
+	return e.reason + "; the value stays pending (zeze status shows it), reconcile with zeze decrypt or encrypt"
 }
 
 // mirrorBlocked returns why set must not copy its value into plain (the
@@ -793,7 +793,7 @@ func copySync(m map[string]pair.SyncEntry) map[string]pair.SyncEntry {
 }
 
 // mirrorPlain applies fn to an existing unencrypted file (.json or .jsonc)
-// and writes it, preserving its $jureuma identity header, its $schema pointer
+// and writes it, preserving its $zeze identity header, its $schema pointer
 // and, in a .jsonc file, the comments and formatting. It returns the written
 // body, or nil when there was nothing to mirror.
 func mirrorPlain(p *pair.Pair, fn func(*doc.Value) error) (*doc.Value, error) {
@@ -817,12 +817,12 @@ func mirrorPlain(p *pair.Pair, fn func(*doc.Value) error) (*doc.Value, error) {
 // readable schema validates the write.
 func warnUnvalidated(cmd *cobra.Command, p *pair.Pair, sch *schema.Schema) {
 	if sch == nil {
-		errf(cmd, "warning: %s is missing; the write was not validated against a schema (run jureuma schema infer)\n", p.Rel(p.SchemaPath))
+		errf(cmd, "warning: %s is missing; the write was not validated against a schema (run zeze schema infer)\n", p.Rel(p.SchemaPath))
 	}
 }
 
 // mutateFromPlain runs set or unset when only the unencrypted file exists.
-// The mutation lands in the plaintext document (its $jureuma header and
+// The mutation lands in the plaintext document (its $zeze header and
 // $schema pointer preserved as they are) and the encrypted sibling is built
 // or refreshed from that document under the pair key the header records — no
 // private key required. The mirror rule is kept exactly: when the plaintext
@@ -871,7 +871,7 @@ func (a *app) mutateFromPlain(cmd *cobra.Command, e *env, p *pair.Pair, toks []s
 	if isSet {
 		concrete = pair.ConcreteTokens(pf.Body, toks)
 		if pair.AppendWithoutArray(pf.Body, toks) {
-			return xerr.Usage("'-' appends to an existing array only; create the array first (for example jureuma set /list --json '[]')")
+			return xerr.Usage("'-' appends to an existing array only; create the array first (for example zeze set /list --json '[]')")
 		}
 		ptr = doc.FormatPointer(concrete)
 		if sch != nil {
@@ -979,7 +979,7 @@ Without the private key only object members and the last array element can be re
 because removing another element shifts later indices and their ciphertexts are bound to
 their paths (with only the unencrypted file present the sibling is rebuilt from the
 document, so any element can go). The removal is mirrored into an existing unencrypted file
-(.json or .jsonc; a .jsonc file keeps its comments and formatting), keeping its $jureuma
+(.json or .jsonc; a .jsonc file keeps its comments and formatting), keeping its $zeze
 header and $schema pointer. Removing a required property needs --allow-invalid.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -1028,14 +1028,14 @@ header and $schema pointer. Removing a required property needs --allow-invalid.`
 			}
 			pk, err := enc.Meta.PublicKeyValue()
 			if err != nil {
-				return xerr.Failure("invalid $jureuma.publicKey")
+				return xerr.Failure("invalid $zeze.publicKey")
 			}
 			sk, _, err := e.findKey(enc.Meta.KeyID)
 			if err != nil {
 				return err
 			}
 			if sk != nil && sk.Public() != pk {
-				return xerr.Key("the local private key for %s does not match $jureuma.publicKey", enc.Meta.KeyID)
+				return xerr.Key("the local private key for %s does not match $zeze.publicKey", enc.Meta.KeyID)
 			}
 			parentToks := toks[:len(toks)-1]
 			parent, _ := doc.Lookup(enc.Body, parentToks)
@@ -1052,7 +1052,7 @@ header and $schema pointer. Removing a required property needs --allow-invalid.`
 			}
 			if shift {
 				if sk == nil {
-					return xerr.Key("removing %s shifts the array elements after it, which must be re-encrypted with the private key (not available); edit the unencrypted file and run jureuma encrypt instead", ptr)
+					return xerr.Key("removing %s shifts the array elements after it, which must be re-encrypted with the private key (not available); edit the unencrypted file and run zeze encrypt instead", ptr)
 				}
 				// Old leaf pointers of the shifted tail are touched too.
 				for i := idx + 1; i < len(parent.A); i++ {

@@ -1,9 +1,9 @@
 ---
-subject: jureuma-docs-plans-jsonc-support-execution
+subject: zeze-docs-plans-jsonc-support-execution
 description: "Execution artifacts of the JSONC write-support plan: the worker handoff brief dispatched as one native background subagent."
-parent: jureuma-docs-plans-jsonc-support
+parent: zeze-docs-plans-jsonc-support
 children:
-  - jureuma-docs-plans-jsonc-support-execution-handoffs
+  - zeze-docs-plans-jsonc-support-execution-handoffs
 files: {}
 documents: {}
 tags:
@@ -16,7 +16,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans-jsonc-support-execution
+# zeze-docs-plans-jsonc-support-execution
 
 Execution artifacts of the JSONC write-support plan. The unit runs in one
 native background subagent (`xiaomi/mimo-v2.6-pro`, provider-default thinking,

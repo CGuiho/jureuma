@@ -8,17 +8,17 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/runner"
-	"github.com/CGuiho/jureuma/internal/update"
-	"github.com/CGuiho/jureuma/internal/welcome"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/runner"
+	"github.com/CGuiho/zeze/internal/update"
+	"github.com/CGuiho/zeze/internal/welcome"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
 func printRecovery(cmd *cobra.Command, version, channel string) {
-	outf(cmd, "If the upgrade fails, reinstall jureuma with this command:\n%s\n", update.ReinstallCommand(runtime.GOOS, version, channel))
+	outf(cmd, "If the upgrade fails, reinstall zeze with this command:\n%s\n", update.ReinstallCommand(runtime.GOOS, version, channel))
 }
 
 func (a *app) cmdUpgrade() *cobra.Command {
@@ -26,12 +26,12 @@ func (a *app) cmdUpgrade() *cobra.Command {
 	var force bool
 	c := &cobra.Command{
 		Use:   "upgrade",
-		Short: "upgrade jureuma to the latest (or a selected) release",
+		Short: "upgrade zeze to the latest (or a selected) release",
 		Long: `Resolves the target release from the GitHub release catalog and upgrades the installation.
 The reinstall command is printed first and last; it is always a valid recovery. Refuses
-while "jureuma run" instances are alive (they redact their child's output) unless --force,
-which asks them to terminate first. After an upgrade, run jureuma init and verify
-jureuma --version.`,
+while "zeze run" instances are alive (they redact their child's output) unless --force,
+which asks them to terminate first. After an upgrade, run zeze init and verify
+zeze --version.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if version != "" && channel != "" {
@@ -46,7 +46,7 @@ jureuma --version.`,
 			target := ""
 			err := a.doUpgrade(cmd, version, channel, force, &target)
 			if err != nil {
-				errf(cmd, "jureuma: %s\n", err.Error())
+				errf(cmd, "zeze: %s\n", err.Error())
 			}
 			printRecovery(cmd, target, channelIf(target, channel))
 			if err != nil {
@@ -57,7 +57,7 @@ jureuma --version.`,
 	}
 	c.Flags().StringVar(&version, "version", "", "upgrade to this exact version")
 	c.Flags().StringVar(&channel, "channel", "", "upgrade to the latest release of this channel (stable, beta, ...)")
-	c.Flags().BoolVar(&force, "force", false, "ask running jureuma run instances to terminate first")
+	c.Flags().BoolVar(&force, "force", false, "ask running zeze run instances to terminate first")
 	c.AddCommand(a.cmdUpgradeCheck(), a.cmdUpgradeList())
 	return c
 }
@@ -65,21 +65,21 @@ jureuma --version.`,
 func (a *app) doUpgrade(cmd *cobra.Command, version, channel string, force bool, targetOut *string) error {
 	home, err := paths.Home()
 	if err != nil {
-		return xerr.Failure("cannot resolve the jureuma home")
+		return xerr.Failure("cannot resolve the zeze home")
 	}
 	// Refuse early (before any download) when run instances are alive and
 	// --force was not given. With --force they are only asked to terminate
 	// right before activation, never for a no-op or a failed download.
 	if inst := runner.Instances(home); len(inst) > 0 && !force {
 		for _, i := range inst {
-			errf(cmd, "  jureuma run instance %s (pid %d)\n", i.ID, i.PID)
+			errf(cmd, "  zeze run instance %s (pid %d)\n", i.ID, i.PID)
 		}
-		return xerr.Failure("%d jureuma run %s alive; stop them or pass --force", len(inst), plural(len(inst), "instance is", "instances are"))
+		return xerr.Failure("%d zeze run %s alive; stop them or pass --force", len(inst), plural(len(inst), "instance is", "instances are"))
 	}
 	rs, err := update.FetchReleases(context.Background())
 	if err != nil {
 		if errors.Is(err, update.ErrNoReleases) {
-			return xerr.Failure("no published jureuma release was found in %s", update.RepoURL)
+			return xerr.Failure("no published zeze release was found in %s", update.RepoURL)
 		}
 		return xerr.Failure("cannot read the release catalog: %v", err)
 	}
@@ -91,14 +91,14 @@ func (a *app) doUpgrade(cmd *cobra.Command, version, channel string, force bool,
 	cur, curOK := update.Parse(a.version)
 	tv, _ := update.Parse(rel.Version)
 	if curOK && update.Compare(tv, cur) == 0 {
-		outf(cmd, "up-to-date: jureuma %s is installed\n", a.version)
+		outf(cmd, "up-to-date: zeze %s is installed\n", a.version)
 		return nil
 	}
 	if version == "" && curOK && update.Compare(tv, cur) < 0 {
-		outf(cmd, "up-to-date: jureuma %s is newer than the latest %s release %s\n", a.version, rel.Channel, rel.Version)
+		outf(cmd, "up-to-date: zeze %s is newer than the latest %s release %s\n", a.version, rel.Channel, rel.Version)
 		return nil
 	}
-	outf(cmd, "upgrading jureuma %s -> %s\n", a.version, rel.Version)
+	outf(cmd, "upgrading zeze %s -> %s\n", a.version, rel.Version)
 	return a.runUpgrade(cmd, home, rel, force)
 }
 
@@ -124,7 +124,7 @@ func (a *app) cmdUpgradeCheck() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home, err := paths.Home()
 			if err != nil {
-				return xerr.Failure("cannot resolve the jureuma home")
+				return xerr.Failure("cannot resolve the zeze home")
 			}
 			c, err := update.Check(context.Background(), home, a.version)
 			if err != nil {
@@ -136,7 +136,7 @@ func (a *app) cmdUpgradeCheck() *cobra.Command {
 			}
 			status := "up-to-date"
 			if c.NewVersionAvailable {
-				status = "upgrade available (run jureuma upgrade)"
+				status = "upgrade available (run zeze upgrade)"
 			}
 			outf(cmd, "current: %s\nlatest:  %s\nstatus:  %s\n", a.version, c.LatestVersion, status)
 			return nil
@@ -220,7 +220,7 @@ func (a *app) runBare(cmd *cobra.Command, args []string) error {
 
 const (
 	workerCommand = "__update-worker"
-	leaseTokenEnv = "JUREUMA_UPDATE_LEASE"
+	leaseTokenEnv = "ZEZE_UPDATE_LEASE"
 )
 
 func (a *app) cmdUpdateWorker() *cobra.Command {

@@ -18,13 +18,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CGuiho/jureuma/internal/agentres"
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/runner"
-	"github.com/CGuiho/jureuma/internal/schema"
-	"github.com/CGuiho/jureuma/internal/update"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/agentres"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/runner"
+	"github.com/CGuiho/zeze/internal/schema"
+	"github.com/CGuiho/zeze/internal/update"
+	"github.com/CGuiho/zeze/internal/xerr"
 	"github.com/spf13/cobra"
 )
 
@@ -104,7 +104,7 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 		return xerr.Failure("the release tag contains unexpected characters")
 	}
 	cur, installed := readCurrent(home)
-	launcher := filepath.Join(bin, exeName("jureuma"))
+	launcher := filepath.Join(bin, exeName("zeze"))
 	if !installed {
 		return xerr.Failure("no installer-managed installation was found (%s is missing or invalid); run the reinstall command below", filepath.Join(home, currentFile))
 	}
@@ -114,7 +114,7 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 
 	unlock, err := paths.Lock(home, "upgrade")
 	if err != nil {
-		return xerr.Failure("another jureuma upgrade is running")
+		return xerr.Failure("another zeze upgrade is running")
 	}
 	defer unlock()
 	// With the lock held no transaction can be live, so whatever journal
@@ -127,11 +127,11 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 	if err := os.MkdirAll(tempRoot, 0o755); err != nil {
 		return xerr.Failure("cannot create %s", tempRoot)
 	}
-	stage, err := os.MkdirTemp(tempRoot, "jureuma-upgrade-")
+	stage, err := os.MkdirTemp(tempRoot, "zeze-upgrade-")
 	if err != nil {
 		return xerr.Failure("cannot create the staging directory")
 	}
-	if filepath.Dir(stage) != tempRoot || !strings.HasPrefix(filepath.Base(stage), "jureuma-upgrade-") {
+	if filepath.Dir(stage) != tempRoot || !strings.HasPrefix(filepath.Base(stage), "zeze-upgrade-") {
 		os.RemoveAll(stage)
 		return xerr.Failure("the staging directory is outside ~/.guiho/.temp")
 	}
@@ -140,7 +140,7 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 		cmd: cmd, home: home, bin: bin, stage: stage,
 		version: rel.Version, tag: rel.Tag,
 		asset:       update.PayloadAsset(runtime.GOOS, runtime.GOARCH),
-		payloadName: exeName("jureuma"),
+		payloadName: exeName("zeze"),
 		launcher:    launcher,
 	}
 	tx.j = newUpgradeJournal(rel.Version, "", stage, filepath.Join(home, "versions", ".candidate-"+filepath.Base(stage)))
@@ -197,7 +197,7 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 	// Terminate live run instances only now, right before activation.
 	if inst := runner.Instances(home); len(inst) > 0 {
 		if !force {
-			return xerr.Failure("%d jureuma run %s alive; stop them or pass --force", len(inst), plural(len(inst), "instance is", "instances are"))
+			return xerr.Failure("%d zeze run %s alive; stop them or pass --force", len(inst), plural(len(inst), "instance is", "instances are"))
 		}
 		for _, i := range inst {
 			if p, err := os.FindProcess(i.PID); err == nil {
@@ -249,7 +249,7 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 		}
 	}
 
-	outf(cmd, "[OK] upgraded jureuma %s -> %s\n", a.version, tx.version)
+	outf(cmd, "[OK] upgraded zeze %s -> %s\n", a.version, tx.version)
 	outf(cmd, "  launcher:  %s\n", launcher)
 	outf(cmd, "  payload:   %s\n", filepath.Join(home, "versions", tx.version, tx.payloadName))
 	if next.Previous != "" {
@@ -262,10 +262,10 @@ func (a *app) runUpgrade(cmd *cobra.Command, home string, rel update.Release, fo
 		outf(cmd, "  removed retired skill %s\n", id)
 	}
 	if tx.j.AgentsTarget != "" {
-		outf(cmd, "  AGENTS.md: %s (jureuma block)\n", tx.j.AgentsTarget)
+		outf(cmd, "  AGENTS.md: %s (zeze block)\n", tx.j.AgentsTarget)
 	}
 	outf(cmd, "verified: %s --version reports %s\n", launcher, tx.version)
-	outf(cmd, "next: run jureuma init, then jureuma --version\n")
+	outf(cmd, "next: run zeze init, then zeze --version\n")
 	return nil
 }
 
@@ -286,7 +286,7 @@ func (tx *upgradeTx) download() (*update.Manifest, map[string]string, error) {
 		files[asset] = dst
 		return nil
 	}
-	outf(tx.cmd, "downloading jureuma %s...\n", tx.version)
+	outf(tx.cmd, "downloading zeze %s...\n", tx.version)
 	if err := get("checksums.txt"); err != nil {
 		return nil, nil, err
 	}
@@ -554,7 +554,7 @@ func (tx *upgradeTx) planArtifacts(man *update.Manifest) error {
 	}
 	// versions/<v> did not exist when this plan was written (or is restored
 	// from VersionBackup), so whatever is there after a rollback point is the
-	// transaction's own build. The upgrade lock serializes every jureuma-side
+	// transaction's own build. The upgrade lock serializes every zeze-side
 	// writer of that directory.
 	j.CreatesVersion = true
 
@@ -711,7 +711,7 @@ func (tx *upgradeTx) applyInstruction() error {
 		return nil
 	}
 	agents := filepath.Join(wd, "AGENTS.md")
-	if !fileExists(filepath.Join(wd, "jureuma.yaml")) && !(fileExists(agents) && fileExists(filepath.Join(wd, ".git"))) {
+	if !fileExists(filepath.Join(wd, "zeze.yaml")) && !(fileExists(agents) && fileExists(filepath.Join(wd, ".git"))) {
 		return nil
 	}
 	tx.j.AgentsTarget = agents
@@ -726,7 +726,7 @@ func (tx *upgradeTx) applyInstruction() error {
 		return err
 	}
 	if _, err := runQuiet(wd, tx.launcher, "agent", "instruction", "apply"); err != nil {
-		return xerr.Failure("could not apply the jureuma block to %s", agents)
+		return xerr.Failure("could not apply the zeze block to %s", agents)
 	}
 	return nil
 }
@@ -758,10 +758,10 @@ func (tx *upgradeTx) failRollback() {
 	kept, err := rollbackJournal(tx.home, tx.j)
 	if len(kept) > 0 {
 		tx.keepStage = true
-		errf(tx.cmd, "jureuma: staged rollback data kept in %s\n", tx.j.Stage)
+		errf(tx.cmd, "zeze: staged rollback data kept in %s\n", tx.j.Stage)
 	}
 	if err != nil {
-		errf(tx.cmd, "jureuma: the rollback is incomplete: %v\n", err)
+		errf(tx.cmd, "zeze: the rollback is incomplete: %v\n", err)
 		return // the journal stays; the next invocation repairs
 	}
 	_ = os.Remove(journalPath(tx.home))
@@ -838,7 +838,7 @@ func selfTestSchemas() [2][]byte {
 // and compiles the starter configuration schema.
 func selfTestConfig() error {
 	if _, err := config.ParseProject(config.ProjectExampleYAML()); err != nil {
-		return errors.New("the embedded jureuma.yaml example does not validate")
+		return errors.New("the embedded zeze.yaml example does not validate")
 	}
 	if _, err := config.ParseGlobal(config.GlobalExampleYAML()); err != nil {
 		return errors.New("the embedded global example does not validate")

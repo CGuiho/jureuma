@@ -9,10 +9,10 @@ import (
 	"testing"
 )
 
-const body = "## jureuma\n\nline one\nline two\n"
+const body = "## zeze\n\nline one\nline two\n"
 
 func block(eol string) string {
-	return BeginMarker + eol + "## jureuma" + eol + eol + "line one" + eol + "line two" + eol + EndMarker
+	return BeginMarker + eol + "## zeze" + eol + eol + "line one" + eol + "line two" + eol + EndMarker
 }
 
 func TestApplyBlock(t *testing.T) {
@@ -57,20 +57,20 @@ func TestApplyBlock(t *testing.T) {
 }
 
 func TestBodyNormalization(t *testing.T) {
-	a := ApplyBlock([]byte("x\n"), "\n\n## jureuma\r\n\r\nline one\r\nline two\r\n\r\n")
+	a := ApplyBlock([]byte("x\n"), "\n\n## zeze\r\n\r\nline one\r\nline two\r\n\r\n")
 	b := ApplyBlock([]byte("x\n"), body)
 	if !bytes.Equal(a, b) {
 		t.Fatalf("bodies with different line endings render differently:\n%q\n%q", a, b)
 	}
-	if !HasCurrentBlock(a, "## jureuma\n\nline one\nline two") {
+	if !HasCurrentBlock(a, "## zeze\n\nline one\nline two") {
 		t.Fatal("trailing newline should not matter")
 	}
 }
 
 func TestStripFrontmatter(t *testing.T) {
 	tests := []struct{ name, in, want string }{
-		{"plain body", "## jureuma\n\nx\n", "## jureuma\n\nx\n"},
-		{"closed", "---\nname: guiho-i-x\n---\n\n## jureuma\nx\n", "## jureuma\nx\n"},
+		{"plain body", "## zeze\n\nx\n", "## zeze\n\nx\n"},
+		{"closed", "---\nname: guiho-i-x\n---\n\n## zeze\nx\n", "## zeze\nx\n"},
 		{"closed keeps body blank lines", "---\na: 1\n---\n\n\nbody\n\nmore\n", "body\n\nmore\n"},
 		{"crlf", "---\r\nname: x\r\n---\r\n\r\nbody\r\n", "body\n"},
 		{"nested metadata", "---\nname: x\nmetadata:\n  version: \"0.1.0\"\n---\nbody\n", "body\n"},
@@ -180,21 +180,21 @@ func TestEmbeddedArtifacts(t *testing.T) {
 	}
 	md := string(skills[0].Files["SKILL.md"])
 	for _, want := range []string{
-		"name: guiho-s-jureuma\n", "description: ",
+		"name: guiho-s-zeze\n", "description: ",
 		"## CLI Evolution and Feedback",
-		"https://github.com/CGuiho/jureuma",
-		"https://github.com/CGuiho/jureuma/issues/new",
+		"https://github.com/CGuiho/zeze",
+		"https://github.com/CGuiho/zeze/issues/new",
 		"`disabled`", "`always-ask`", "`always-proceed`",
-		"jureuma upgrade check", "jureuma init", "jureuma --version",
-		"## Writing the schema", "jureuma schema infer", "x-jureuma-secret",
+		"zeze upgrade check", "zeze init", "zeze --version",
+		"## Writing the schema", "zeze schema infer", "x-zeze-secret",
 		"--dangerously-bypass-protections", "*.unencrypted.*", "--value-stdin",
-		"JUREUMA_CONFIG", "guiho-p-jureuma-install",
+		"ZEZE_CONFIG", "guiho-p-zeze-install",
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("SKILL.md missing %q", want)
 		}
 	}
-	if !strings.HasPrefix(md, "---\nname: guiho-s-jureuma\n") {
+	if !strings.HasPrefix(md, "---\nname: guiho-s-zeze\n") {
 		t.Error("SKILL.md frontmatter must start with name")
 	}
 
@@ -212,11 +212,11 @@ func TestEmbeddedArtifacts(t *testing.T) {
 	}
 	inst := ids[InstallPromptID]
 	for _, want := range []string{
-		"irm https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.ps1 | iex",
-		"curl -fsSL https://raw.githubusercontent.com/CGuiho/jureuma/main/devops/install.sh | sh",
+		"irm https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.ps1 | iex",
+		"curl -fsSL https://raw.githubusercontent.com/CGuiho/zeze/main/devops/install.sh | sh",
 		"--version", "--channel", "-Version", "-Channel", "package manager",
-		"checksums.txt", "$HOME/.guiho/bin/jureuma", "chmod +x", "jureuma init",
-		"https://github.com/CGuiho/jureuma/issues/new",
+		"checksums.txt", "$HOME/.guiho/bin/zeze", "chmod +x", "zeze init",
+		"https://github.com/CGuiho/zeze/issues/new",
 	} {
 		if !strings.Contains(inst, want) {
 			t.Errorf("install prompt missing %q", want)
@@ -233,10 +233,10 @@ func TestEmbeddedArtifacts(t *testing.T) {
 	if strings.Contains(ins, BeginMarker) || strings.Contains(ins, EndMarker) {
 		t.Error("instruction must not contain markers")
 	}
-	if strings.HasPrefix(ins, "---") || strings.Contains(ins, "name: guiho-i-jureuma") || strings.Contains(ins, "metadata:") {
+	if strings.HasPrefix(ins, "---") || strings.Contains(ins, "name: guiho-i-zeze") || strings.Contains(ins, "metadata:") {
 		t.Error("instruction must not carry artifact frontmatter")
 	}
-	for _, want := range []string{"https://github.com/CGuiho/jureuma", "*.unencrypted.*", "guiho-s-jureuma", "guiho-p-jureuma", "--help-docs", "125"} {
+	for _, want := range []string{"https://github.com/CGuiho/zeze", "*.unencrypted.*", "guiho-s-zeze", "guiho-p-zeze", "--help-docs", "125"} {
 		if !strings.Contains(ins, want) {
 			t.Errorf("instruction missing %q", want)
 		}
@@ -320,15 +320,15 @@ func TestArtifactMetadata(t *testing.T) {
 	if !ok {
 		t.Fatal("main skill missing")
 	}
-	check("skills/guiho-s-jureuma/SKILL.md", MainSkillID, "", string(s.Files["SKILL.md"]))
+	check("skills/guiho-s-zeze/SKILL.md", MainSkillID, "", string(s.Files["SKILL.md"]))
 	for _, p := range Prompts() {
-		check("prompts/"+p.ID+".md", p.ID, "jureuma-prompts", p.Body)
+		check("prompts/"+p.ID+".md", p.ID, "zeze-prompts", p.Body)
 	}
 	raw, err := assets.ReadFile("assets/instruction.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	check("instruction.md", "guiho-i-jureuma", "jureuma", string(raw))
+	check("instruction.md", "guiho-i-zeze", "zeze", string(raw))
 }
 
 func TestSkillDestinations(t *testing.T) {
@@ -352,7 +352,7 @@ func TestSkillDestinations(t *testing.T) {
 
 func TestInstallSkill(t *testing.T) {
 	dest := filepath.Join(t.TempDir(), "skills")
-	s := Skill{ID: "guiho-s-jureuma", Files: map[string][]byte{"SKILL.md": []byte("v1"), "ref/a.md": []byte("a")}}
+	s := Skill{ID: "guiho-s-zeze", Files: map[string][]byte{"SKILL.md": []byte("v1"), "ref/a.md": []byte("a")}}
 	if SkillInstalledCurrent(s, dest) {
 		t.Fatal("current before install")
 	}

@@ -1,9 +1,9 @@
 ---
-subject: jureuma-agentres
-description: "Embedded agent artifacts and their installers: the guiho-s-jureuma skill, the prompts (guiho-p-jureuma, guiho-p-jureuma-install, guiho-p-jureuma-uninstall) and the AGENTS.md instruction block, all embedded from assets/ (assets/skills/guiho-s-jureuma/SKILL.md, assets/prompts/*.md, assets/instruction.md). Descriptors inside assets/ (*.xdocs.md) are never shipped: enumeration and release packaging skip them."
-parent: jureuma-internal
+subject: zeze-agentres
+description: "Embedded agent artifacts and their installers: the guiho-s-zeze skill, the prompts (guiho-p-zeze, guiho-p-zeze-install, guiho-p-zeze-uninstall) and the AGENTS.md instruction block, all embedded from assets/ (assets/skills/guiho-s-zeze/SKILL.md, assets/prompts/*.md, assets/instruction.md). Descriptors inside assets/ (*.xdocs.md) are never shipped: enumeration and release packaging skip them."
+parent: zeze-internal
 children:
-  - jureuma-agentres-assets
+  - zeze-agentres-assets
 files:
   "agentres.go": "Embeds assets/ and exposes skills, prompts and the instruction body."
   "block.go": "Managed AGENTS.md block markers and apply/remove helpers."
@@ -17,14 +17,14 @@ keywords:
   - "skill"
   - "prompt"
   - "AGENTS.md"
-  - "guiho-s-jureuma"
+  - "guiho-s-zeze"
 flags: []
 status: stable
 ---
 
-# jureuma-agentres
+# zeze-agentres
 
-Embedded agent artifacts and their installers: the guiho-s-jureuma skill, the prompts (guiho-p-jureuma, guiho-p-jureuma-install, guiho-p-jureuma-uninstall) and the AGENTS.md instruction block, all embedded from assets/ (assets/skills/guiho-s-jureuma/SKILL.md, assets/prompts/*.md, assets/instruction.md). Descriptors inside assets/ (*.xdocs.md) are never shipped: enumeration and release packaging skip them.
+Embedded agent artifacts and their installers: the guiho-s-zeze skill, the prompts (guiho-p-zeze, guiho-p-zeze-install, guiho-p-zeze-uninstall) and the AGENTS.md instruction block, all embedded from assets/ (assets/skills/guiho-s-zeze/SKILL.md, assets/prompts/*.md, assets/instruction.md). Descriptors inside assets/ (*.xdocs.md) are never shipped: enumeration and release packaging skip them.
 
 ## Files
 

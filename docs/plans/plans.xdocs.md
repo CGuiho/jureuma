@@ -1,13 +1,13 @@
 ---
-subject: jureuma-docs-plans
-description: "Implementation plans for jureuma work; each plan lives in its own directory with plan.md and, while executing, execution/handoffs/ worker briefs."
-parent: jureuma-docs
+subject: zeze-docs-plans
+description: "Implementation plans for zeze work; each plan lives in its own directory with plan.md and, while executing, execution/handoffs/ worker briefs."
+parent: zeze-docs
 children:
-  - jureuma-docs-plans-release-0.1.0
-  - jureuma-docs-plans-release-0.2.0
-  - jureuma-docs-plans-run-envname-and-opencode-deny-rules
-  - jureuma-docs-plans-jsonc-support
-  - jureuma-docs-plans-key-identity-headers
+  - zeze-docs-plans-release-0.1.0
+  - zeze-docs-plans-release-0.2.0
+  - zeze-docs-plans-run-envname-and-opencode-deny-rules
+  - zeze-docs-plans-jsonc-support
+  - zeze-docs-plans-key-identity-headers
 files: {}
 documents: {}
 tags:
@@ -27,9 +27,9 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-plans
+# zeze-docs-plans
 
-Implementation plans for jureuma. Each plan occupies one directory
+Implementation plans for zeze. Each plan occupies one directory
 (`docs/plans/<plan>`) with the plan itself in `plan.md`; a plan under
 execution also carries its worker handoff briefs under `execution/handoffs/`
 and its DND question ledger under `docs/questions/<plan>/`.

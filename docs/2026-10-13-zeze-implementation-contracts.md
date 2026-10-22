@@ -1,9 +1,9 @@
 ---
-name: Jureuma Implementation Contracts
+name: ZeZé Implementation Contracts
 purpose: Fix the Go package layout and the public API of every internal package so they can be built in parallel and integrated without guesswork.
-description: Package-by-package Go API contracts for the jureuma CLI, derived from the jureuma design document.
+description: Package-by-package Go API contracts for the zeze CLI, derived from the zeze design document.
 created: "2026-10-13"
-owner: jureuma-docs
+owner: zeze-docs
 flags: []
 tags:
   - docs
@@ -15,11 +15,11 @@ keywords:
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
 
-# Jureuma Implementation Contracts
+# ZeZé Implementation Contracts
 
-The behaviour is defined in [the design](./2026-10-13-jureuma-design.md). This file fixes **where** it lives and the **exported API** each package must provide. Packages may add unexported helpers and extra exported helpers, but must not change these signatures.
+The behaviour is defined in [the design](./2026-10-13-zeze-design.md). This file fixes **where** it lives and the **exported API** each package must provide. Packages may add unexported helpers and extra exported helpers, but must not change these signatures.
 
-Module: `github.com/CGuiho/jureuma`. Go 1.26. Dependencies allowed: `github.com/spf13/cobra`, `github.com/santhosh-tekuri/jsonschema/v6`, `go.yaml.in/yaml/v3`, and the standard library. Nothing else without a strong reason.
+Module: `github.com/CGuiho/zeze`. Go 1.26. Dependencies allowed: `github.com/spf13/cobra`, `github.com/santhosh-tekuri/jsonschema/v6`, `go.yaml.in/yaml/v3`, and the standard library. Nothing else without a strong reason.
 
 Every package has table-driven tests (`go test ./internal/<pkg>/...`) and must pass `go vet`. No package except `cli` and `runner` writes to stdout/stderr. **No error message anywhere may contain a configuration value, plaintext, or key material.**
 
@@ -66,42 +66,42 @@ type PrivateKey [32]byte
 
 func GenerateKey() (PrivateKey, error)
 func (k PrivateKey) Public() PublicKey
-func (k PublicKey) String() string                 // "jureuma-pk-1:" + base64url
-func (k PrivateKey) String() string                // "jureuma-sk-1:" + base64url
+func (k PublicKey) String() string                 // "zeze-pk-1:" + base64url
+func (k PrivateKey) String() string                // "zeze-sk-1:" + base64url
 func ParsePublicKey(s string) (PublicKey, error)
 func ParsePrivateKey(s string) (PrivateKey, error)
 func KeyID(pk PublicKey) string                    // "k_" + 32 hex chars
 func ValidKeyID(id string) bool                    // ^k_[0-9a-f]{32}$
 
 // EncryptValue seals canonical scalar JSON for the leaf at pointer.
-// Output: "jureuma:1:<keyId>:<base64url(eph_pk||nonce||sealed)>".
+// Output: "zeze:1:<keyId>:<base64url(eph_pk||nonce||sealed)>".
 func EncryptValue(pk PublicKey, pointer string, canonical []byte) (string, error)
 // DecryptValue reverses EncryptValue. Any failure returns ErrDecrypt (no detail).
 func DecryptValue(sk PrivateKey, pointer string, ciphertext string) ([]byte, error)
-// IsCiphertext reports whether s has the "jureuma:1:" envelope prefix and a valid key ID.
+// IsCiphertext reports whether s has the "zeze:1:" envelope prefix and a valid key ID.
 func IsCiphertext(s string) bool
 // CiphertextKeyID extracts the key ID from an envelope.
 func CiphertextKeyID(s string) (string, bool)
 
 // SyncTag returns hex(first 16 bytes of SHA-256(ciphertext)).
 func SyncTag(ciphertext string) string
-// PlainTag returns hex(first 16 bytes of HMAC-SHA256(HKDF(sk,"jureuma/1/sync"), canonical)).
+// PlainTag returns hex(first 16 bytes of HMAC-SHA256(HKDF(sk,"zeze/1/sync"), canonical)).
 func PlainTag(sk PrivateKey, canonical []byte) string
 
 var ErrDecrypt = errors.New("decryption failed")
 ```
 
-AAD prefix string is `"jureuma/1/aad"`, HKDF info strings `"jureuma/1/value"` and `"jureuma/1/sync"`, key-ID domain `"jureuma/1/keyid"`.
+AAD prefix string is `"zeze/1/aad"`, HKDF info strings `"zeze/1/value"` and `"zeze/1/sync"`, key-ID domain `"zeze/1/keyid"`.
 
 ## `internal/keystore`
 
 ```go
-// Store resolves private keys. Home is the CLI home (~/.guiho/jureuma).
+// Store resolves private keys. Home is the CLI home (~/.guiho/zeze).
 type Store struct { Home string; Getenv func(string) string }
 
 func New(home string) *Store                        // Getenv = os.Getenv
 // Find returns the private key for keyID from, in order: env
-// JUREUMA_PRIVATE_KEY_<UPPER(keyID)>, env JUREUMA_PRIVATE_KEY (only if it
+// ZEZE_PRIVATE_KEY_<UPPER(keyID)>, env ZEZE_PRIVATE_KEY (only if it
 // matches), keys/<keyID>.json, keys/retired/<keyID>.json.
 // Returns ErrNoKey when none exists, *MismatchError when a source holds a
 // different key.
@@ -113,7 +113,7 @@ func (s *Store) Delete(keyID string) error                          // retired o
 // List reads each file's non-secret metadata (label, public key) best-effort;
 // both are empty when a file cannot be parsed or predates labels.
 func (s *Store) List() ([]Entry, error)
-// Source names where a key came from, e.g. "env:JUREUMA_PRIVATE_KEY", "file:keys/k_….json".
+// Source names where a key came from, e.g. "env:ZEZE_PRIVATE_KEY", "file:keys/k_….json".
 type Source string
 type Entry struct { KeyID, Label, PublicKey string; Retired bool; Path string } // Label and PublicKey are non-secret metadata
 type MismatchError struct { Source Source }
@@ -122,7 +122,7 @@ var ErrNoKey = errors.New("private key not available")
 func IsPrivateKeyEnv(name string) bool
 ```
 
-Key file format: `{"keyId": "...", "publicKey": "jureuma-pk-1:...", "privateKey": "jureuma-sk-1:...", "label": "...", "created": "RFC3339"}`. `label` is non-secret metadata (the repository/project name) and is omitted when empty; files without it load normally and list with a placeholder. Reject symlinks, files not owned by the current user, and mode wider than 0600 on Unix. `keyID` is validated before any path is built.
+Key file format: `{"keyId": "...", "publicKey": "zeze-pk-1:...", "privateKey": "zeze-sk-1:...", "label": "...", "created": "RFC3339"}`. `label` is non-secret metadata (the repository/project name) and is omitted when empty; files without it load normally and list with a placeholder. Reject symlinks, files not owned by the current user, and mode wider than 0600 on Unix. `keyID` is validated before any path is built.
 
 ## `internal/gate`
 
@@ -142,7 +142,7 @@ type Gate struct {
 // reason when any check fails.
 func (g *Gate) Check(action string) error
 func DetectAgent(getenv func(string) string, extra []string) (marker string, found bool)
-var DefaultMarkers = []string{"CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CODEX_SANDBOX", "CODEX_HOME", "CURSOR_AGENT", "CURSOR_TRACE_ID", "GEMINI_CLI", "AIDER", "OPENCODE", "AMP_AGENT", "CLINE", "GOOSE_SESSION", "WINDSURF_AGENT", "COPILOT_AGENT", "JUREUMA_AGENT"}
+var DefaultMarkers = []string{"CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CODEX_SANDBOX", "CODEX_HOME", "CURSOR_AGENT", "CURSOR_TRACE_ID", "GEMINI_CLI", "AIDER", "OPENCODE", "AMP_AGENT", "CLINE", "GOOSE_SESSION", "WINDSURF_AGENT", "COPILOT_AGENT", "ZEZE_AGENT"}
 var ErrRefused = errors.New("protected operation refused")
 
 // Audit appends one JSON line to <home>/audit.log (0600). Never values.
@@ -190,7 +190,7 @@ func (s *Schema) ValidateValueUnknown(pointer string, v *doc.Value) (issues []Is
 func (s *Schema) ValidateStructure(v *doc.Value) []Issue
 // ExpectedKind returns the JSON type(s) the schema declares at pointer, if determinable.
 func (s *Schema) ExpectedTypes(pointer string) []string
-// Secret reports whether the schema marks the pointer with "x-jureuma-secret": true.
+// Secret reports whether the schema marks the pointer with "x-zeze-secret": true.
 func (s *Schema) Secret(pointer string) bool
 type Issue struct { Pointer string; Keyword string; Message string } // Message from schema-side params only
 // Infer builds a starter schema from structure and types (see design). If
@@ -223,8 +223,8 @@ type AgentConfig struct { Evolution Evolution `yaml:"evolution"` }
 type Evolution struct { Upgrade string; Issues Issues }
 type Issues struct { Bugs, Improvements, Reviews string }
 
-const ProjectFile = "jureuma.yaml"
-const GlobalFile  = "jureuma.global.yaml"
+const ProjectFile = "zeze.yaml"
+const GlobalFile  = "zeze.global.yaml"
 func LoadProject(root string) (*Project, bool, error)  // bool: existed. Strict decode; "protections" key rejected.
 func LoadGlobal(home string) (*Global, bool, error)
 func SaveProject(root string, p *Project, version string) error  // writes schema-reference header, atomic
@@ -245,15 +245,15 @@ func SealProtections(home string, g *Global) error
 func ProtectionsIntact(home string, g *Global) (bool, error)
 ```
 
-Schema reference header: `# yaml-language-server: $schema=https://github.com/CGuiho/jureuma/releases/download/v<version>/jureuma.schema.json` (global: `jureuma.global.schema.json`). A document that is present but invalid (schema or `Validate`) is a validation error carrying exit code 4.
+Schema reference header: `# yaml-language-server: $schema=https://github.com/CGuiho/zeze/releases/download/v<version>/zeze.schema.json` (global: `zeze.global.schema.json`). A document that is present but invalid (schema or `Validate`) is a validation error carrying exit code 4.
 
 ## `internal/paths`
 
 ```go
-func Home() (string, error)            // ~/.guiho/jureuma via os.UserHomeDir + filepath.Join
+func Home() (string, error)            // ~/.guiho/zeze via os.UserHomeDir + filepath.Join
 func BinDir() (string, error)          // ~/.guiho/bin
 func TempDir() (string, error)         // ~/.guiho/.temp
-func ProjectRoot(start string) (string, error) // nearest dir with jureuma.yaml, else .git, else start
+func ProjectRoot(start string) (string, error) // nearest dir with zeze.yaml, else .git, else start
 func AtomicWrite(path string, data []byte, perm os.FileMode) error   // temp in same dir + rename
 func Lock(home, key string) (unlock func(), err error)               // locks/<sha256(key)[:16]>.lock, PID+token, stale recovery
 ```
@@ -266,8 +266,8 @@ Resolves and operates on a pair. Depends on doc, jsonc, crypt, keystore, schema,
 type Options struct { Root, Name, EncryptedFile, UnencryptedFile, SchemaFile string; Config *config.Project }
 type Pair struct { Name, EncryptedPath, UnencryptedPath, SchemaPath string; UnencryptedIsJSONC bool }
 func Resolve(o Options) (*Pair, error)            // naming rules, .encrypted./.unencrypted. enforcement, schema precedence
-type Encrypted struct { Meta Meta; Body *doc.Value }   // Body excludes $jureuma
-type Meta struct {   // the $jureuma block: shared identity + schema/sync/pending
+type Encrypted struct { Meta Meta; Body *doc.Value }   // Body excludes $zeze
+type Meta struct {   // the $zeze block: shared identity + schema/sync/pending
     Format int                       // the generation that was read (1 legacy, 2 current)
     PublicKey, KeyID, Home string    // identity; Home is the portable HomeRef
     Schema, SchemaCopy string        // readable path + embedded encrypted copy ("" = none)
@@ -276,26 +276,26 @@ type Meta struct {   // the $jureuma block: shared identity + schema/sync/pendin
 type SyncEntry struct { C, H string }
 type Header struct { Format int; PublicKey, KeyID, Home string }  // identity of both files
 const FormatVersion = 2             // written generation; parse accepts 1 (legacy) and 2
-const HomeRef = "~/.guiho/jureuma/" // portable global-directory reference stored in home
+const HomeRef = "~/.guiho/zeze/" // portable global-directory reference stored in home
 const SchemaKey = "$schema"         // reserved top-level key of the unencrypted file
-const SchemaCopyPointer = "/$jureuma/schema/c"   // AAD pointer of the embedded schema envelope
-const RepairHint = "run jureuma init to repair"
+const SchemaCopyPointer = "/$zeze/schema/c"   // AAD pointer of the embedded schema envelope
+const RepairHint = "run zeze init to repair"
 var ErrLegacyHeader, ErrUnsupportedFormat, ErrMissingPlainIdentity error   // typed refusals (errors.Is)
-func LegacyHeader(file string) error         // typed refusal: $jureuma is format 1 or malformed
+func LegacyHeader(file string) error         // typed refusal: $zeze is format 1 or malformed
 func UnsupportedFormat(file string) error    // typed rejection: unknown future generation
 func MissingPlainIdentity(file string) error // typed repair pointer for a headerless plaintext
-func ReadEncrypted(path string) (*Encrypted, error)   // accepts $jureuma.schema as string or {path,c}
-func WriteEncrypted(path string, e *Encrypted) error   // $jureuma first, sorted sync/pending, atomic; refuses old pair state
-func RepairEncrypted(path string, e *Encrypted) error  // jureuma init repair path: may replace format-1/malformed state
+func ReadEncrypted(path string) (*Encrypted, error)   // accepts $zeze.schema as string or {path,c}
+func WriteEncrypted(path string, e *Encrypted) error   // $zeze first, sorted sync/pending, atomic; refuses old pair state
+func RepairEncrypted(path string, e *Encrypted) error  // zeze init repair path: may replace format-1/malformed state
 func (m Meta) Identity() Header                       // identity part of the meta block
 func (e *Encrypted) SetSchemaCopy(schemaText []byte) error        // encrypt the schema to the pair key
 func (e *Encrypted) OpenSchemaCopy(keys KeyLookup) ([]byte, error) // decrypt the embedded copy
-type PlainFile struct { Header *Header; Schema string; Body *doc.Value } // Header nil = headerless; Body excludes $jureuma and $schema
+type PlainFile struct { Header *Header; Schema string; Body *doc.Value } // Header nil = headerless; Body excludes $zeze and $schema
 func ReadPlainFile(path string, jsonc bool) (*PlainFile, error)   // full read: header + $schema + body
 func WritePlainFile(path string, f *PlainFile) error              // full write: header + $schema + body; refuses old pair state
-func RepairPlainFile(path string, f *PlainFile) error             // jureuma init repair path: may replace format-1/malformed state
+func RepairPlainFile(path string, f *PlainFile) error             // zeze init repair path: may replace format-1/malformed state
 func CheckIdentity(plain *PlainFile, enc *Encrypted) (warnings []string, err error) // cross-file key match (exit 5), home/schema warnings
-func ReadPlain(path string, jsonc bool) (*doc.Value, error)       // legacy reader: rejects $jureuma, passes $schema through
+func ReadPlain(path string, jsonc bool) (*doc.Value, error)       // legacy reader: rejects $zeze, passes $schema through
 func WritePlain(path string, v *doc.Value) error        // legacy writer: writes exactly what it is given; .json canonical, an existing .jsonc is merged with jsonc.Edit (comments preserved); refuses unless git-ignored (EnsureIgnored)
 func EnsureIgnored(root, path string) error              // .gitignore managed block + git check-ignore
 func TrackedByGit(root, path string) (bool, error)
@@ -314,8 +314,8 @@ type Options struct {
     Env []string /* NAME=/pointer */; Override bool; Redact bool; PrivateKeys []crypt.PrivateKey
     Args []string; Stdin io.Reader; Stdout, Stderr io.Writer; Home string
 }
-// Run builds the environment (strip JUREUMA_PRIVATE_KEY*, inject per Format), starts the
-// child, redacts output, and returns the child's exit code. jureuma-side failures return
+// Run builds the environment (strip ZEZE_PRIVATE_KEY*, inject per Format), starts the
+// child, redacts output, and returns the child's exit code. zeze-side failures return
 // (125, err).
 func Run(ctx context.Context, o Options) (int, error)
 func Flatten(v *doc.Value, prefix string) (map[string]string, error)   // rules + denylist + collisions
@@ -323,22 +323,22 @@ func Flatten(v *doc.Value, prefix string) (map[string]string, error)   // rules 
 
 ## `internal/xerr` and `internal/update` (added during integration)
 
-- `xerr.Error{Code, Kind, Msg, Err}` carries the exit code (`CodeUsage` 2, `CodeProtected` 3, `CodeValidation` 4, `CodeKey` 5, `CodeRun` 125) and the kind printed by `run` as `[JUREUMA:<KIND>]`. `pair`, `runner` and `cli` return these; `xerr.CodeOf(err)` maps any error to its exit code.
-- `update`: SemVer parsing/comparison, the GitHub release catalog (`JUREUMA_RELEASES_URL` overrides the API URL for tests), the `cache.json` update cache, the single-flight worker lease, and the platform reinstall commands.
+- `xerr.Error{Code, Kind, Msg, Err}` carries the exit code (`CodeUsage` 2, `CodeProtected` 3, `CodeValidation` 4, `CodeKey` 5, `CodeRun` 125) and the kind printed by `run` as `[ZEZE:<KIND>]`. `pair`, `runner` and `cli` return these; `xerr.CodeOf(err)` maps any error to its exit code.
+- `update`: SemVer parsing/comparison, the GitHub release catalog (`ZEZE_RELEASES_URL` overrides the API URL for tests), the `cache.json` update cache, the single-flight worker lease, and the platform reinstall commands.
 
 `pair` additionally exports `NewEncrypted`, `MarshalEncrypted`, `EncryptAt`/`DecryptAt` (subtree at a pointer), `DecryptDocKeys` with a `KeyLookup` (retired keys), `ComputeSync`, `ConcreteTokens` (`-` → index), `EnsureGitignoreBlock`, `HasGitignoreBlock`, `IgnoredByGit`, `HeadPublicKey`, and `Pair.CheckSchemaFlag`. `runner` additionally exports `EnvName`, `NameProblems`, `Denied`, `FlattenExcept` (flatten skipping denylisted leaves that `--env` maps explicitly), `BuildEnv`, `Secrets`, `Instances` and `SweepStale` (the `run/<id>/owner` instance registry).
 
-Added after the security and correctness review: `pair` exports `Within` (root containment after resolving symbolic links), `CheckSchemaName`, `AppendWithoutArray`, `EmptyContainersOnlyIn`, `MaxPointerDepth` and `Pair.DefaultSchema`; `config` exports `DeniedEnvName` and `DeniedRunEnvName` (the shared env-name denylist that `runner.Denied` delegates to); `paths` exports `HomeRelocated`, `TempMarker` and `IsStaleTemp`; `update` exports `Release.Tag`, `AgentAssets`, `PayloadAsset`, `RequiredAssets`, `Release.Compatible`, `Installable` (used by `Select`), `AssetURL` (`JUREUMA_DOWNLOAD_BASE_URL` overrides the base), `Download`, `ParseChecksums`, `Manifest`/`Artifact`/`ParseManifest`. `cli` implements the upgrade transaction (`upgrade_tx.go`) and the hidden `__self-test` command.
+Added after the security and correctness review: `pair` exports `Within` (root containment after resolving symbolic links), `CheckSchemaName`, `AppendWithoutArray`, `EmptyContainersOnlyIn`, `MaxPointerDepth` and `Pair.DefaultSchema`; `config` exports `DeniedEnvName` and `DeniedRunEnvName` (the shared env-name denylist that `runner.Denied` delegates to); `paths` exports `HomeRelocated`, `TempMarker` and `IsStaleTemp`; `update` exports `Release.Tag`, `AgentAssets`, `PayloadAsset`, `RequiredAssets`, `Release.Compatible`, `Installable` (used by `Select`), `AssetURL` (`ZEZE_DOWNLOAD_BASE_URL` overrides the base), `Download`, `ParseChecksums`, `Manifest`/`Artifact`/`ParseManifest`. `cli` implements the upgrade transaction (`upgrade_tx.go`) and the hidden `__self-test` command.
 
 ## `internal/agentres`
 
-Embedded agent artifacts (`//go:embed`): the main skill `guiho-s-jureuma` (`SKILL.md`, including the mandatory `## CLI Evolution and Feedback` section and a JSON Schema authoring guide), the instruction block source, the install prompt `guiho-p-jureuma-install`, the main prompt `guiho-p-jureuma`, and the uninstall prompt `guiho-p-jureuma-uninstall`.
+Embedded agent artifacts (`//go:embed`): the main skill `guiho-s-zeze` (`SKILL.md`, including the mandatory `## CLI Evolution and Feedback` section and a JSON Schema authoring guide), the instruction block source, the install prompt `guiho-p-zeze-install`, the main prompt `guiho-p-zeze`, and the uninstall prompt `guiho-p-zeze-uninstall`.
 
 ```go
 func Skills() []Skill        // ID, Files map[string][]byte
 func Prompts() []Prompt      // ID, Body
 func Instruction() string    // block body, without markers
-// AGENTS.md managed block, markers "<!-- >>> jureuma managed block >>> -->" / "<!-- <<< jureuma managed block <<< -->".
+// AGENTS.md managed block, markers "<!-- >>> zeze managed block >>> -->" / "<!-- <<< zeze managed block <<< -->".
 func ApplyBlock(agentsMD []byte, body string) []byte   // insert or replace; bytes outside untouched
 func RemoveBlock(agentsMD []byte) ([]byte, bool)
 func HasCurrentBlock(agentsMD []byte, body string) bool
@@ -351,7 +351,7 @@ func SkillInstalledCurrent(s Skill, dest string) bool
 
 ## `internal/cli`
 
-Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, list, export, rotate, retire}`, `schema {infer}`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Keys carry a non-secret label (default: the repository name from the `origin` remote, else the project directory name); `key list` shows `label  short key ID  public-key prefix  active|retired`, and stored-key selection prompts "Which one do you want to use?" only in a TTY. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/jureuma/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
+Cobra command tree from the design plus the convention: `init`, `encrypt`, `decrypt`, `set`, `unset`, `get`, `run`, `list`, `status`, `check`, `key {show, list, export, rotate, retire}`, `schema {infer}`, `agent {skill {install, uninstall, upgrade, list, show}, instruction {apply, remove, upgrade, show}, prompt {list, show}}`, `upgrade {check, list}`, `uninstall`. Keys carry a non-secret label (default: the repository name from the `origin` remote, else the project directory name); `key list` shows `label  short key ID  public-key prefix  active|retired`, and stored-key selection prompts "Which one do you want to use?" only in a TTY. Global: `-v/--version` (top-level, raw SemVer), and on every command `-h/--help`, `--help-docs`, `--help-tree`, `--help-tree-depth`, `--help-tree-global-flags`. `cmd/zeze/main.go` calls `cli.Execute(version)` and exits with its code. `Version` is set by `-ldflags "-X main.version=…"`, default `0.0.0-dev`.
 
 ## Exit codes
 

@@ -1,4 +1,4 @@
-// Package crypt implements jureuma's value encryption: X25519 ECIES with
+// Package crypt implements zeze's value encryption: X25519 ECIES with
 // HKDF-SHA256 and AES-256-GCM, length-hiding padding buckets, pointer-bound
 // AAD, strict unpadded base64url encodings, derived key IDs, and sync tags.
 //
@@ -20,19 +20,19 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/doc"
+	"github.com/CGuiho/zeze/internal/doc"
 )
 
 // Encoding and domain-separation constants.
 const (
-	PublicKeyPrefix  = "jureuma-pk-1:"
-	PrivateKeyPrefix = "jureuma-sk-1:"
-	EnvelopePrefix   = "jureuma:1:"
+	PublicKeyPrefix  = "zeze-pk-1:"
+	PrivateKeyPrefix = "zeze-sk-1:"
+	EnvelopePrefix   = "zeze:1:"
 
-	aadPrefix   = "jureuma/1/aad"
-	infoValue   = "jureuma/1/value"
-	infoSync    = "jureuma/1/sync"
-	keyIDDomain = "jureuma/1/keyid"
+	aadPrefix   = "zeze/1/aad"
+	infoValue   = "zeze/1/value"
+	infoSync    = "zeze/1/sync"
+	keyIDDomain = "zeze/1/keyid"
 
 	keyIDLen   = 34 // "k_" + 32 hex
 	keySize    = 32
@@ -105,17 +105,17 @@ func (k PrivateKey) Public() PublicKey {
 	return pk
 }
 
-// String returns "jureuma-pk-1:" + unpadded base64url.
+// String returns "zeze-pk-1:" + unpadded base64url.
 func (k PublicKey) String() string { return PublicKeyPrefix + encode(k[:]) }
 
-// String returns "jureuma-sk-1:" + unpadded base64url. Callers must treat the
+// String returns "zeze-sk-1:" + unpadded base64url. Callers must treat the
 // result as secret.
 func (k PrivateKey) String() string { return PrivateKeyPrefix + encode(k[:]) }
 
 // GoString prevents accidental key disclosure through %#v.
 func (k PrivateKey) GoString() string { return "crypt.PrivateKey{REDACTED}" }
 
-// ParsePublicKey parses "jureuma-pk-1:<base64url>".
+// ParsePublicKey parses "zeze-pk-1:<base64url>".
 func ParsePublicKey(s string) (PublicKey, error) {
 	var pk PublicKey
 	rest, ok := strings.CutPrefix(s, PublicKeyPrefix)
@@ -130,7 +130,7 @@ func ParsePublicKey(s string) (PublicKey, error) {
 	return pk, nil
 }
 
-// ParsePrivateKey parses "jureuma-sk-1:<base64url>".
+// ParsePrivateKey parses "zeze-sk-1:<base64url>".
 func ParsePrivateKey(s string) (PrivateKey, error) {
 	var sk PrivateKey
 	rest, ok := strings.CutPrefix(s, PrivateKeyPrefix)
@@ -147,7 +147,7 @@ func ParsePrivateKey(s string) (PrivateKey, error) {
 }
 
 // KeyID returns "k_" + the first 32 lowercase hex chars of
-// SHA-256("jureuma/1/keyid" || pk).
+// SHA-256("zeze/1/keyid" || pk).
 func KeyID(pk PublicKey) string {
 	h := sha256.New()
 	h.Write([]byte(keyIDDomain))
@@ -209,7 +209,7 @@ func unframe(f []byte) ([]byte, bool) {
 	return append([]byte(nil), f[n:end]...), true
 }
 
-// aad builds "jureuma/1/aad" || keyId || uint32_be(len(p)) || p.
+// aad builds "zeze/1/aad" || keyId || uint32_be(len(p)) || p.
 func aad(keyID, pointer string) []byte {
 	b := make([]byte, 0, len(aadPrefix)+keyIDLen+4+len(pointer))
 	b = append(b, aadPrefix...)
@@ -242,7 +242,7 @@ func validPointer(p string) bool {
 }
 
 // EncryptValue seals canonical scalar JSON for the leaf at pointer.
-// Output: "jureuma:1:<keyId>:<base64url(eph_pk||nonce||sealed)>".
+// Output: "zeze:1:<keyId>:<base64url(eph_pk||nonce||sealed)>".
 func EncryptValue(pk PublicKey, pointer string, canonical []byte) (string, error) {
 	if !validPointer(pointer) {
 		return "", ErrInvalidPointer
@@ -350,7 +350,7 @@ func DecryptValue(sk PrivateKey, pointer string, ciphertext string) ([]byte, err
 	return plain, nil
 }
 
-// IsCiphertext reports whether s has the "jureuma:1:" envelope prefix and a
+// IsCiphertext reports whether s has the "zeze:1:" envelope prefix and a
 // valid key ID followed by ':'.
 func IsCiphertext(s string) bool {
 	_, _, ok := splitEnvelope(s)
@@ -370,7 +370,7 @@ func SyncTag(ciphertext string) string {
 }
 
 // PlainTag returns hex(first 16 bytes of HMAC-SHA256(HKDF(sk,
-// "jureuma/1/sync"), canonical)).
+// "zeze/1/sync"), canonical)).
 func PlainTag(sk PrivateKey, canonical []byte) string {
 	key, err := hkdf.Key(sha256.New, sk[:], nil, infoSync, 32)
 	if err != nil {

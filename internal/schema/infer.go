@@ -1,6 +1,6 @@
 package schema
 
-import "github.com/CGuiho/jureuma/internal/doc"
+import "github.com/CGuiho/zeze/internal/doc"
 
 // Infer builds a starter schema from structure and JSON types, never values:
 // objects get "required" for every present key and additionalProperties

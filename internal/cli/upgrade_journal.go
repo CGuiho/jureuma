@@ -19,8 +19,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/paths"
-	"github.com/CGuiho/jureuma/internal/update"
+	"github.com/CGuiho/zeze/internal/paths"
+	"github.com/CGuiho/zeze/internal/update"
 )
 
 // The journal file name under <home>/state/.
@@ -130,7 +130,7 @@ func validateJournal(home string, j *upgradeJournal) error {
 	if err != nil {
 		return err
 	}
-	if !withinNamedDir(tempRoot, "jureuma-upgrade-", j.Stage) {
+	if !withinNamedDir(tempRoot, "zeze-upgrade-", j.Stage) {
 		return errors.New("the upgrade transaction journal names an unexpected staging directory")
 	}
 	if j.Candidate != "" && !withinNamedDir(filepath.Join(home, "versions"), ".candidate-", j.Candidate) {
@@ -358,7 +358,7 @@ func dirGone(p string) bool {
 
 func report(out io.Writer, format string, a ...any) {
 	if out != nil {
-		fmt.Fprintf(out, "jureuma: "+format+"\n", a...)
+		fmt.Fprintf(out, "zeze: "+format+"\n", a...)
 	}
 }
 

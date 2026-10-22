@@ -1,7 +1,7 @@
 ---
-subject: jureuma-jsonc
+subject: zeze-jsonc
 description: "Strict JSON and lenient JSONC parsing with value-free error messages (file, line, column, class), plus the comment-preserving lossless JSONC editor."
-parent: jureuma-internal
+parent: zeze-internal
 children: []
 files:
   "jsonc.go": "Parser."
@@ -20,7 +20,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-jsonc
+# zeze-jsonc
 
 Strict JSON and lenient JSONC parsing with value-free error messages (file, line, column, class), plus the comment-preserving lossless JSONC editor.
 

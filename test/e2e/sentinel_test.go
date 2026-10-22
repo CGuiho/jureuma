@@ -69,9 +69,9 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 		{args: []string{"key", "export"}},                                                                                    // refused
 		{args: []string{"key", "export", keyID}},                                                                             // refused
 		{args: []string{"key", "show", "--private"}},                                                                         // refused
-		{args: []string{"run", "--", "sh", "-c", `printf '%s\n' "$JUREUMA_CONFIG"; printf '%s' "$JUREUMA_CONFIG" | base64`}}, // redacted
+		{args: []string{"run", "--", "sh", "-c", `printf '%s\n' "$ZEZE_CONFIG"; printf '%s' "$ZEZE_CONFIG" | base64`}}, // redacted
 		{args: []string{"run", "--format", "flatten", "--", "sh", "-c", `echo "$DB_URL $FLAGS_0 $TOKEN" >&2`}},
-		{args: []string{"run", "--format", "file", "--", "sh", "-c", `cat "$JUREUMA_CONFIG"`}},
+		{args: []string{"run", "--format", "file", "--", "sh", "-c", `cat "$ZEZE_CONFIG"`}},
 		{args: []string{"run", "--env", "U=/db/url", "--", "sh", "-c", `printf '%s' "$U"; printf '%s' "$U" | od -c | head -1 >/dev/null`}},
 		{args: []string{"run", "--env", "U=" + sentinelC, "--", "true"}}, // bad pointer in --env
 		{args: []string{"status"}},
@@ -132,7 +132,7 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 		"audit.log":             p.auditLog(),
 		"config.encrypted.json": p.read("config.encrypted.json"),
 		"config.schema.json":    p.read("config.schema.json"),
-		"jureuma.yaml":          p.read("jureuma.yaml"),
+		"zeze.yaml":          p.read("zeze.yaml"),
 		".gitignore":            p.read(".gitignore"),
 		"AGENTS.md":             p.read("AGENTS.md"),
 	}
@@ -143,7 +143,7 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 		files["opencode.json"] = string(data)
 	}
 	for name, data := range files {
-		for _, f := range append(sentinelForms(), sk, strings.TrimPrefix(sk, "jureuma-sk-1:")) {
+		for _, f := range append(sentinelForms(), sk, strings.TrimPrefix(sk, "zeze-sk-1:")) {
 			if strings.Contains(data, f) {
 				t.Fatalf("%s contains a value or key material (%q)", name, f)
 			}
@@ -151,7 +151,7 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 	}
 	// The whole transcript (every non-bypass command above) never shows key material.
 	tr := p.trans.String()
-	for _, f := range []string{sk, strings.TrimPrefix(sk, "jureuma-sk-1:")} {
+	for _, f := range []string{sk, strings.TrimPrefix(sk, "zeze-sk-1:")} {
 		if strings.Contains(tr, f) {
 			t.Fatal("transcript contains private key material")
 		}
@@ -165,14 +165,14 @@ func TestSentinelNeverDisplayed(t *testing.T) {
 	}
 }
 
-// The deny rules jureuma adds to Claude Code and OpenCode settings are removed
+// The deny rules zeze adds to Claude Code and OpenCode settings are removed
 // exactly by agent remove and uninstall, leaving the rest of each file intact.
 func TestDenyRulesRemovedByAgentRemoveAndUninstall(t *testing.T) {
 	p := newProject(t)
 	p.write("opencode.json", `{"$schema": "https://opencode.ai/config.json", "model": "provider/model-x", "permissions": [{"action": "shell", "resource": "git push *", "effect": "deny"}]}`+"\n")
 	p.expect(0, "init", "--agent-deny-rules", "yes", "--agent-evolution", "always-ask")
 	ocfg := p.read("opencode.json")
-	for _, want := range []string{"*.unencrypted.json", "*.unencrypted.jsonc", "$HOME/.guiho/jureuma/*", "git push *"} {
+	for _, want := range []string{"*.unencrypted.json", "*.unencrypted.jsonc", "$HOME/.guiho/zeze/*", "git push *"} {
 		if !strings.Contains(ocfg, want) {
 			t.Fatalf("opencode.json missing %q:\n%s", want, ocfg)
 		}
@@ -184,7 +184,7 @@ func TestDenyRulesRemovedByAgentRemoveAndUninstall(t *testing.T) {
 	// agent remove deletes exactly the recorded rules.
 	p.expect(0, "agent", "instruction", "remove")
 	ocfg = p.read("opencode.json")
-	if strings.Contains(ocfg, "unencrypted") || strings.Contains(ocfg, ".guiho/jureuma") {
+	if strings.Contains(ocfg, "unencrypted") || strings.Contains(ocfg, ".guiho/zeze") {
 		t.Fatalf("OpenCode deny rules survived agent remove:\n%s", ocfg)
 	}
 	if !strings.Contains(ocfg, "git push *") || !strings.Contains(ocfg, "provider/model-x") {
@@ -198,7 +198,7 @@ func TestDenyRulesRemovedByAgentRemoveAndUninstall(t *testing.T) {
 	p.expect(0, "init", "--agent-deny-rules", "yes", "--agent-evolution", "always-ask")
 	p.expect(0, "uninstall", "--yes")
 	ocfg = p.read("opencode.json")
-	if strings.Contains(ocfg, "unencrypted") || strings.Contains(ocfg, ".guiho/jureuma") {
+	if strings.Contains(ocfg, "unencrypted") || strings.Contains(ocfg, ".guiho/zeze") {
 		t.Fatalf("OpenCode deny rules survived uninstall:\n%s", ocfg)
 	}
 	if !strings.Contains(ocfg, "git push *") || !strings.Contains(ocfg, "provider/model-x") {

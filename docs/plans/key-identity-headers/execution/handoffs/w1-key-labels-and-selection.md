@@ -4,12 +4,12 @@
 
 Mode: dnd · Role: workhorse (engineer) · Harness: OpenCode native background
 subagent (`general`) · Model: `xiaomi/mimo-v2.6-pro` (provider-default
-thinking, no variant) · Issue: <https://github.com/CGuiho/jureuma/issues/13>
+thinking, no variant) · Issue: <https://github.com/CGuiho/zeze/issues/13>
 
 ## Mission
 
 Give every key pair a label and make stored keys listable and selectable, so a
-human running `jureuma init` (or any key-selection flow) can be asked "Which
+human running `zeze init` (or any key-selection flow) can be asked "Which
 one do you want to use?" with `label + short keyId + public-key prefix` —
 never key material. CG directive: "For every key that we create, we can attach
 a label. The label is usually the name of the project ... Just pick the name
@@ -37,13 +37,13 @@ document, `CHANGELOG.md`, `internal/agentres/**`.
 
 ## Required reading (before touching anything)
 
-- `AGENTS.md` (Mandume section, CLI rules), `docs/2026-10-13-jureuma-design.md`
+- `AGENTS.md` (Mandume section, CLI rules), `docs/2026-10-13-zeze-design.md`
   (key rules, keyId↔publicKey consistency, human-only commands),
-  `docs/2026-10-13-jureuma-implementation-contracts.md` (keystore and cli
+  `docs/2026-10-13-zeze-implementation-contracts.md` (keystore and cli
   sections), `docs/plans/key-identity-headers/plan.md` (the train's decisions).
 - Skills: `guiho-s-0001-guiho`, `guiho-s-0004-working-with-cg`,
   `guiho-s-0040-explorer`, `guiho-s-0032-git-commit`, `guiho-s-0016-docs`,
-  `guiho-s-runx`, `guiho-s-jureuma`.
+  `guiho-s-runx`, `guiho-s-zeze`.
 - `guiho-convention-0001-cli.md` (flag rules; `--help` compliance),
   `guiho-convention-0007-models.md`.
 
@@ -63,7 +63,7 @@ document, `CHANGELOG.md`, `internal/agentres/**`.
    Wire it into `key rotate` when it creates a new key; add the label line to
    `key show` output.
 4. **`key list`** (new subcommand under `key`). One line per stored key:
-   `label  k_shortid  jureuma-pk-1:prefix  active|retired` — readable, stable,
+   `label  k_shortid  zeze-pk-1:prefix  active|retired` — readable, stable,
    includes retired keys with their state, never private material. Follow the
    existing `cmd_key.go` help-text and output style; no new flags beyond the
    convention's long-form rules.
@@ -100,7 +100,7 @@ the bound GitHub Project, release machinery, version pins, other projects.
   `runx run test-e2e`, `runx run test-smoke` — all exit 0; then
   `runx run docs-check` and `runx run ci-check` (`shellcheck` is not
   installed: shell-lint skips; Windows coverage is vet + review here).
-- Manual proof in a throwaway `JUREUMA_USER_HOME` (never the real home):
+- Manual proof in a throwaway `ZEZE_USER_HOME` (never the real home):
   `key list` shows label + short keyId + prefix; `key show` shows the label;
   a label-less legacy key still lists with the placeholder.
 
@@ -109,7 +109,7 @@ the bound GitHub Project, release machinery, version pins, other projects.
 - One or two coherent commits, e.g. `Label stored keys and add key list` and
   `Add a TTY-safe stored-key picker helper`. Imperative messages.
 - Commit through the serialized index (the JSONC worker commits in parallel):
-  `flock -w 120 /tmp/opencode/jureuma-git.lock -c 'cd /root/swe/jureuma && git add <paths> && git commit -m "..."'`.
+  `flock -w 120 /tmp/opencode/zeze-git.lock -c 'cd /root/swe/zeze && git add <paths> && git commit -m "..."'`.
   Stage only files you own; never `git add -A`; never push.
 - Report: base commit, commit hashes, changed files, exact commands + exit
   codes, test names, deviations from the brief and why, residual uncertainty.

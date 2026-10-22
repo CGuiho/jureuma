@@ -1,4 +1,4 @@
-// Package pair resolves a jureuma configuration pair (unencrypted file,
+// Package pair resolves a zeze configuration pair (unencrypted file,
 // encrypted file, schema) and reads, writes, encrypts, decrypts and compares
 // its two sides.
 //
@@ -15,10 +15,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CGuiho/jureuma/internal/config"
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
-	"github.com/CGuiho/jureuma/internal/xerr"
+	"github.com/CGuiho/zeze/internal/config"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/xerr"
 )
 
 // DefaultName is the stem used when no pair is selected or configured.
@@ -33,14 +33,14 @@ const (
 // Schema sources, in precedence order.
 const (
 	SchemaFromFlag      = "flag"
-	SchemaFromConfig    = "jureuma.yaml"
-	SchemaFromEncrypted = "$jureuma.schema"
+	SchemaFromConfig    = "zeze.yaml"
+	SchemaFromEncrypted = "$zeze.schema"
 	SchemaFromDefault   = "default"
 )
 
 // Options selects a pair. Paths in EncryptedFile, UnencryptedFile and
 // SchemaFile are relative to the current directory (or absolute); Root is the
-// project root (absolute) that pair names and jureuma.yaml paths are relative to.
+// project root (absolute) that pair names and zeze.yaml paths are relative to.
 type Options struct {
 	Root, Name, EncryptedFile, UnencryptedFile, SchemaFile string
 	Config                                                 *config.Project
@@ -55,7 +55,7 @@ type Pair struct {
 	Root string
 	// SchemaSource names which precedence rule chose SchemaPath.
 	SchemaSource string
-	// ConfiguredSchema is the schema chosen by jureuma.yaml or $jureuma.schema
+	// ConfiguredSchema is the schema chosen by zeze.yaml or $zeze.schema
 	// (sources 2-3), or "" when neither is set. Used to reject a disagreeing
 	// --schema-file on mutating commands.
 	ConfiguredSchema string
@@ -319,7 +319,7 @@ func Resolve(o Options) (*Pair, error) {
 	}
 	if s := readMetaSchema(p.EncryptedPath); s != "" {
 		fromFile = absFrom(filepath.Dir(p.EncryptedPath), s)
-		if err := confined(root, fromFile, p.Rel(p.EncryptedPath)+" $jureuma.schema"); err != nil {
+		if err := confined(root, fromFile, p.Rel(p.EncryptedPath)+" $zeze.schema"); err != nil {
 			return nil, err
 		}
 		if err := CheckSchemaName(fromFile); err != nil {
@@ -366,7 +366,7 @@ func Resolve(o Options) (*Pair, error) {
 }
 
 // CheckSchemaFlag returns a usage error when --schema-file disagrees with the
-// schema configured in jureuma.yaml or $jureuma.schema or, when neither is
+// schema configured in zeze.yaml or $zeze.schema or, when neither is
 // set, with the default <stem>.schema.json(c) if that file exists. Mutating
 // commands call it, so a write cannot be validated against a looser schema.
 func (p *Pair) CheckSchemaFlag() error {
@@ -405,7 +405,7 @@ func (p *Pair) Rel(path string) string {
 }
 
 // SchemaRef returns the schema path relative to the encrypted file's
-// directory, in the "./x.schema.json" form stored in $jureuma.schema.
+// directory, in the "./x.schema.json" form stored in $zeze.schema.
 func (p *Pair) SchemaRef() string {
 	rel, err := filepath.Rel(filepath.Dir(p.EncryptedPath), p.SchemaPath)
 	if err != nil {
@@ -418,7 +418,7 @@ func (p *Pair) SchemaRef() string {
 	return rel
 }
 
-// readMetaSchema returns the schema path of $jureuma.schema from an encrypted
+// readMetaSchema returns the schema path of $zeze.schema from an encrypted
 // file, or "". Both written shapes are accepted in any format generation: the
 // readable path alone, or { path, c } with the embedded encrypted copy.
 // Any problem is ignored here; ReadEncrypted reports it.
@@ -450,7 +450,7 @@ func readMetaSchema(path string) string {
 	return ""
 }
 
-// maxFileSize bounds every configuration file jureuma reads (and writes).
+// maxFileSize bounds every configuration file zeze reads (and writes).
 const maxFileSize = 32 << 20
 
 // MaxPointerDepth bounds the number of tokens in a pointer that set accepts,

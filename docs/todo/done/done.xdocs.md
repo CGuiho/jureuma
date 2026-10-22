@@ -1,7 +1,7 @@
 ---
-subject: jureuma-docs-todo-done
-description: "Permanent completion registry of jureuma tasks archived from the bound GUIHO Project."
-parent: jureuma-docs-todo
+subject: zeze-docs-todo-done
+description: "Permanent completion registry of zeze tasks archived from the bound GUIHO Project."
+parent: zeze-docs-todo
 children: []
 files: {}
 documents:
@@ -15,7 +15,7 @@ flags: []
 status: stable
 ---
 
-# jureuma-docs-todo-done
+# zeze-docs-todo-done
 
 Permanent completion registry: every archived task keeps its outcome, GitHub
 issue identity and delivery evidence in [`done.md`](done.md).

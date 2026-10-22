@@ -1,7 +1,7 @@
 ---
-name: Jureuma 0.1.0 — Implementation Completion and First Release
-purpose: Sequence the work that completes the jureuma implementation and delivers the first public release (v0.1.0) during the 2026-10-16 unattended (DND) run.
-description: Units of work for finishing remaining implementation gaps, validating the full suite, self-reviewing, and releasing jureuma 0.1.0 with Mirror, RunX and the devops release pipeline.
+name: ZeZé 0.1.0 — Implementation Completion and First Release
+purpose: Sequence the work that completes the zeze implementation and delivers the first public release (v0.1.0) during the 2026-10-16 unattended (DND) run.
+description: Units of work for finishing remaining implementation gaps, validating the full suite, self-reviewing, and releasing zeze 0.1.0 with Mirror, RunX and the devops release pipeline.
 created: "2026-10-16T00:45:00Z"
 flags:
   - draft
@@ -9,7 +9,7 @@ tags:
   - plan
   - release
 keywords:
-  - jureuma
+  - zeze
   - 0.1.0
   - release
   - dnd
@@ -17,13 +17,13 @@ keywords:
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
 
-# Jureuma 0.1.0 — Implementation Completion and First Release
+# ZeZé 0.1.0 — Implementation Completion and First Release
 
 ## Mandate
 
 CG, 2026-10-16 (voice, before sleeping): read the GUIHO CLI convention,
 take inspiration from Mirror, XDocs, RunX and Buda, **fully implement
-jureuma — implement what is missing — and release the artifact and
+zeze — implement what is missing — and release the artifact and
 everything to CG's level of quality.** No questions; DND applies.
 
 This is explicit authorization for: completing the implementation, the
@@ -39,14 +39,14 @@ full validation suite, the Mirror version apply for `0.1.0`
 - The implementation is largely complete (16 internal packages, devops
   release pipeline, e2e suite). Recon workers produced a gap report
   used to define the units below.
-- Bindings: GitHub `CGuiho/jureuma`, Project #2 `GUIHO`, component
-  `jureuma`. Every unit below becomes a real issue on the bound Project.
+- Bindings: GitHub `CGuiho/zeze`, Project #2 `GUIHO`, component
+  `zeze`. Every unit below becomes a real issue on the bound Project.
 
 ## Units
 
 Defined from the reconnaissance reports (gap analysis, Convention 0001
 compliance audit, sibling-CLI study — all 2026-10-16). Every unit is a real
-GitHub issue on the bound Project with the `jureuma` component; disjoint
+GitHub issue on the bound Project with the `zeze` component; disjoint
 units run in parallel on `main` with serialized Git indexes, and briefs live
 under `execution/handoffs/`.
 

@@ -14,25 +14,25 @@ func TestInjectAliasBehavesLikeRun(t *testing.T) {
 	p.setup(`{"database":{"url":"postgres://u:pw@h/db","pool":20},"apiKey":"key-inject-alias"}`)
 
 	// The child receives the injected document (checked inside the child).
-	p.expect(0, "inject", "--", "sh", "-c", `case "$JUREUMA_CONFIG" in *'"apiKey":"key-inject-alias"'*) exit 0;; *) exit 1;; esac`)
+	p.expect(0, "inject", "--", "sh", "-c", `case "$ZEZE_CONFIG" in *'"apiKey":"key-inject-alias"'*) exit 0;; *) exit 1;; esac`)
 	// The exact document reaches the child.
-	r := p.expect(0, "inject", "--dangerously-bypass-protections", "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
+	r := p.expect(0, "inject", "--dangerously-bypass-protections", "--", "sh", "-c", `printf '%s' "$ZEZE_CONFIG"`)
 	if r.stdout != `{"database":{"url":"postgres://u:pw@h/db","pool":20},"apiKey":"key-inject-alias"}` {
-		t.Fatalf("JUREUMA_CONFIG = %s", r.stdout)
+		t.Fatalf("ZEZE_CONFIG = %s", r.stdout)
 	}
 	// Child output is redacted exactly like run.
-	r = p.expect(0, "inject", "--", "sh", "-c", `printf '%s' "$JUREUMA_CONFIG"`)
+	r = p.expect(0, "inject", "--", "sh", "-c", `printf '%s' "$ZEZE_CONFIG"`)
 	if r.stdout != `{"database":{"url":"[REDACTED]","pool":20},"apiKey":"[REDACTED]"}` {
 		t.Fatalf("inject redaction: %s", r.stdout)
 	}
 	assertNo(t, "inject output", r.out(), "postgres://u:pw@h/db", "key-inject-alias")
 	// Every run flag is accepted: flatten, prefix, env, env-name.
 	r = p.expect(0, "inject", "--dangerously-bypass-protections", "--format", "flatten", "--prefix", "APP_",
-		"--env", "DB=/database/url", "--", "sh", "-c", `printf '%s|%s|%s' "$APP_DATABASE_POOL" "$DB" "${JUREUMA_CONFIG-unset}"`)
+		"--env", "DB=/database/url", "--", "sh", "-c", `printf '%s|%s|%s' "$APP_DATABASE_POOL" "$DB" "${ZEZE_CONFIG-unset}"`)
 	if r.stdout != "20|postgres://u:pw@h/db|unset" {
 		t.Fatalf("inject flags: %q", r.stdout)
 	}
-	r = p.expect(0, "inject", "--env-name", "APP_CFG", "--", "sh", "-c", `printf '%s|%s' "${APP_CFG:+set}" "${JUREUMA_CONFIG:-unset}"`)
+	r = p.expect(0, "inject", "--env-name", "APP_CFG", "--", "sh", "-c", `printf '%s|%s' "${APP_CFG:+set}" "${ZEZE_CONFIG:-unset}"`)
 	if r.stdout != "set|unset" {
 		t.Fatalf("inject --env-name: %q", r.stdout)
 	}
@@ -49,14 +49,14 @@ func TestInjectAliasExitCodes(t *testing.T) {
 			t.Fatalf("inject child exit %s passed through as %d\n%s", c, r.code, r)
 		}
 	}
-	// jureuma-side failures keep the run contract: 125 with a [JUREUMA:<KIND>]
+	// zeze-side failures keep the run contract: 125 with a [ZEZE:<KIND>]
 	// prefix (cmd.Name() stays "run" under the alias).
 	r := p.run("inject", "--format", "yaml", "--", "true")
-	if r.code != 125 || !strings.HasPrefix(r.stderr, "[JUREUMA:USAGE]") {
-		t.Fatalf("inject bad --format: want 125 [JUREUMA:USAGE]\n%s", r)
+	if r.code != 125 || !strings.HasPrefix(r.stderr, "[ZEZE:USAGE]") {
+		t.Fatalf("inject bad --format: want 125 [ZEZE:USAGE]\n%s", r)
 	}
 	r = p.run("inject", "--", "definitely-not-a-command-e2e")
-	if r.code != 125 || !strings.HasPrefix(r.stderr, "[JUREUMA:") {
+	if r.code != 125 || !strings.HasPrefix(r.stderr, "[ZEZE:") {
 		t.Fatalf("inject missing command: want 125\n%s", r)
 	}
 	assertNo(t, "inject failure output", r.out(), "inject-exit-value")
@@ -71,10 +71,10 @@ func TestInjectAliasIsDiscoverable(t *testing.T) {
 	}
 	// inject --help is the run help.
 	a := p.expect(0, "inject", "--help")
-	if !strings.Contains(a.stdout, "jureuma run") || !strings.Contains(a.stdout, "--format") {
+	if !strings.Contains(a.stdout, "zeze run") || !strings.Contains(a.stdout, "--format") {
 		t.Fatalf("inject --help is not the run help:\n%s", a.stdout)
 	}
-	if r := p.expect(0, "help", "inject"); !strings.Contains(r.stdout, "jureuma run") {
+	if r := p.expect(0, "help", "inject"); !strings.Contains(r.stdout, "zeze run") {
 		t.Fatalf("help inject is not the run help:\n%s", r.stdout)
 	}
 	// --help-docs mentions the alias and is identical for both spellings.

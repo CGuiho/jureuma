@@ -1,9 +1,9 @@
 ---
-name: Jureuma 0.2.0 — `inject` Alias for `run`
+name: ZeZé 0.2.0 — `inject` Alias for `run`
 purpose: Record the release 0.2.0 train that adds `inject` as a command alias of `run`, its unit, brief and gates.
 description: "Plan for the release 0.2.0 train: add `inject` as an alias of `run` (issue #9), validate it through the standard battery and release it as the 0.2.0 minor (CG, 2026-10-17)."
 created: "2026-10-17"
-owner: jureuma-docs-plans-release-0.2.0
+owner: zeze-docs-plans-release-0.2.0
 flags: []
 tags:
   - "planning"
@@ -16,7 +16,7 @@ status: stable
 
 #### &copy; 2026 [GUIHO](https://guiho.co) as represented by [Cristóvão GUIHO](https://guiho.co/cguiho) All Rights Reserved.
 
-# Jureuma 0.2.0 — `inject` alias for `run`
+# ZeZé 0.2.0 — `inject` alias for `run`
 
 ## Context
 
@@ -57,7 +57,7 @@ design notes, bundled skill, CHANGELOG).
 Released 2026-10-17: `mirror version apply 0.2.0` tagged `v0.2.0` on
 `85f3e3a`, `runx run release-prepare` and `runx run release-verify` passed
 (all release checks green), and `runx run release-publish` published
-<https://github.com/CGuiho/jureuma/releases/tag/v0.2.0>. An independent
-download spot-check verified `checksums.txt`, `guiho-s-jureuma.zip`,
-`jureuma-darwin-arm64` and `jureuma.schema.json`; the release carries the
+<https://github.com/CGuiho/zeze/releases/tag/v0.2.0>. An independent
+download spot-check verified `checksums.txt`, `guiho-s-zeze.zip`,
+`zeze-darwin-arm64` and `zeze.schema.json`; the release carries the
 same 23-asset layout as 0.1.0.

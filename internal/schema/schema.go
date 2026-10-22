@@ -1,4 +1,4 @@
-// Package schema loads, checks, and applies jureuma's JSON Schemas (draft
+// Package schema loads, checks, and applies zeze's JSON Schemas (draft
 // 2020-12, stored as <stem>.schema.json or <stem>.schema.jsonc).
 //
 // Full validation is delegated to santhosh-tekuri/jsonschema/v6. Every
@@ -17,23 +17,23 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CGuiho/jureuma/internal/doc"
-	"github.com/CGuiho/jureuma/internal/jsonc"
+	"github.com/CGuiho/zeze/internal/doc"
+	"github.com/CGuiho/zeze/internal/jsonc"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // Draft202012 is the only supported meta-schema URI.
 const Draft202012 = "https://json-schema.org/draft/2020-12/schema"
 
-// SecretKeyword is the jureuma annotation that marks a location as secret.
-const SecretKeyword = "x-jureuma-secret"
+// SecretKeyword is the zeze annotation that marks a location as secret.
+const SecretKeyword = "x-zeze-secret"
 
 // resourceURL is the internal retrieval URL of every compiled schema. Using a
 // fixed URL keeps file-system paths out of compilation and makes fragment
 // lookups independent of the platform.
-const resourceURL = "file:///jureuma/schema.json"
+const resourceURL = "file:///zeze/schema.json"
 
-// AssertedFormats lists the formats jureuma asserts; any other format value is
+// AssertedFormats lists the formats zeze asserts; any other format value is
 // a schema error.
 var AssertedFormats = []string{"date-time", "date", "time", "email", "hostname", "ipv4", "ipv6", "uri", "uuid"}
 
@@ -127,7 +127,7 @@ func Compile(raw *doc.Value, location string) (*Schema, error) {
 	}, nil
 }
 
-// noLoader refuses every external reference: jureuma validates offline and
+// noLoader refuses every external reference: zeze validates offline and
 // only supports references inside the schema document.
 type noLoader struct{}
 

@@ -164,7 +164,7 @@ func TerminateOldPayload(home, oldPayload string) error {
 		}
 	}
 	if len(left) > 0 {
-		return fmt.Errorf("the previous jureuma payload process %s could not be terminated", strings.Join(left, ", "))
+		return fmt.Errorf("the previous zeze payload process %s could not be terminated", strings.Join(left, ", "))
 	}
 	return nil
 }

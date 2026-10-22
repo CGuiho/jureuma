@@ -1,11 +1,11 @@
 #!/bin/sh
-# Cross-build jureuma and its stable launcher for every supported release
-# target into an output directory (default dist/), named jureuma-<os>-<arch>[.exe]
-# and jureuma-launcher-<os>-<arch>[.exe].
+# Cross-build zeze and its stable launcher for every supported release
+# target into an output directory (default dist/), named zeze-<os>-<arch>[.exe]
+# and zeze-launcher-<os>-<arch>[.exe].
 #
 # usage: devops/cross-build.sh [--release] [--out <dir>]
 #   --release  require an exact release version (see devops/version.sh)
-# JUREUMA_TARGETS overrides the target list (space-separated os/arch pairs).
+# ZEZE_TARGETS overrides the target list (space-separated os/arch pairs).
 set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 out="$root/dist"
@@ -20,20 +20,20 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 version=$("$root/devops/version.sh" $vflag)
-targets=${JUREUMA_TARGETS:-"linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64"}
+targets=${ZEZE_TARGETS:-"linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64"}
 mkdir -p "$out"
 cd "$root"
 for target in $targets; do
   goos=${target%/*}
   goarch=${target#*/}
-  name="jureuma-$goos-$goarch"
-  launcher="jureuma-launcher-$goos-$goarch"
+  name="zeze-$goos-$goarch"
+  launcher="zeze-launcher-$goos-$goarch"
   if [ "$goos" = windows ]; then name="$name.exe"; launcher="$launcher.exe"; fi
   CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch go build -trimpath \
-    -ldflags "-s -w -X main.version=$version" -o "$out/$name" ./cmd/jureuma
+    -ldflags "-s -w -X main.version=$version" -o "$out/$name" ./cmd/zeze
   printf 'built %s (%s)\n' "$name" "$version"
   # The stable launcher is release-independent: no version is injected.
   CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch go build -trimpath \
-    -ldflags "-s -w" -o "$out/$launcher" ./cmd/jureuma-launcher
+    -ldflags "-s -w" -o "$out/$launcher" ./cmd/zeze-launcher
   printf 'built %s\n' "$launcher"
 done
